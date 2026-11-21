@@ -14,7 +14,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tone.js for grimdark synth/scanner SFX without external assets -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <!-- Google Fonts: Chakra Petch / Rajdhani / Share Tech Mono for heavy stencil & CRT cogitator look -->
+    <!-- Google Fonts: Chakra Petch / Orbitron / Share Tech Mono for heavy stencil & CRT cogitator look -->
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -245,29 +245,23 @@
             <!-- Left Cog-Skull Emblem (Tap to open Campaign Scan Logs) -->
             <button id="history-btn" class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900 border-2 border-stone-600 flex items-center justify-center shrink-0 active:scale-95 transition shadow-inner" title="Open Campaign Scan Logs">
                 <svg class="w-7 h-7 text-stone-400" viewBox="0 0 36 36" fill="currentColor">
-                    <!-- Cog teeth -->
                     <path d="M16 1h4v3.2a13.9 13.9 0 0 1 3.7 1.5l2.3-2.3 2.8 2.8-2.3 2.3A13.9 13.9 0 0 1 28 12.2H31.2v4H28a13.9 13.9 0 0 1-1.5 3.7l2.3 2.3-2.8 2.8-2.3-2.3A13.9 13.9 0 0 1 20 24.2V27.4h-4v-3.2a13.9 13.9 0 0 1-3.7-1.5l-2.3 2.3-2.8-2.8 2.3-2.3A13.9 13.9 0 0 1 8 16.2H4.8v-4H8a13.9 13.9 0 0 1 1.5-3.7L7.2 6.2 10 3.4l2.3 2.3A13.9 13.9 0 0 1 16 4.2V1z" opacity="0.55"/>
-                    <!-- Skull -->
                     <path d="M18 7.5c-4.4 0-8 3.2-8 7.2 0 2.5 1.4 4.7 3.5 6v2.8c0 .8.7 1.5 1.5 1.5h6c.8 0 1.5-.7 1.5-1.5v-2.8c2.1-1.3 3.5-3.5 3.5-6 0-4-3.6-7.2-8-7.2zm-3 8.5a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm6 0a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm-4.5 5.5v-2h1v2h-1zm2 0v-2h1v2h-1z"/>
                 </svg>
-                <span id="history-badge" class="absolute -bottom-1 -right-1 px-1 min-w-[16px] rounded bg-amber-600 border border-black text-[9px] font-bold text-black text-center leading-tight">0</span>
+                <span id="history-badge" class="absolute -bottom-1 -right-1 px-1 min-w-[16px] rounded-full bg-amber-600 border border-amber-300 text-[9px] font-bold text-black text-center">0</span>
             </button>
 
-            <!-- Recessed CRT Title Plate -->
-            <div class="crt-well flex-1 rounded px-2.5 py-1.5 min-w-0 relative overflow-hidden">
-                <div class="crt-scanlines absolute inset-0"></div>
-                <div class="flex items-center justify-between gap-1">
-                    <h1 class="font-stencil text-sm sm:text-lg font-bold tracking-wider text-[#58e678] glow-green truncate">
-                        UNDERHIVE BIO-SCANNER <span class="text-xs sm:text-sm">v4.1</span>
-                    </h1>
+            <!-- Center Title Screen -->
+            <div class="flex-1 crt-well rounded px-2.5 py-1.5 flex flex-col justify-center min-w-0">
+                <div class="font-stencil text-sm sm:text-base font-bold tracking-wider text-[#58e678] glow-green truncate text-center leading-tight">
+                    UNDERHIVE BIO-SCANNER v4.1
                 </div>
                 <div class="flex items-center justify-between text-[9px] sm:text-[10px] mt-0.5 pt-0.5 border-t border-emerald-500/20 gap-1">
-                    <!-- Necromunda / High Gothic Glyph Bar -->
                     <span class="text-emerald-500/70 tracking-widest truncate">☩ ⌖ ⟁ ⧉ ⌬ ⚚</span>
                     <span class="text-zinc-500 hidden sm:inline">SERIAL.8866365</span>
                     <span class="font-bold tracking-wider shrink-0">
                         <span class="text-stone-400">STATUS:</span>
-                        <span id="header-status-text" class="text-red-500 glow-red">ACTIVE</span>
+                        <span id="header-status-text" class="text-[#58e678] glow-green">ACTIVE</span>
                     </span>
                 </div>
             </div>
@@ -283,116 +277,114 @@
         </header>
 
         <!-- =========================================================
-             2. UPPER CIRCULAR RADAR APERTURE & LIVE CAMERA FEED
+             2. CIRCULAR PHOSPHOR RADAR & LIVE CAMERA VIEWPORT
              ========================================================= -->
-        <section id="radar-housing" class="metal-plate-rusted rounded-md flex-1 min-h-0 relative overflow-hidden flex items-center justify-center p-2">
-            <!-- Perimeter Rivets -->
+        <main class="relative flex-1 min-h-0 metal-plate-rusted rounded-md p-2 flex items-center justify-center overflow-hidden">
+            <!-- Rivets -->
             <span class="rivet top-2 left-2"></span>
             <span class="rivet top-2 right-2"></span>
             <span class="rivet bottom-2 left-2"></span>
             <span class="rivet bottom-2 right-2"></span>
 
-            <!-- Industrial Diagonal Cooling Louvers (Top-Right & Bottom-Left) -->
-            <div class="vent-slits w-24 h-8 sm:w-28 sm:h-10 absolute -top-2 right-6 rotate-[38deg] opacity-85 pointer-events-none"></div>
-            <div class="vent-slits w-24 h-8 sm:w-28 sm:h-10 absolute -bottom-2 left-6 rotate-[38deg] opacity-85 pointer-events-none"></div>
+            <!-- Diagonal Industrial Cooling Louvers (Top-Right & Bottom-Left) -->
+            <div class="vent-slits absolute top-3 right-3 w-16 h-10 sm:w-20 sm:h-12 rounded-sm opacity-80 pointer-events-none"></div>
+            <div class="vent-slits absolute bottom-3 left-3 w-16 h-10 sm:w-20 sm:h-12 rounded-sm opacity-80 pointer-events-none"></div>
 
-            <!-- Subtle Camera Utility Pills (Top Left: Optic Flip / Pict Upload) -->
-            <div class="absolute top-2.5 left-4 z-30 flex items-center gap-1.5">
-                <button id="switch-cam-btn" class="px-2 py-1 rounded bg-black/75 border border-stone-600 text-[9px] text-emerald-400 hover:border-emerald-500 active:scale-95 transition flex items-center gap-1" title="Switch Front/Rear Camera">
-                    <span>OPTIC</span>
+            <!-- Camera Utility Pills (Top Left: Optic Flip / Pict Upload / Glyph Grimoire) -->
+            <div class="absolute top-2.5 left-3.5 z-30 flex items-center gap-1.5">
+                <button id="switch-cam-btn" class="px-2 py-1 rounded bg-black/80 border border-stone-600 text-[9px] text-emerald-400 hover:border-emerald-500 active:scale-95 transition" title="Switch Front/Rear Camera">
+                    OPTIC
                 </button>
-                <label for="file-upload" class="px-2 py-1 rounded bg-black/75 border border-stone-600 text-[9px] text-amber-400 hover:border-amber-500 active:scale-95 transition cursor-pointer" title="Load Miniature Photo">
+                <label for="file-upload" class="px-2 py-1 rounded bg-black/80 border border-stone-600 text-[9px] text-amber-400 hover:border-amber-500 active:scale-95 transition cursor-pointer" title="Load Miniature Photo">
                     PICT
                 </label>
+                <button id="glyph-guide-btn" class="px-2 py-1 rounded bg-black/80 border border-amber-500/70 text-[9px] text-amber-300 hover:border-amber-400 active:scale-95 transition font-bold" title="View Printable Campaign Glyphs">
+                    GLYPHS
+                </button>
                 <input id="file-upload" type="file" accept="image/*" class="hidden" />
             </div>
 
-            <!-- Circular Phosphor Radar Lens (Holds Live Camera Feed + Sweeping Radar Canvas) -->
-            <div id="radar-aperture" class="relative aspect-square h-[92%] max-w-[92%] rounded-full overflow-hidden border-[5px] border-[#38312b] shadow-[0_0_0_2px_#14110f,inset_0_0_28px_rgba(0,0,0,0.95)] bg-[#060a07] flex items-center justify-center">
-                
-                <!-- Live Mobile Camera Video inside Radar Lens -->
-                <video id="camera-feed" class="absolute inset-0 w-full h-full object-cover opacity-80 filter contrast-125 saturate-50 brightness-90" autoplay playsinline muted></video>
-                
-                <!-- Fallback / Pict-Capture Canvas -->
-                <canvas id="sim-canvas" class="absolute inset-0 w-full h-full hidden"></canvas>
+            <!-- Live Optical Glyph Lock Indicator Pill (Top Right) -->
+            <div id="glyph-lock-pill" class="hidden absolute top-2.5 right-3.5 z-30 px-2 py-0.5 rounded bg-amber-950/90 border border-amber-400 text-[9px] font-bold text-amber-300 tracking-wider animate-pulse">
+                RUNE LOCK: <span id="glyph-lock-name">SIGIL-01</span>
+            </div>
 
-                <!-- Phosphor Green Radial Tint & Vignette -->
-                <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle, rgba(22, 65, 34, 0.22) 35%, rgba(4, 10, 6, 0.85) 100%);"></div>
-
-                <!-- Interactive Radar Sweep, Grid, Glitch & Target Reticle Canvas -->
+            <!-- Circular Auspex Lens Housing -->
+            <div id="radar-aperture" class="relative h-full aspect-square max-h-full max-w-full rounded-full crt-well overflow-hidden flex items-center justify-center border-4 border-stone-700 shadow-2xl">
+                <!-- Live Camera Video Stream -->
+                <video id="camera-feed" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                <!-- Fallback / Pict Simulation Canvas -->
+                <canvas id="sim-canvas" class="hidden w-full h-full block"></canvas>
+                <!-- Phosphor Radar Sweep & Reticle Overlay -->
                 <canvas id="radar-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
-
-                <!-- CRT Scanlines -->
-                <div class="crt-scanlines absolute inset-0 z-20"></div>
+                <!-- CRT Scanline Tint -->
+                <div class="absolute inset-0 crt-scanlines z-20"></div>
             </div>
 
-            <!-- Bottom-Right Live Telemetry Readout (Matches Reference Image Corner) -->
-            <div class="absolute bottom-2 right-3 z-30 text-right pointer-events-none leading-tight bg-black/55 px-1.5 py-1 rounded border border-stone-700/60">
-                <div id="tele-acquired" class="text-[9px] sm:text-[10px] font-bold text-[#58e678] glow-green">TARGET ACQUIRED</div>
-                <div class="text-[9px] sm:text-[10px] text-emerald-300/90">RANGE: <span id="tele-range" class="text-[#58e678] font-bold">24m</span></div>
-                <div class="text-[9px] sm:text-[10px] text-emerald-300/90">MUTATION INDEX: <span id="tele-mutation" class="text-amber-400 font-bold">04%</span></div>
-                <div class="text-[9px] sm:text-[10px] text-emerald-300/90">THREAT LEVEL: <span id="tele-threat" class="text-[#58e678] font-bold">LOW</span></div>
+            <!-- Corner Range & Threat Telemetry Readout (Bottom Right) -->
+            <div class="absolute bottom-2 right-3 z-30 text-right leading-tight pointer-events-none bg-black/65 px-2 py-1 rounded border border-stone-800/80">
+                <div id="tele-acquired" class="text-[9px] sm:text-[10px] text-[#58e678] font-bold tracking-wider">AUSPEX READY</div>
+                <div class="text-[9px] text-stone-300">RANGE: <span id="tele-range" class="text-emerald-300 font-bold">14m</span></div>
+                <div class="text-[9px] text-stone-300">MUTATION: <span id="tele-mutation" class="text-amber-400 font-bold">04%</span></div>
+                <div class="text-[9px] text-stone-300">THREAT: <span id="tele-threat" class="text-[#58e678] font-bold">LOW</span></div>
             </div>
-        </section>
+        </main>
 
         <!-- =========================================================
-             3. LOWER BIO-SIGNATURES DETECTED MONITOR PANEL
+             3. LOWER BIOMETRIC TELEMETRY MONITOR PANEL
              ========================================================= -->
-        <section id="bio-panel" class="metal-plate-rusted rounded-md p-2 shrink-0 relative">
+        <section class="metal-plate rounded-md p-2 shrink-0">
             <span class="rivet top-1.5 left-1.5"></span>
             <span class="rivet top-1.5 right-1.5"></span>
             <span class="rivet bottom-1.5 left-1.5"></span>
             <span class="rivet bottom-1.5 right-1.5"></span>
 
-            <div class="crt-well rounded p-2 sm:p-2.5 relative overflow-hidden">
-                <div class="crt-scanlines absolute inset-0 z-20"></div>
+            <div class="crt-well rounded p-2 relative overflow-hidden">
+                <div class="crt-scanlines absolute inset-0 z-10"></div>
 
-                <!-- Banner Headline (Clickable when scan completes to open full Dossier) -->
-                <div class="flex items-center justify-between gap-2 mb-1.5">
+                <!-- Top Banner & Dossier Re-open Trigger -->
+                <div class="flex items-center justify-between gap-2 pb-1 mb-1.5 border-b border-emerald-500/20 relative z-20">
                     <h2 id="bio-banner-title" class="font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate">
-                        AWAITING BIO-SCAN...
+                        BIO-SIGNATURES STANDBY
                     </h2>
-                    <button id="open-dossier-btn" class="hidden z-30 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-[10px] font-bold text-amber-300 uppercase animate-pulse active:scale-95">
-                        DOSSIER ▸
+                    <button id="open-dossier-btn" class="hidden px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-[9px] font-bold text-[#58e678] shrink-0 active:scale-95">
+                        DOSSIER
                     </button>
                 </div>
 
-                <!-- Two-Column Biometric Layout: Left Wireframe Portrait + Right Bars & ECG -->
-                <div class="grid grid-cols-12 gap-2.5 items-stretch">
-                    
-                    <!-- Left Column: Wireframe Hologram Portrait Box + Subject Tag -->
-                    <div class="col-span-4 flex flex-col justify-between">
-                        <div class="relative aspect-square w-full rounded border border-emerald-500/50 bg-[#040805] overflow-hidden">
+                <!-- Left Wireframe Hologram + Right Segmented Meters & ECG -->
+                <div class="grid grid-cols-12 gap-2.5 items-center relative z-20">
+                    <!-- Left: Wireframe Skull/Bust Hologram -->
+                    <div class="col-span-4 flex flex-col items-center">
+                        <div class="w-full aspect-square max-h-[82px] bg-black/90 border border-emerald-500/40 rounded overflow-hidden relative">
                             <canvas id="portrait-canvas" class="w-full h-full block"></canvas>
                         </div>
-                        <div class="mt-1 text-[8px] sm:text-[9px] leading-tight truncate">
-                            <span class="text-emerald-400/80">SUBJECT:</span>
-                            <span id="subject-tag-display" class="text-amber-400 font-bold">UNKNOWN / SCUM</span>
+                        <div id="subject-tag-display" class="mt-1 text-[8px] sm:text-[9px] text-amber-400 font-bold tracking-wider truncate w-full text-center">
+                            SUBJECT: UNKNOWN
                         </div>
                     </div>
 
-                    <!-- Right Column: RAD LEVEL, GENE-WARPED, VITAL SIGNS ECG -->
-                    <div class="col-span-8 flex flex-col justify-between space-y-1">
-                        
-                        <!-- RAD LEVEL Segmented Meter -->
+                    <!-- Right: RAD LEVEL, GENE-STABILITY & VITAL SIGNS ECG -->
+                    <div class="col-span-8 flex flex-col gap-1.5">
+                        <!-- RAD LEVEL Meter -->
                         <div>
-                            <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider text-[#58e678] glow-green mb-0.5">
+                            <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider text-[#58e678] glow-green">
                                 <span>RAD LEVEL</span>
-                                <span id="rad-val-label" class="text-[9px] font-mono text-emerald-300">1.42 Sv/h</span>
+                                <span id="rad-val-label" class="text-[9px] font-mono text-emerald-300">1.42 mSv</span>
                             </div>
-                            <div id="rad-meter-bar" class="h-2.5 sm:h-3 p-0.5 rounded-sm border border-[#58e678]/70 bg-black/80 flex gap-[2px]">
+                            <div id="rad-meter-bar" class="h-2.5 sm:h-3 p-0.5 bg-black border border-emerald-500/50 rounded-sm flex gap-[2px]">
                                 <!-- 24 LED segments injected via JS -->
                             </div>
                         </div>
 
-                        <!-- GENE-WARPED / MUTATION Meter + Hazard Triangle -->
-                        <div class="flex items-end gap-2">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider text-amber-400 glow-amber mb-0.5">
-                                    <span id="gene-status-label">GENE-STABILITY</span>
-                                    <span id="gene-val-label" class="text-[9px] font-mono">NOMINAL</span>
+                        <!-- GENE-WARPED / STABILITY Meter + Warning Triangle -->
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider">
+                                    <span id="gene-status-label" class="text-amber-400 glow-amber">GENE-STABILITY</span>
+                                    <span id="gene-val-label" class="text-[9px] font-mono text-amber-300">NOMINAL</span>
                                 </div>
-                                <div id="gene-meter-bar" class="h-2.5 sm:h-3 p-0.5 rounded-sm border border-amber-500/70 bg-black/80 flex gap-[2px]">
+                                <div id="gene-meter-bar" class="h-2.5 sm:h-3 p-0.5 bg-black border border-amber-500/50 rounded-sm flex gap-[2px]">
                                     <!-- 20 LED segments injected via JS -->
                                 </div>
                             </div>
@@ -416,7 +408,6 @@
                                 <canvas id="ecg-canvas" class="w-full h-full block"></canvas>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -453,7 +444,7 @@
                     </span>
                 </button>
 
-                <!-- OVERRIDE (Discreet Arbiter Mode Cycler: AUTO -> INFECTED -> BROOD -> CLEAN) -->
+                <!-- OVERRIDE (Discreet Arbiter Mode Cycler) -->
                 <button id="arbiter-mode-btn" class="hw-btn rounded py-2.5 sm:py-3 px-1.5 relative flex flex-col items-center justify-center">
                     <span class="rivet top-1 left-1"></span>
                     <span class="rivet top-1 right-1"></span>
@@ -472,15 +463,90 @@
     </div>
 
     <!-- =========================================================
+         PRINTABLE / DRAWABLE GLYPH GRIMOIRE MODAL
+         ========================================================= -->
+    <div id="glyph-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col justify-between p-3 sm:p-5 safe-top-pad safe-bottom-pad">
+        <div class="w-full max-w-md mx-auto flex-1 flex flex-col metal-plate-rusted rounded-lg overflow-hidden shadow-2xl">
+            <div class="p-3 bg-zinc-950 border-b border-stone-800 flex items-center justify-between">
+                <div>
+                    <div class="text-[10px] text-amber-500 uppercase tracking-widest">Optical Auspex Recognition Keys</div>
+                    <h3 class="font-stencil text-base font-bold text-[#58e678]">CAMPAIGN GLYPH GRIMOIRE</h3>
+                </div>
+                <button id="close-glyph-btn" class="px-2.5 py-1 rounded border border-stone-600 bg-zinc-900 text-xs text-emerald-400">
+                    CLOSE [X]
+                </button>
+            </div>
+
+            <div class="p-2.5 bg-amber-950/30 border-b border-amber-500/30 text-[11px] text-amber-200 leading-snug">
+                Print or draw these high-contrast <span class="font-bold text-white">2x2 Grid Glyphs</span> on white paper/cards (at least 1.5cm wide). Center a glyph inside the <span class="text-amber-400 font-bold">amber crosshair</span>—the scanner will automatically lock onto the rune!
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2.5 bg-zinc-950/95">
+                <!-- GLYPH 1: IMPERIAL AQUILA (Top-Left Dark) -->
+                <div class="p-2.5 rounded border border-emerald-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
+                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☩</div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                    </div>
+                    <div class="mt-2 font-stencil font-bold text-xs text-[#58e678]">RUNE I: AQUILA SEAL</div>
+                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-[#58e678]">PURE / SANCTIFIED</span></div>
+                </div>
+
+                <!-- GLYPH 2: BROOD-TAINT (Top-Right + Bottom-Left Dark) -->
+                <div class="p-2.5 rounded border border-amber-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
+                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
+                        <div class="bg-white"></div>
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⌖</div>
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⌖</div>
+                        <div class="bg-white"></div>
+                    </div>
+                    <div class="mt-2 font-stencil font-bold text-xs text-amber-400">RUNE II: BROOD-MARK</div>
+                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-amber-400">LATENT BROOD-TAINT</span></div>
+                </div>
+
+                <!-- GLYPH 3: MALSTRAIN HORROR (Top-Left + Bottom-Right Dark) -->
+                <div class="p-2.5 rounded border border-red-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
+                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☣</div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☣</div>
+                    </div>
+                    <div class="mt-2 font-stencil font-bold text-xs text-red-500">RUNE III: XENOS SIGIL</div>
+                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-red-400">MALSTRAIN INFECTED</span></div>
+                </div>
+
+                <!-- GLYPH 4: ARCHEO-RELIC (Bottom-Left + Bottom-Right Dark) -->
+                <div class="p-2.5 rounded border border-cyan-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
+                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⚙</div>
+                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⚙</div>
+                    </div>
+                    <div class="mt-2 font-stencil font-bold text-xs text-cyan-400">RUNE IV: ARCHEO-KEY</div>
+                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-cyan-300">RELIC CACHE UNLOCKED</span></div>
+                </div>
+            </div>
+
+            <div class="p-2.5 bg-zinc-950 border-t border-stone-800">
+                <button id="close-glyph-footer-btn" class="hw-btn w-full py-2.5 rounded font-stencil font-bold text-xs uppercase text-[#58e678]">
+                    RETURN TO AUSPEX
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
          FULL DIAGNOSTIC DOSSIER MODAL (Opens on Scan Complete)
          ========================================================= -->
     <div id="result-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col justify-center p-3 sm:p-5 overflow-y-auto">
         <div id="result-card" class="w-full max-w-md mx-auto my-auto metal-plate-rusted rounded-lg overflow-hidden shadow-2xl">
-            <!-- Top Hazard Strip -->
             <div id="result-hazard" class="h-2.5 w-full hazard-stripe"></div>
 
             <div class="p-3.5 bg-zinc-950/95">
-                <!-- Header -->
                 <div class="pb-3 border-b border-stone-800 flex items-center justify-between gap-2">
                     <div>
                         <div id="result-classification" class="text-[10px] tracking-widest uppercase text-stone-400">BIO-SCAN COMPLETE // SUBJECT VERIFIED</div>
@@ -532,7 +598,6 @@
                     </p>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="mt-3.5 flex gap-2">
                     <button id="reset-scan-btn" class="hw-btn w-full py-3 rounded font-stencil font-bold text-sm tracking-wider uppercase text-[#58e678] glow-green">
                         LOG & RETURN TO AUSPEX
@@ -590,7 +655,7 @@
     <script>
         /**
          * UNDERHIVE BIO-SCANNER v4.1 // MALSTRAIN PROTOCOL
-         * Grimy Industrial Auspex UI + Live Mobile Camera + Wireframe Hologram Telemetry
+         * Grimy Industrial Auspex UI + Live Mobile Camera + Optical Glyph Recognition
          */
 
         // --- APPLICATION STATE ---
@@ -601,12 +666,13 @@
             stream: null,
             usingFallbackSim: false,
             uploadedImage: null,
-            arbiterModes: ['AUTO', 'INFECTED', 'BROOD', 'CLEAN'],
+            arbiterModes: ['AUTO', 'INFECTED', 'BROOD', 'CLEAN', 'RELIC'],
             arbiterIndex: 0,
             scanProgress: 0,
-            currentOutcome: 'CLEAN', // 'CLEAN' | 'BROOD' | 'INFECTED'
+            currentOutcome: 'CLEAN', // 'CLEAN' | 'BROOD' | 'INFECTED' | 'RELIC'
+            detectedGlyph: null,
             radarAngle: -Math.PI / 4,
-            pulseWaveRadius: 0, // Expanding sonar wave from PULSE button
+            pulseWaveRadius: 0,
             blips: [],
             scanHistory: [],
             pendingLogEntry: null,
@@ -614,6 +680,12 @@
             mutationPct: 4,
             bpm: 78
         };
+
+        // Offscreen low-res sampler canvas for real-time optical rune detection
+        const visionCanvas = document.createElement('canvas');
+        visionCanvas.width = 64;
+        visionCanvas.height = 64;
+        const visionCtx = visionCanvas.getContext('2d', { willReadFrequently: true });
 
         // --- DOM REFERENCES ---
         const videoEl = document.getElementById('camera-feed');
@@ -654,7 +726,13 @@
         const switchCamBtn = document.getElementById('switch-cam-btn');
         const fileUpload = document.getElementById('file-upload');
 
-        // Modal & Log DOM
+        const glyphGuideBtn = document.getElementById('glyph-guide-btn');
+        const glyphLockPill = document.getElementById('glyph-lock-pill');
+        const glyphLockName = document.getElementById('glyph-lock-name');
+        const glyphModal = document.getElementById('glyph-modal');
+        const closeGlyphBtn = document.getElementById('close-glyph-btn');
+        const closeGlyphFooterBtn = document.getElementById('close-glyph-footer-btn');
+
         const resultModal = document.getElementById('result-modal');
         const resultCard = document.getElementById('result-card');
         const resultClassification = document.getElementById('result-classification');
@@ -908,10 +986,97 @@
                     psychic: "APEX BEACON",
                     notes: "CRITICAL: Auspex emitters overloaded by corrupted psychic miasma! Subject is a twisted fusion of ganger flesh and Abyssal Malstrain terror. Do not engage in melee!"
                 }
+            ],
+            RELIC: [
+                {
+                    title: "ARCHEO-TECH VAULT KEY",
+                    banner: "ANCIENT CIPHER DECODED",
+                    subjectTag: "RELIC // STC FRAGMENT",
+                    classification: "OPTICAL CIPHER MATCH // DARK AGE CACHE",
+                    corruption: "0.00% [SHIELDED]",
+                    mutationPct: 0,
+                    threat: "SPECIAL",
+                    xenos: "NON-BIOLOGICAL",
+                    mutation: "STASIS FIELD INTACT",
+                    psychic: "HARMONIC HUM",
+                    notes: "COGITATOR ALERT: Optical Rune IV matches pre-Imperial Hive Secundus vault cipher! Nearby bulkhead or stasis crate unlocked. Award D3x10 Credits or 1 Rare Trade item to the scanning gang."
+                }
             ]
         };
 
-        // --- CAMERA & FALLBACK SIMULATION ---
+        // --- REAL-TIME OPTICAL GLYPH / RUNE DETECTOR ---
+        function analyzeOpticalGlyph() {
+            const source = state.usingFallbackSim ? simCanvas : videoEl;
+            const srcW = state.usingFallbackSim ? simCanvas.width : videoEl.videoWidth;
+            const srcH = state.usingFallbackSim ? simCanvas.height : videoEl.videoHeight;
+            if (!srcW || !srcH) return;
+
+            const cropSize = Math.min(srcW, srcH) * 0.28;
+            const sx = (srcW - cropSize) / 2;
+            const sy = (srcH - cropSize) / 2;
+
+            try {
+                visionCtx.drawImage(source, sx, sy, cropSize, cropSize, 0, 0, 64, 64);
+                const imgData = visionCtx.getImageData(0, 0, 64, 64).data;
+
+                const quadSums = [0, 0, 0, 0];
+                const quadCounts = [0, 0, 0, 0];
+                let borderSum = 0;
+                let borderCount = 0;
+
+                for (let y = 0; y < 64; y++) {
+                    for (let x = 0; x < 64; x++) {
+                        const idx = (y * 64 + x) * 4;
+                        const lum = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
+
+                        if (x < 6 || x >= 58 || y < 6 || y >= 58) {
+                            borderSum += lum;
+                            borderCount++;
+                        } else if (x >= 10 && x < 54 && y >= 10 && y < 54) {
+                            if (Math.abs(x - 32) < 2 || Math.abs(y - 32) < 2) continue;
+                            const qIdx = (y >= 32 ? 2 : 0) + (x >= 32 ? 1 : 0);
+                            quadSums[qIdx] += lum;
+                            quadCounts[qIdx]++;
+                        }
+                    }
+                }
+
+                const borderAvg = borderSum / Math.max(1, borderCount);
+                const qAvg = quadSums.map((s, i) => s / Math.max(1, quadCounts[i]));
+                const maxQ = Math.max(...qAvg);
+                const minQ = Math.min(...qAvg);
+
+                if (borderAvg > 125 && (maxQ - minQ) > 55) {
+                    const threshold = (maxQ + minQ) * 0.5;
+                    const bits =
+                        (qAvg[0] < threshold ? 1 : 0) |
+                        (qAvg[1] < threshold ? 2 : 0) |
+                        (qAvg[2] < threshold ? 4 : 0) |
+                        (qAvg[3] < threshold ? 8 : 0);
+
+                    const glyphMap = {
+                        1:  { label: 'RUNE I: AQUILA', outcome: 'CLEAN' },
+                        6:  { label: 'RUNE II: BROOD', outcome: 'BROOD' },
+                        9:  { label: 'RUNE III: XENOS', outcome: 'INFECTED' },
+                        12: { label: 'RUNE IV: ARCHEO', outcome: 'RELIC' }
+                    };
+
+                    if (glyphMap[bits]) {
+                        state.detectedGlyph = glyphMap[bits];
+                        glyphLockPill.classList.remove('hidden');
+                        glyphLockName.textContent = glyphMap[bits].label;
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Ignore unready frame
+            }
+
+            state.detectedGlyph = null;
+            glyphLockPill.classList.add('hidden');
+        }
+
+        // --- CAMERA INITIALIZATION ---
         async function startCamera() {
             if (state.stream) {
                 state.stream.getTracks().forEach(track => track.stop());
@@ -1008,7 +1173,6 @@
             const amberColor = '#f59e0b';
 
             // 1. Concentric Radar Rings
-            radarCtx.lineWidth = 1;
             [0.28, 0.52, 0.76, 0.96].forEach((ratio, idx) => {
                 radarCtx.beginPath();
                 radarCtx.arc(cx, cy, maxR * ratio, 0, Math.PI * 2);
@@ -1017,7 +1181,7 @@
                 radarCtx.stroke();
             });
 
-            // 2. Radial Spokes (Every 30 degrees)
+            // 2. Radial Spokes
             radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
             radarCtx.lineWidth = 1;
             for (let a = 0; a < 360; a += 30) {
@@ -1046,7 +1210,6 @@
             radarCtx.fillStyle = grad;
             radarCtx.fill();
 
-            // Leading Sweep Line
             radarCtx.beginPath();
             radarCtx.moveTo(0, 0);
             radarCtx.lineTo(maxR * 0.95, 0);
@@ -1055,7 +1218,7 @@
             radarCtx.stroke();
             radarCtx.restore();
 
-            // 4. Expanding PULSE Sonar Wave (triggered by PULSE button)
+            // 4. Expanding PULSE Sonar Wave
             if (state.pulseWaveRadius > 0) {
                 state.pulseWaveRadius += maxR * 0.035;
                 const alpha = Math.max(0, 1 - state.pulseWaveRadius / maxR);
@@ -1081,7 +1244,7 @@
                 radarCtx.fill();
             });
 
-            // 6. Center Miniature Target Reticle (Amber Crosshair Ring)
+            // 6. Center Miniature Target Reticle
             const retR = maxR * 0.22;
             radarCtx.save();
             radarCtx.translate(cx, cy);
@@ -1099,7 +1262,6 @@
             radarCtx.stroke();
             radarCtx.setLineDash([]);
 
-            // Crosshair ticks
             const tick = retR * 1.28;
             radarCtx.beginPath();
             radarCtx.moveTo(-tick, 0); radarCtx.lineTo(-retR * 0.4, 0);
@@ -1109,7 +1271,7 @@
             radarCtx.stroke();
             radarCtx.restore();
 
-            // 7. Curved "SCANNING..." Perimeter Labels when active
+            // 7. Curved "SCANNING..." Label when active
             if (state.isScanning) {
                 radarCtx.save();
                 radarCtx.fillStyle = primaryColor;
@@ -1119,7 +1281,7 @@
                 radarCtx.restore();
             }
 
-            // 8. Horizontal CRT Glitch Streaks (Matches Reference Visual)
+            // 8. Horizontal CRT Glitch Streaks
             if (state.isScanning || Math.random() < 0.08) {
                 const streaks = state.isScanning ? 5 : 1;
                 for (let i = 0; i < streaks; i++) {
@@ -1147,7 +1309,6 @@
             const isBrood = !state.isScanning && state.currentOutcome === 'BROOD';
             const wireColor = isDanger ? '#ef4444' : (isBrood ? '#f59e0b' : '#58e678');
 
-            // Subtle Grid Backdrop
             portraitCtx.strokeStyle = 'rgba(88, 230, 120, 0.14)';
             portraitCtx.lineWidth = 1;
             const step = w / 6;
@@ -1158,7 +1319,6 @@
                 portraitCtx.stroke();
             }
 
-            // Wireframe Cranium & Augmetic Eye (Inspired by Reference Portrait)
             portraitCtx.save();
             portraitCtx.translate(cx, cy + Math.sin(portraitPhase) * 1.5);
             portraitCtx.strokeStyle = wireColor;
@@ -1167,12 +1327,10 @@
             const rx = w * 0.26;
             const ry = h * 0.34;
 
-            // Outer Cranial Mesh
             portraitCtx.beginPath();
             portraitCtx.ellipse(0, -h * 0.03, rx, ry, 0, 0, Math.PI * 2);
             portraitCtx.stroke();
 
-            // Latitude & Longitude Wireframe Contours
             [-0.45, 0, 0.45].forEach(offset => {
                 portraitCtx.beginPath();
                 portraitCtx.ellipse(0, -h * 0.03, rx * Math.abs(Math.cos(offset * 1.2)), ry, 0, 0, Math.PI * 2);
@@ -1187,7 +1345,6 @@
                 portraitCtx.stroke();
             });
 
-            // Jaw & Neck Struts
             portraitCtx.beginPath();
             portraitCtx.moveTo(-rx * 0.65, ry * 0.65);
             portraitCtx.lineTo(-rx * 0.38, ry * 1.05);
@@ -1195,7 +1352,6 @@
             portraitCtx.lineTo(rx * 0.65, ry * 0.65);
             portraitCtx.stroke();
 
-            // Left Eye (Organic) & Right Eye (Glowing Bionics / Xenos Lens)
             portraitCtx.beginPath();
             portraitCtx.arc(-rx * 0.36, -h * 0.06, rx * 0.14, 0, Math.PI * 2);
             portraitCtx.stroke();
@@ -1206,7 +1362,6 @@
             portraitCtx.fill();
             portraitCtx.stroke();
 
-            // If Infected, draw Xenos Crest Spines
             if (isDanger || isBrood) {
                 portraitCtx.beginPath();
                 portraitCtx.moveTo(-rx * 0.85, -ry * 0.4);
@@ -1220,7 +1375,6 @@
 
             portraitCtx.restore();
 
-            // Horizontal Glitch Scanlines across portrait
             if (state.isScanning || isDanger || Math.random() < 0.2) {
                 const gy = ((portraitPhase * 28) % h);
                 portraitCtx.fillStyle = isDanger ? 'rgba(239, 68, 68, 0.45)' : 'rgba(88, 230, 120, 0.45)';
@@ -1238,7 +1392,6 @@
             const midY = h * 0.55;
 
             ecgTick++;
-            // Determine heartbeat spike frequency based on current BPM / Danger
             const isDanger = (state.isScanning && state.scanProgress > 55 && state.currentOutcome !== 'CLEAN') || (!state.isScanning && state.currentOutcome === 'INFECTED');
             const cycleLen = isDanger ? 16 : (state.isScanning ? 22 : 34);
             const phase = ecgTick % cycleLen;
@@ -1254,7 +1407,6 @@
 
             ecgCtx.clearRect(0, 0, w, h);
 
-            // Subtle baseline
             ecgCtx.strokeStyle = 'rgba(88, 230, 120, 0.18)';
             ecgCtx.lineWidth = 1;
             ecgCtx.beginPath();
@@ -1262,7 +1414,6 @@
             ecgCtx.lineTo(w, midY);
             ecgCtx.stroke();
 
-            // Active ECG Trace
             ecgCtx.strokeStyle = isDanger ? '#ef4444' : '#58e678';
             ecgCtx.lineWidth = 2;
             ecgCtx.beginPath();
@@ -1281,39 +1432,43 @@
         function renderLoop() {
             // 1. Draw Fallback / Pict-Capture background if live video isn't active
             if (state.usingFallbackSim) {
-                simCtx.fillStyle = '#060a07';
-                simCtx.fillRect(0, 0, simCanvas.width, simCanvas.height);
+                const w = simCanvas.width;
+                const h = simCanvas.height;
+                simCtx.fillStyle = '#07110a';
+                simCtx.fillRect(0, 0, w, h);
 
                 if (state.uploadedImage) {
-                    const scale = Math.max(simCanvas.width / state.uploadedImage.width, simCanvas.height / state.uploadedImage.height);
-                    const w = state.uploadedImage.width * scale;
-                    const h = state.uploadedImage.height * scale;
-                    const x = (simCanvas.width - w) / 2;
-                    const y = (simCanvas.height - h) / 2;
-                    simCtx.save();
-                    simCtx.filter = 'contrast(125%) saturate(60%)';
-                    simCtx.drawImage(state.uploadedImage, x, y, w, h);
-                    simCtx.restore();
+                    const scale = Math.max(w / state.uploadedImage.width, h / state.uploadedImage.height);
+                    const iw = state.uploadedImage.width * scale;
+                    const ih = state.uploadedImage.height * scale;
+                    simCtx.globalAlpha = 0.72;
+                    simCtx.drawImage(state.uploadedImage, (w - iw) / 2, (h - ih) / 2, iw, ih);
+                    simCtx.globalAlpha = 1.0;
                 } else {
+                    simGridOffset = (simGridOffset + 0.4) % 24;
                     simCtx.strokeStyle = 'rgba(88, 230, 120, 0.15)';
                     simCtx.lineWidth = 1;
-                    simGridOffset = (simGridOffset + 0.35) % 28;
-                    for (let x = 0; x < simCanvas.width; x += 28) {
+                    for (let x = simGridOffset; x < w; x += 24) {
                         simCtx.beginPath();
                         simCtx.moveTo(x, 0);
-                        simCtx.lineTo(x, simCanvas.height);
+                        simCtx.lineTo(x, h);
                         simCtx.stroke();
                     }
-                    for (let y = simGridOffset; y < simCanvas.height; y += 28) {
+                    for (let y = simGridOffset; y < h; y += 24) {
                         simCtx.beginPath();
                         simCtx.moveTo(0, y);
-                        simCtx.lineTo(simCanvas.width, y);
+                        simCtx.lineTo(w, y);
                         simCtx.stroke();
                     }
                 }
             }
 
-            // 2. Render Radar Aperture, Portrait & ECG
+            // 2. Sample Optical Glyph inside Crosshair Reticle
+            if (!state.isScanning) {
+                analyzeOpticalGlyph();
+            }
+
+            // 3. Render Radar Aperture, Portrait & ECG
             drawRadarOverlay();
             drawWireframePortrait();
             drawEcgWaveform();
@@ -1325,6 +1480,11 @@
         function getCurrentOutcomeType() {
             const mode = state.arbiterModes[state.arbiterIndex];
             if (mode !== 'AUTO') return mode;
+
+            if (state.detectedGlyph) {
+                return state.detectedGlyph.outcome;
+            }
+
             const roll = Math.random();
             if (roll < 0.45) return 'INFECTED';
             if (roll < 0.70) return 'BROOD';
@@ -1342,7 +1502,6 @@
             const pool = scanOutcomes[state.currentOutcome];
             const selectedResult = pool[Math.floor(Math.random() * pool.length)];
 
-            // Update UI to Active Scanning
             scanBtn.disabled = true;
             scanBtnText.textContent = "SCANNING...";
             openDossierBtn.classList.add('hidden');
@@ -1365,7 +1524,6 @@
                 const pct = Math.floor(state.scanProgress);
                 const isDangerRising = pct >= 55 && state.currentOutcome !== 'CLEAN';
 
-                // Animate meters during scan
                 const liveMut = isDangerRising
                     ? Math.min(selectedResult.mutationPct, Math.floor(20 + (pct - 55) * 1.8))
                     : Math.floor((pct / 100) * selectedResult.mutationPct);
@@ -1397,11 +1555,10 @@
             state.isScanning = false;
             scanBtn.disabled = false;
             scanBtnText.textContent = "START SCAN";
-            bioBannerTitle.classList.remove('animate-pulse');
-            warningTriangle.classList.remove('animate-bounce');
 
-            const isCorrupted = category !== 'CLEAN';
+            const isCorrupted = category === 'INFECTED' || category === 'BROOD';
             const isExtremis = category === 'INFECTED';
+            const isRelic = category === 'RELIC';
 
             if (navigator.vibrate) {
                 navigator.vibrate(isCorrupted ? [250, 100, 250, 100, 500] : [80]);
@@ -1409,10 +1566,9 @@
 
             playResultSound(category);
 
-            // Update Lower Bio-Signature Monitor Panel with Final Telemetry
             bioBannerTitle.textContent = data.banner;
-            subjectTagDisplay.textContent = data.subjectTag;
-            teleAcquired.textContent = "TARGET ACQUIRED";
+            subjectTagDisplay.textContent = state.detectedGlyph ? state.detectedGlyph.label : data.subjectTag;
+            teleAcquired.textContent = state.detectedGlyph ? "RUNE CIPHER LOCKED" : "TARGET ACQUIRED";
             teleMutation.textContent = `${String(data.mutationPct).padStart(2, '0')}%`;
             teleThreat.textContent = data.threat;
             openDossierBtn.classList.remove('hidden');
@@ -1435,6 +1591,15 @@
                 updateMeterSegments(geneMeterBar, data.mutationPct, 'amber');
                 warningTriangle.className = "shrink-0 text-amber-400";
                 bpmLabel.textContent = "128 BPM";
+            } else if (isRelic) {
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-cyan-400 uppercase truncate";
+                teleThreat.className = "text-cyan-400 font-bold";
+                geneStatusLabel.textContent = "CIPHER-HARMONIC";
+                geneStatusLabel.className = "text-cyan-400";
+                geneValLabel.textContent = "UNLOCKED";
+                updateMeterSegments(geneMeterBar, 100, 'green');
+                warningTriangle.className = "shrink-0 text-cyan-400";
+                bpmLabel.textContent = "00 BPM [RELIC]";
             } else {
                 bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-[#58e678] glow-green uppercase truncate";
                 teleThreat.className = "text-[#58e678] font-bold glow-green";
@@ -1446,7 +1611,6 @@
                 bpmLabel.textContent = "76 BPM";
             }
 
-            // Stage Pending Campaign Log Entry
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             state.pendingLogEntry = {
                 id: Date.now(),
@@ -1458,7 +1622,6 @@
             };
             subjectNameInput.value = '';
 
-            // Populate & Style Dossier Modal
             if (isCorrupted) {
                 const accentBorder = isExtremis ? 'border-red-500' : 'border-amber-500';
                 const accentText = isExtremis ? 'text-red-500 glow-red' : 'text-amber-400 glow-amber';
@@ -1545,7 +1708,6 @@
         // --- EVENT LISTENERS ---
         scanBtn.addEventListener('click', triggerScan);
 
-        // PULSE Button: Fires Sonar Wave + Updates Ambient Range & Rad Telemetry
         pulseBtn.addEventListener('click', async () => {
             await initAudio();
             playSonarPulse();
@@ -1556,7 +1718,6 @@
             if (navigator.vibrate) navigator.vibrate(35);
         });
 
-        // OVERRIDE Button: Cycles Arbiter Rig Mode (AUTO -> INFECTED -> BROOD -> CLEAN)
         arbiterModeBtn.addEventListener('click', async () => {
             await initAudio();
             state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
@@ -1566,12 +1727,12 @@
             if (currentMode === 'INFECTED') modeLabel.className = 'text-[8px] font-mono text-red-400 font-bold tracking-widest mt-0.5 uppercase';
             else if (currentMode === 'BROOD') modeLabel.className = 'text-[8px] font-mono text-amber-400 font-bold tracking-widest mt-0.5 uppercase';
             else if (currentMode === 'CLEAN') modeLabel.className = 'text-[8px] font-mono text-[#58e678] font-bold tracking-widest mt-0.5 uppercase';
+            else if (currentMode === 'RELIC') modeLabel.className = 'text-[8px] font-mono text-cyan-400 font-bold tracking-widest mt-0.5 uppercase';
             else modeLabel.className = 'text-[8px] font-mono text-stone-400 tracking-widest mt-0.5 uppercase';
 
             playBeep(740, "32n");
         });
 
-        // Dossier Close & Open
         resetScanBtn.addEventListener('click', () => {
             savePendingLog();
             playBeep(520, "16n");
@@ -1583,7 +1744,6 @@
             resultModal.classList.remove('hidden');
         });
 
-        // History Drawer Controls
         historyBtn.addEventListener('click', async () => {
             await initAudio();
             playBeep(680, "32n");
@@ -1604,7 +1764,6 @@
             updateHistoryUI();
         });
 
-        // Audio Mute Toggle
         audioBtn.addEventListener('click', async () => {
             await initAudio();
             state.audioEnabled = !state.audioEnabled;
@@ -1620,7 +1779,6 @@
             }
         });
 
-        // Switch Camera Optic
         switchCamBtn.addEventListener('click', async () => {
             await initAudio();
             playBeep(600, "16n");
@@ -1629,17 +1787,19 @@
             startCamera();
         });
 
-        // Ambient RAD Level Meter Fluctuation
-        setInterval(() => {
-            const rad = (1.25 + Math.random() * 1.15).toFixed(2);
-            radValLabel.textContent = `${rad} Sv/h`;
-            if (!state.isScanning) {
-                const radPct = Math.min(95, Math.max(35, Math.round((parseFloat(rad) / 2.6) * 100)));
-                updateMeterSegments(radMeterBar, radPct, 'green');
-            }
-        }, 1800);
+        glyphGuideBtn.addEventListener('click', async () => {
+            await initAudio();
+            playBeep(720, "32n");
+            glyphModal.classList.remove('hidden');
+        });
+        function closeGlyphModal() {
+            playBeep(520, "32n");
+            glyphModal.classList.add('hidden');
+        }
+        closeGlyphBtn.addEventListener('click', closeGlyphModal);
+        closeGlyphFooterBtn.addEventListener('click', closeGlyphModal);
 
-        // --- INITIALIZATION ---
+        // --- BOOT SEQUENCE ---
         window.onload = () => {
             resizeCanvases();
             updateMeterSegments(radMeterBar, 58, 'green');
