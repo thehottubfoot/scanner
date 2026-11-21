@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Enable fullscreen standalone mode when added to iOS/Android Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Auspex Mk.IV">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#090b0a">
     <title>IMPERIAL AUGUR-SCAN // MALSTRAIN PROTOCOL</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,16 +23,31 @@
             --malstrain-crimson: #ef4444;
             --malstrain-purple: #a855f7;
             --dark-slate: #090b0a;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
         }
 
-        body {
+        html, body {
+            height: 100dvh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
             background-color: var(--dark-slate);
             color: var(--phosphor-green);
             font-family: 'Share Tech Mono', monospace;
             overflow: hidden;
+            overscroll-behavior: none;
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
+        }
+
+        .safe-header {
+            padding-top: calc(0.75rem + var(--safe-top));
+        }
+
+        .safe-footer {
+            padding-bottom: calc(1rem + var(--safe-bottom));
         }
 
         .font-display {
@@ -60,72 +81,7 @@
 
         .laser-beam {
             position: absolute;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #22c55e;
-            box-shadow: 0 0 15px 4px rgba(34, 197, 94, 0.8), 0 0 30px 8px rgba(34, 197, 94, 0.4);
-            animation: laserSweep 2.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-            z-index: 20;
-        }
-
-        .laser-beam.corrupted {
-            background: #ef4444;
-            box-shadow: 0 0 18px 5px rgba(239, 68, 68, 0.9), 0 0 35px 10px rgba(168, 85, 247, 0.6);
-        }
-
-        /* Rotating Reticle Rings */
-        @keyframes spinSlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes spinReverse {
-            from { transform: rotate(360deg); }
-            to { transform: rotate(0deg); }
-        }
-
-        .reticle-outer {
-            animation: spinSlow 24s linear infinite;
-        }
-        .reticle-inner {
-            animation: spinReverse 14s linear infinite;
-        }
-        .reticle-scanning {
-            animation: spinSlow 3s linear infinite;
-        }
-
-        /* Screen Glitch / Alert Flash */
-        @keyframes alarmPulse {
-            0%, 100% { box-shadow: inset 0 0 25px rgba(239, 68, 68, 0.3); }
-            50% { box-shadow: inset 0 0 75px rgba(239, 68, 68, 0.85); }
-        }
-
-        .alarm-active {
-            animation: alarmPulse 0.8s infinite;
-        }
-
-        /* Hazard Stripes */
-        .hazard-bar {
-            background: repeating-linear-gradient(
-                -45deg,
-                #f59e0b,
-                #f59e0b 10px,
-                #18181b 10px,
-                #18181b 20px
-            );
-        }
-
-        .hazard-bar-red {
-            background: repeating-linear-gradient(
-                -45deg,
-                #ef4444,
-                #ef4444 10px,
-                #18181b 10px,
-                #18181b 20px
-            );
-        }
-
-        /* Custom Scrollbar for Dossier if needed */
+        /* Custom Scrollbar for Dossier & History Log */
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -137,10 +93,10 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col justify-between relative bg-black">
+<body class="h-[100dvh] w-screen flex flex-col justify-between relative bg-black overflow-hidden">
 
     <!-- CAMERA FEED & CANVAS OVERLAY -->
-    <div id="viewport-container" class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-zinc-950">
+    <div id="viewport-container" class="relative flex-1 w-full h-full overflow-hidden flex flex-col justify-between bg-zinc-950">
         
         <!-- Live Video Element -->
         <video id="camera-feed" class="absolute inset-0 w-full h-full object-cover opacity-85 filter contrast-125 saturate-75" autoplay playsinline muted></video>
@@ -158,22 +114,27 @@
         <div class="crt-overlay absolute inset-0 z-20"></div>
 
         <!-- TOP IMPERIAL HEADER -->
-        <header class="absolute top-0 left-0 right-0 z-30 p-3 bg-gradient-to-b from-black/90 via-black/70 to-transparent border-b border-emerald-500/30">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
+        <header class="safe-header relative z-30 px-3 pb-2.5 bg-gradient-to-b from-black/95 via-black/80 to-transparent border-b border-emerald-500/30 shrink-0">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
                     <!-- Imperial Aquila / Cog Icon SVG -->
-                    <svg class="w-7 h-7 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <svg class="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2L14.5 6.5L19.5 5.5L18 10.5L22 13L18 15.5L19.5 20.5L14.5 19.5L12 24L9.5 19.5L4.5 20.5L6 15.5L2 13L6 10.5L4.5 5.5L9.5 6.5L12 2ZM12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7ZM12 9C13.66 9 15 10.34 15 12C15 13.66 13.66 15 12 15C10.34 15 9 13.66 9 12C9 10.34 10.34 9 12 9Z"/>
                     </svg>
-                    <div>
-                        <div class="text-[10px] tracking-widest text-amber-500/90 uppercase">Ordo Xenos // Palanite Enforcer Issue</div>
-                        <h1 class="font-display text-sm sm:text-base font-bold tracking-wider text-emerald-400">AUGUR-AUSPEX MK.IV</h1>
+                    <div class="truncate">
+                        <div class="text-[9px] sm:text-[10px] tracking-widest text-amber-500/90 uppercase truncate">Ordo Xenos // Auspex Mk.IV</div>
+                        <h1 class="font-display text-xs sm:text-base font-bold tracking-wider text-emerald-400 truncate">MALSTRAIN DETECTOR</h1>
                     </div>
                 </div>
 
-                <!-- GM / Arbiter Secret Override Selector & Audio Toggle -->
-                <div class="flex items-center gap-2">
-                    <button id="audio-btn" class="p-2 rounded border border-emerald-500/40 bg-black/60 text-emerald-400 active:scale-95 transition" title="Toggle Vox Audio">
+                <!-- GM / Arbiter Secret Override Selector, Log Button & Audio Toggle -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="history-btn" class="relative px-2 py-1.5 rounded border border-emerald-500/40 bg-black/70 text-[11px] text-emerald-400 font-mono active:scale-95 transition flex items-center gap-1" title="Vox-Log History">
+                        <span>LOGS</span>
+                        <span id="history-badge" class="px-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">0</span>
+                    </button>
+
+                    <button id="audio-btn" class="p-1.5 rounded border border-emerald-500/40 bg-black/60 text-emerald-400 active:scale-95 transition" title="Toggle Vox Audio">
                         <svg id="audio-icon-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
                         </svg>
@@ -183,117 +144,128 @@
                     </button>
 
                     <!-- Discreet Arbiter Mode Switch (Looks like a sensor frequency code) -->
-                    <button id="arbiter-mode-btn" class="px-2 py-1.5 rounded border border-emerald-500/40 bg-black/70 text-[11px] text-emerald-400 font-mono tracking-tighter active:scale-95 transition">
-                        FREQ: <span id="mode-label" class="text-amber-400 font-bold">AUTO</span>
+                    <button id="arbiter-mode-btn" class="px-2 py-1.5 rounded border border-emerald-500/40 bg-black/70 text-[10px] sm:text-[11px] text-emerald-400 font-mono tracking-tighter active:scale-95 transition">
+                        FRQ:<span id="mode-label" class="text-amber-400 font-bold">AUTO</span>
                     </button>
                 </div>
             </div>
 
             <!-- Telemetry Sub-bar -->
-            <div class="flex justify-between text-[10px] text-emerald-500/70 mt-1.5 pt-1 border-t border-emerald-500/20">
-                <span>SEC: HIVE SECUNDUS PERIMETER</span>
-                <span id="camera-status">OPTIC: INITIALIZING...</span>
+            <div class="flex justify-between text-[9px] sm:text-[10px] text-emerald-500/70 mt-1.5 pt-1 border-t border-emerald-500/20">
+                <span>SECUNDUS PERIMETER</span>
+                <span id="camera-status">OPTIC: INIT...</span>
                 <span id="rad-counter">RAD: 1.42 Sv/h</span>
             </div>
         </header>
 
-        <!-- CENTER TARGETING RETICLE -->
-        <div id="reticle-wrapper" class="relative z-20 pointer-events-none flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 transition-transform duration-300">
-            <!-- Corner Brackets -->
-            <div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-emerald-400"></div>
-            <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-emerald-400"></div>
-            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-emerald-400"></div>
-            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-emerald-400"></div>
+        <!-- MIDDLE FLEX VIEWPORT (Auto-centers reticle cleanly between header & footer) -->
+        <main class="relative flex-1 flex flex-col items-center justify-center z-20 pointer-events-none px-4 min-h-0">
+            <!-- CENTER TARGETING RETICLE -->
+            <div id="reticle-wrapper" class="relative flex items-center justify-center w-56 h-56 sm:w-72 sm:h-72 transition-transform duration-300">
+                <!-- Corner Brackets -->
+                <div class="absolute top-0 left-0 w-7 h-7 border-t-2 border-l-2 border-emerald-400"></div>
+                <div class="absolute top-0 right-0 w-7 h-7 border-t-2 border-r-2 border-emerald-400"></div>
+                <div class="absolute bottom-0 left-0 w-7 h-7 border-b-2 border-l-2 border-emerald-400"></div>
+                <div class="absolute bottom-0 right-0 w-7 h-7 border-b-2 border-r-2 border-emerald-400"></div>
 
-            <!-- Outer SVG Targeting Ring -->
-            <svg id="reticle-svg-outer" class="reticle-outer w-56 h-56 sm:w-68 sm:h-68 text-emerald-500/40" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="12 6 3 6" />
-                <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="0.5" />
-                <line x1="100" y1="2" x2="100" y2="15" stroke="currentColor" stroke-width="2" />
-                <line x1="100" y1="185" x2="100" y2="198" stroke="currentColor" stroke-width="2" />
-                <line x1="2" y1="100" x2="15" y2="100" stroke="currentColor" stroke-width="2" />
-                <line x1="185" y1="100" x2="198" y2="100" stroke="currentColor" stroke-width="2" />
-            </svg>
+                <!-- Outer SVG Targeting Ring -->
+                <svg id="reticle-svg-outer" class="reticle-outer w-48 h-48 sm:w-64 sm:h-64 text-emerald-500/40" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="12 6 3 6" />
+                    <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="0.5" />
+                    <line x1="100" y1="2" x2="100" y2="15" stroke="currentColor" stroke-width="2" />
+                    <line x1="100" y1="185" x2="100" y2="198" stroke="currentColor" stroke-width="2" />
+                    <line x1="2" y1="100" x2="15" y2="100" stroke="currentColor" stroke-width="2" />
+                    <line x1="185" y1="100" x2="198" y2="100" stroke="currentColor" stroke-width="2" />
+                </svg>
 
-            <!-- Inner Rotating Ring -->
-            <svg id="reticle-svg-inner" class="reticle-inner absolute w-40 h-40 sm:w-48 sm:h-48 text-amber-500/50" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="85" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="35 25" />
-            </svg>
+                <!-- Inner Rotating Ring -->
+                <svg id="reticle-svg-inner" class="reticle-inner absolute w-36 h-36 sm:w-44 sm:h-44 text-amber-500/50" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="85" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="35 25" />
+                </svg>
 
-            <!-- Center Crosshair & Prompt -->
-            <div class="absolute flex flex-col items-center justify-center text-center">
-                <div class="w-3 h-3 border border-emerald-400 rotate-45 mb-2"></div>
-                <span id="reticle-status-text" class="text-[11px] bg-black/75 px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-300 tracking-widest uppercase">
-                    ALIGN SUBJECT IN FRAME
-                </span>
+                <!-- Center Crosshair & Prompt -->
+                <div class="absolute flex flex-col items-center justify-center text-center">
+                    <div class="w-3 h-3 border border-emerald-400 rotate-45 mb-2"></div>
+                    <span id="reticle-status-text" class="text-[10px] sm:text-[11px] bg-black/80 px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-300 tracking-widest uppercase">
+                        ALIGN SUBJECT IN FRAME
+                    </span>
+                </div>
             </div>
-        </div>
 
-        <!-- LIVE SCANNING TELEMETRY OVERLAY (Visible during scan) -->
-        <div id="scanning-readout" class="hidden absolute bottom-28 left-4 right-4 z-30 bg-black/85 border border-emerald-500/60 rounded p-3 backdrop-blur-sm">
-            <div class="flex justify-between items-center text-xs mb-1">
-                <span class="text-amber-400 font-bold animate-pulse">>> SEQUENCING GENETIC MARKERS...</span>
-                <span id="scan-percent" class="font-display font-bold text-emerald-400">0%</span>
+            <!-- LIVE SCANNING TELEMETRY OVERLAY (Positioned inside safe middle flex zone) -->
+            <div id="scanning-readout" class="hidden w-full max-w-md mt-3 bg-black/90 border border-emerald-500/60 rounded-lg p-2.5 backdrop-blur-sm shadow-lg">
+                <div class="flex justify-between items-center text-[11px] mb-1">
+                    <span class="text-amber-400 font-bold animate-pulse">>> SEQUENCING GENOME...</span>
+                    <span id="scan-percent" class="font-display font-bold text-emerald-400">0%</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full h-2 bg-zinc-900 rounded overflow-hidden border border-emerald-500/40 mb-1.5">
+                    <div id="scan-progress-bar" class="h-full bg-emerald-500 transition-all duration-75 w-0"></div>
+                </div>
+                <!-- Live Scrolling Tech Jargon -->
+                <div id="scan-log" class="text-[10px] text-emerald-300/90 h-8 overflow-hidden leading-tight font-mono">
+                    Initializing bio-auspex emitters...
+                </div>
             </div>
-            <!-- Progress Bar -->
-            <div class="w-full h-2.5 bg-zinc-900 rounded overflow-hidden border border-emerald-500/40 mb-2">
-                <div id="scan-progress-bar" class="h-full bg-emerald-500 transition-all duration-75 w-0"></div>
-            </div>
-            <!-- Live Scrolling Tech Jargon -->
-            <div id="scan-log" class="text-[11px] text-emerald-300/90 h-10 overflow-hidden leading-tight font-mono">
-                Initializing bio-auspex emitters...
-            </div>
-        </div>
+        </main>
 
-        <!-- SCAN RESULT DOSSIER MODAL (Pops up after scan completes) -->
-        <div id="result-modal" class="hidden absolute inset-0 z-40 bg-black/85 backdrop-blur-md flex flex-col justify-center p-4 sm:p-6">
-            <div id="result-card" class="w-full max-w-md mx-auto bg-zinc-950 border-2 border-emerald-500 rounded-lg overflow-hidden shadow-2xl">
+        <!-- SCAN RESULT DOSSIER MODAL (Scrollable inside safe viewport) -->
+        <div id="result-modal" class="hidden fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex flex-col justify-center p-3 sm:p-6 overflow-y-auto">
+            <div id="result-card" class="w-full max-w-md mx-auto my-auto bg-zinc-950 border-2 border-emerald-500 rounded-lg overflow-hidden shadow-2xl">
                 
                 <!-- Top Hazard Strip -->
-                <div id="result-hazard" class="h-3 w-full hazard-bar"></div>
+                <div id="result-hazard" class="h-2.5 w-full hazard-bar"></div>
 
                 <!-- Result Header -->
-                <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between gap-2">
                     <div>
                         <div id="result-classification" class="text-[10px] tracking-widest uppercase text-zinc-400">BIO-SCAN COMPLETE // SUBJECT VERIFIED</div>
-                        <h2 id="result-title" class="font-display text-xl sm:text-2xl font-black tracking-wide text-emerald-400 mt-0.5">
+                        <h2 id="result-title" class="font-display text-lg sm:text-2xl font-black tracking-wide text-emerald-400 mt-0.5">
                             PURE STRAIN HUMAN
                         </h2>
                     </div>
                     <!-- Status Icon -->
-                    <div id="result-badge" class="w-12 h-12 rounded-lg border-2 border-emerald-500 bg-emerald-950/50 flex items-center justify-center shrink-0">
-                        <svg id="icon-clean" class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div id="result-badge" class="w-11 h-11 rounded-lg border-2 border-emerald-500 bg-emerald-950/50 flex items-center justify-center shrink-0">
+                        <svg id="icon-clean" class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <svg id="icon-infected" class="w-7 h-7 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg id="icon-infected" class="w-6 h-6 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                     </div>
                 </div>
 
+                <!-- Optional Subject Tag Input for Campaign Log -->
+                <div class="px-3.5 pt-3">
+                    <div class="flex items-center gap-2 bg-zinc-900/90 border border-zinc-800 rounded px-2.5 py-1.5">
+                        <span class="text-[10px] text-amber-500 uppercase shrink-0">SUBJECT ID:</span>
+                        <input id="subject-name-input" type="text" maxlength="28" placeholder="Tap to name fighter (e.g. Ganger Vex)..." class="w-full bg-transparent text-xs text-emerald-300 placeholder-zinc-600 focus:outline-none font-mono" />
+                    </div>
+                </div>
+
                 <!-- Biometric Breakdown Grid -->
-                <div class="p-4 space-y-3 text-xs">
+                <div class="p-3.5 space-y-2.5 text-xs">
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-zinc-900/90 p-2.5 rounded border border-zinc-800">
-                            <div class="text-[10px] text-zinc-400">MALSTRAIN CONTAMINATION</div>
-                            <div id="stat-corruption" class="font-display text-base font-bold text-emerald-400 mt-0.5">0.04% [TRACE]</div>
+                        <div class="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <div class="text-[9px] text-zinc-400">MALSTRAIN CONTAMINATION</div>
+                            <div id="stat-corruption" class="font-display text-sm sm:text-base font-bold text-emerald-400 mt-0.5">0.04% [TRACE]</div>
                         </div>
-                        <div class="bg-zinc-900/90 p-2.5 rounded border border-zinc-800">
-                            <div class="text-[10px] text-zinc-400">XENOS GENOME MATCH</div>
-                            <div id="stat-xenos" class="font-display text-base font-bold text-emerald-400 mt-0.5">NEGATIVE</div>
+                        <div class="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <div class="text-[9px] text-zinc-400">XENOS GENOME MATCH</div>
+                            <div id="stat-xenos" class="font-display text-sm sm:text-base font-bold text-emerald-400 mt-0.5">NEGATIVE</div>
                         </div>
-                        <div class="bg-zinc-900/90 p-2.5 rounded border border-zinc-800">
-                            <div class="text-[10px] text-zinc-400">CHITIN / MUTATION INDEX</div>
-                            <div id="stat-mutation" class="font-mono text-sm font-bold text-zinc-200 mt-0.5">BASELINE</div>
+                        <div class="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <div class="text-[9px] text-zinc-400">CHITIN / MUTATION INDEX</div>
+                            <div id="stat-mutation" class="font-mono text-xs sm:text-sm font-bold text-zinc-200 mt-0.5">BASELINE</div>
                         </div>
-                        <div class="bg-zinc-900/90 p-2.5 rounded border border-zinc-800">
-                            <div class="text-[10px] text-zinc-400">SYNAPTIC RESONANCE</div>
-                            <div id="stat-psychic" class="font-mono text-sm font-bold text-zinc-200 mt-0.5">DORMANT</div>
+                        <div class="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <div class="text-[9px] text-zinc-400">SYNAPTIC RESONANCE</div>
+                            <div id="stat-psychic" class="font-mono text-xs sm:text-sm font-bold text-zinc-200 mt-0.5">DORMANT</div>
                         </div>
                     </div>
 
                     <!-- Narrative Diagnostic Report -->
-                    <div id="result-notes-box" class="bg-black/80 p-3 rounded border border-emerald-500/30">
+                    <div id="result-notes-box" class="bg-black/80 p-2.5 rounded border border-emerald-500/30">
                         <div class="text-[10px] text-amber-500 uppercase tracking-wider mb-1">>> COGITATOR ASSESSMENT & DIRECTIVE:</div>
                         <p id="result-notes" class="text-zinc-300 leading-relaxed text-xs">
                             Subject exhibits standard Necromundan hive-dweller rad-scarring and heavy metal toxicity. No Secundus Patriarch gene-markers detected. Cleared for duty.
@@ -303,18 +275,65 @@
 
                 <!-- Action Footer -->
                 <div class="p-3 bg-zinc-900 border-t border-zinc-800 flex gap-2">
-                    <button id="reset-scan-btn" class="w-full py-3 rounded font-display font-bold text-sm tracking-wider uppercase bg-emerald-600 hover:bg-emerald-500 text-black transition active:scale-98 shadow-lg">
-                        PURGE BUFFER // NEW SCAN
+                    <button id="reset-scan-btn" class="w-full py-3 rounded font-display font-bold text-xs sm:text-sm tracking-wider uppercase bg-emerald-600 hover:bg-emerald-500 text-black transition active:scale-98 shadow-lg">
+                        LOG ENTRY // NEW SCAN
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- BOTTOM CONTROL DOCK -->
-        <footer class="absolute bottom-0 left-0 right-0 z-30 p-4 bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center">
-            <div class="w-full max-w-md flex items-center justify-between gap-3">
+        <!-- VOX-ARCHIVE SCAN HISTORY DRAWER MODAL -->
+        <div id="history-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4 safe-header safe-footer">
+            <div class="w-full max-w-md mx-auto flex-1 flex flex-col bg-zinc-950 border border-emerald-500/50 rounded-lg overflow-hidden shadow-2xl">
+                <!-- Drawer Header -->
+                <div class="p-3.5 bg-zinc-900 border-b border-emerald-500/30 flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] text-amber-500 uppercase tracking-widest">Ordo Xenos Cogitator Memory</div>
+                        <h3 class="font-display text-base font-bold text-emerald-400">CAMPAIGN SCAN LOGS</h3>
+                    </div>
+                    <button id="close-history-btn" class="px-3 py-1.5 rounded border border-emerald-500/40 bg-black text-xs text-emerald-400 hover:bg-emerald-950">
+                        CLOSE [X]
+                    </button>
+                </div>
+
+                <!-- Summary Counters -->
+                <div class="grid grid-cols-3 gap-2 p-3 bg-black/60 border-b border-zinc-800 text-center text-xs">
+                    <div class="p-1.5 rounded bg-zinc-900 border border-emerald-500/30">
+                        <div class="text-[9px] text-zinc-400">PURE</div>
+                        <div id="count-clean" class="font-display font-bold text-emerald-400 text-sm">0</div>
+                    </div>
+                    <div class="p-1.5 rounded bg-zinc-900 border border-amber-500/30">
+                        <div class="text-[9px] text-zinc-400">BROOD-TAINT</div>
+                        <div id="count-brood" class="font-display font-bold text-amber-400 text-sm">0</div>
+                    </div>
+                    <div class="p-1.5 rounded bg-zinc-900 border border-red-500/30">
+                        <div class="text-[9px] text-zinc-400">MALSTRAIN</div>
+                        <div id="count-infected" class="font-display font-bold text-red-500 text-sm">0</div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Log List -->
+                <div id="history-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
+                    <div class="text-center text-zinc-500 py-10 italic">No bio-signatures recorded in current cycle.</div>
+                </div>
+
+                <!-- Drawer Footer -->
+                <div class="p-3 bg-zinc-900 border-t border-zinc-800 flex justify-between gap-2">
+                    <button id="clear-history-btn" class="px-3 py-2 rounded border border-red-500/40 text-red-400 text-xs hover:bg-red-950/40 transition">
+                        PURGE ARCHIVE
+                    </button>
+                    <button id="close-history-footer-btn" class="flex-1 py-2 rounded bg-emerald-600 text-black font-display font-bold text-xs uppercase">
+                        RETURN TO AUSPEX
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM CONTROL DOCK (Safe-area padded so mobile browser bars never clip it) -->
+        <footer class="safe-footer relative z-30 px-4 pt-2 bg-gradient-to-t from-black via-black/95 to-transparent flex flex-col items-center shrink-0">
+            <div class="w-full max-w-md flex items-center justify-between gap-2.5">
                 <!-- Sample / Photo Upload Fallback Button for Desktop / No-Camera -->
-                <label for="file-upload" class="p-3.5 rounded-lg border border-emerald-500/40 bg-zinc-900/90 text-emerald-400 active:scale-95 transition cursor-pointer flex flex-col items-center justify-center" title="Load Pict-Capture">
+                <label for="file-upload" class="p-3 rounded-lg border border-emerald-500/40 bg-zinc-900/90 text-emerald-400 active:scale-95 transition cursor-pointer flex flex-col items-center justify-center shrink-0" title="Load Pict-Capture">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
@@ -323,13 +342,13 @@
                 <input id="file-upload" type="file" accept="image/*" class="hidden" />
 
                 <!-- Primary Trigger Button -->
-                <button id="scan-btn" class="flex-1 py-4 px-6 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border-2 border-emerald-400 text-emerald-300 font-display font-bold text-base sm:text-lg tracking-widest uppercase shadow-[0_0_20px_rgba(34,197,94,0.3)] active:scale-95 transition flex items-center justify-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <button id="scan-btn" class="flex-1 py-3.5 px-4 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border-2 border-emerald-400 text-emerald-300 font-display font-bold text-sm sm:text-base tracking-widest uppercase shadow-[0_0_20px_rgba(34,197,94,0.3)] active:scale-95 transition flex items-center justify-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
                     <span>INITIATE BIO-SCAN</span>
                 </button>
 
                 <!-- Camera Switch (Front/Rear) -->
-                <button id="switch-cam-btn" class="p-3.5 rounded-lg border border-emerald-500/40 bg-zinc-900/90 text-emerald-400 active:scale-95 transition flex flex-col items-center justify-center" title="Switch Optic">
+                <button id="switch-cam-btn" class="p-3 rounded-lg border border-emerald-500/40 bg-zinc-900/90 text-emerald-400 active:scale-95 transition flex flex-col items-center justify-center shrink-0" title="Switch Optic">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
@@ -358,7 +377,9 @@
             arbiterModes: ['AUTO', 'INFECTED', 'BROOD', 'CLEAN'],
             arbiterIndex: 0,
             scanProgress: 0,
-            trackingNodes: []
+            trackingNodes: [],
+            scanHistory: [],
+            pendingLogEntry: null
         };
 
         // --- DOM ELEMENTS ---
@@ -396,6 +417,18 @@
         const resultNotesBox = document.getElementById('result-notes-box');
         const resultNotes = document.getElementById('result-notes');
         const resetScanBtn = document.getElementById('reset-scan-btn');
+        const subjectNameInput = document.getElementById('subject-name-input');
+
+        const historyBtn = document.getElementById('history-btn');
+        const historyBadge = document.getElementById('history-badge');
+        const historyModal = document.getElementById('history-modal');
+        const historyList = document.getElementById('history-list');
+        const closeHistoryBtn = document.getElementById('close-history-btn');
+        const closeHistoryFooterBtn = document.getElementById('close-history-footer-btn');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        const countCleanEl = document.getElementById('count-clean');
+        const countBroodEl = document.getElementById('count-brood');
+        const countInfectedEl = document.getElementById('count-infected');
 
         const arbiterModeBtn = document.getElementById('arbiter-mode-btn');
         const modeLabel = document.getElementById('mode-label');
@@ -405,26 +438,47 @@
         const switchCamBtn = document.getElementById('switch-cam-btn');
         const fileUpload = document.getElementById('file-upload');
 
-        // --- SOUND SYNTHESIS ENGINE (TONE.JS) ---
-        let synth, noiseSynth, alarmSynth;
+        // --- HORROR & TENSION SOUND SYNTHESIS ENGINE (TONE.JS) ---
+        let pulseSynth, tensionDrone, subBass, screechSynth, sonarPing;
         let audioInitialized = false;
 
         async function initAudio() {
             if (audioInitialized) return;
             try {
                 await Tone.start();
-                synth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "sawtooth" },
-                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+                
+                // 1. Geiger / Auspex Sonar Ping
+                sonarPing = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.005, decay: 0.12, sustain: 0, release: 0.1 }
                 }).toDestination();
-                synth.volume.value = -12;
+                sonarPing.volume.value = -10;
 
-                alarmSynth = new Tone.MembraneSynth({
-                    pitchDecay: 0.05,
-                    octaves: 4,
-                    oscillator: { type: "square" }
+                // 2. Dark Industrial Sub-Drone during scan
+                tensionDrone = new Tone.FMSynth({
+                    harmonicity: 1.5,
+                    modulationIndex: 8,
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.4, decay: 0.2, sustain: 0.8, release: 0.8 },
+                    modulation: { type: "square" }
                 }).toDestination();
-                alarmSynth.volume.value = -8;
+                tensionDrone.volume.value = -16;
+
+                // 3. Heartbeat / Sub-bass thump
+                subBass = new Tone.MembraneSynth({
+                    pitchDecay: 0.08,
+                    octaves: 5,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.2 }
+                }).toDestination();
+                subBass.volume.value = -6;
+
+                // 4. Dissonant Xenos Screech / Klaxon
+                screechSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.02, decay: 0.25, sustain: 0.3, release: 0.6 }
+                }).toDestination();
+                screechSynth.volume.value = -9;
 
                 audioInitialized = true;
             } catch (e) {
@@ -434,29 +488,62 @@
 
         function playBeep(freq = 880, duration = "32n") {
             if (!state.audioEnabled || !audioInitialized) return;
-            synth.triggerAttackRelease(freq, duration);
+            sonarPing.triggerAttackRelease(freq, duration);
         }
 
-        function playScanTick(progress) {
+        function startTensionAudio() {
             if (!state.audioEnabled || !audioInitialized) return;
-            const pitch = 300 + (progress * 6);
-            synth.triggerAttackRelease(pitch, "64n");
+            tensionDrone.triggerAttack("C1");
         }
 
-        function playResultSound(isInfected) {
+        function stopTensionAudio() {
+            if (!audioInitialized) return;
+            tensionDrone.triggerRelease();
+        }
+
+        function playScanTick(progress, isDangerRising) {
             if (!state.audioEnabled || !audioInitialized) return;
             const now = Tone.now();
-            if (isInfected) {
-                // Harsh Imperial Klaxon Alarm
-                synth.triggerAttackRelease(["C3", "F#3"], "8n", now);
-                synth.triggerAttackRelease(["C3", "F#3"], "8n", now + 0.22);
-                synth.triggerAttackRelease(["B2", "F3"], "4n", now + 0.44);
-                alarmSynth.triggerAttackRelease("C2", "8n", now);
-                alarmSynth.triggerAttackRelease("C2", "8n", now + 0.22);
+            
+            // Accelerating Geiger-style sonar clicks
+            const baseFreq = isDangerRising ? 220 + (progress * 4) : 440 + (progress * 3);
+            sonarPing.triggerAttackRelease(baseFreq, "64n", now);
+
+            // Heartbeat thump that speeds up as scan progresses
+            if (progress < 50 && Math.floor(progress) % 18 === 0) {
+                subBass.triggerAttackRelease("C1", "8n", now);
+            } else if (progress >= 50 && Math.floor(progress) % 9 === 0) {
+                // Double-beat panic pulse
+                subBass.triggerAttackRelease("C#1", "16n", now);
+                subBass.triggerAttackRelease("C1", "16n", now + 0.14);
+                if (isDangerRising) {
+                    tensionDrone.frequency.rampTo("F#1", 0.2);
+                }
+            }
+        }
+
+        function playResultSound(category) {
+            stopTensionAudio();
+            if (!state.audioEnabled || !audioInitialized) return;
+            const now = Tone.now();
+
+            if (category === 'INFECTED') {
+                // Terrifying Xenos Horror Chord (Tritone + Minor 2nd) + Sub Drop + Klaxon
+                subBass.triggerAttackRelease("B0", "2n", now);
+                screechSynth.triggerAttackRelease(["C3", "F#3", "G3"], "8n", now);
+                screechSynth.triggerAttackRelease(["B2", "F3", "F#3"], "8n", now + 0.22);
+                screechSynth.triggerAttackRelease(["C3", "F#3", "C4"], "2n", now + 0.44);
+                subBass.triggerAttackRelease("B0", "2n", now + 0.44);
+            } else if (category === 'BROOD') {
+                // Unsettling Low Warning Pulse
+                subBass.triggerAttackRelease("D1", "4n", now);
+                screechSynth.triggerAttackRelease(["D3", "G#3"], "8n", now);
+                screechSynth.triggerAttackRelease(["D3", "G#3"], "4n", now + 0.25);
             } else {
-                // Clean Cogitator Chime
-                synth.triggerAttackRelease("E5", "16n", now);
-                synth.triggerAttackRelease("B5", "8n", now + 0.12);
+                // Relief / Clean Imperial Sanctified Chime
+                sonarPing.triggerAttackRelease("E5", "16n", now);
+                sonarPing.triggerAttackRelease("B5", "8n", now + 0.12);
+                sonarPing.triggerAttackRelease("E6", "4n", now + 0.24);
             }
         }
 
@@ -724,10 +811,13 @@
             reticleStatusText.textContent = "LOCKING BIO-SIGNATURE...";
             reticleStatusText.classList.replace('text-emerald-300', 'text-amber-400');
 
+            // Start dark horror tension drone
+            startTensionAudio();
+
             // Haptic feedback if supported on mobile
             if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
 
-            const scanDuration = 3200; // 3.2 seconds dramatic scan
+            const scanDuration = 3400; // 3.4 seconds dramatic scan
             const intervalMs = 50;
             const step = 100 / (scanDuration / intervalMs);
             let tickCount = 0;
@@ -743,16 +833,18 @@
                 const logIdx = Math.min(techLogLines.length - 1, Math.floor((pct / 100) * techLogLines.length));
                 scanLogEl.innerHTML = `> ${techLogLines[logIdx]}<br>> SAMPLE_HASH: 0x${Math.floor(Math.random()*16777215).toString(16).toUpperCase()}`;
 
-                // Shift laser & bar to crimson at 65% if Malstrain/Brood detected
-                if (pct >= 65 && outcomeCategory !== 'CLEAN') {
+                const isDangerRising = pct >= 60 && outcomeCategory !== 'CLEAN';
+
+                // Shift laser & bar to crimson at 60% if Malstrain/Brood detected
+                if (isDangerRising) {
                     laserLine.classList.add('corrupted');
                     scanProgressBar.classList.replace('bg-emerald-500', 'bg-red-500');
-                    reticleStatusText.textContent = "ANOMALY DETECTED!";
+                    reticleStatusText.textContent = "XENOS ANOMALY!";
                     reticleStatusText.classList.replace('text-amber-400', 'text-red-500');
                 }
 
-                if (tickCount % 3 === 0) {
-                    playScanTick(pct);
+                if (tickCount % 2 === 0) {
+                    playScanTick(pct, isDangerRising);
                 }
                 tickCount++;
 
@@ -774,42 +866,56 @@
 
             // Haptic alarm pulse
             if (navigator.vibrate) {
-                navigator.vibrate(isCorrupted ? [200, 100, 200, 100, 400] : [80]);
+                navigator.vibrate(isCorrupted ? [250, 100, 250, 100, 500] : [80]);
             }
 
-            playResultSound(isCorrupted);
+            playResultSound(category);
+
+            // Stage pending entry for Campaign Scan Log
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            state.pendingLogEntry = {
+                id: Date.now(),
+                time: timestamp,
+                category: category,
+                title: data.title,
+                corruption: data.corruption,
+                notes: data.notes,
+                subjectName: ''
+            };
+            subjectNameInput.value = '';
 
             // Style Result Dossier Card based on Clean vs Brood vs Infected
             if (isCorrupted) {
                 const accentBorder = isExtremis ? 'border-red-500' : 'border-amber-500';
                 const accentText = isExtremis ? 'text-red-500' : 'text-amber-400';
 
-                resultCard.className = `w-full max-w-md mx-auto bg-zinc-950 border-2 ${accentBorder} rounded-lg overflow-hidden shadow-2xl ${isExtremis ? 'alarm-active' : ''}`;
-                resultHazard.className = 'h-3 w-full hazard-bar-red';
-                resultTitle.className = `font-display text-xl sm:text-2xl font-black tracking-wide ${accentText} mt-0.5`;
-                resultBadge.className = `w-12 h-12 rounded-lg border-2 ${accentBorder} bg-red-950/50 flex items-center justify-center shrink-0`;
+                resultCard.className = `w-full max-w-md mx-auto my-auto bg-zinc-950 border-2 ${accentBorder} rounded-lg overflow-hidden shadow-2xl ${isExtremis ? 'alarm-active' : ''}`;
+                resultHazard.className = 'h-2.5 w-full hazard-bar-red';
+                resultTitle.className = `font-display text-lg sm:text-2xl font-black tracking-wide ${accentText} mt-0.5`;
+                resultBadge.className = `w-11 h-11 rounded-lg border-2 ${accentBorder} bg-red-950/50 flex items-center justify-center shrink-0`;
                 
                 iconClean.classList.add('hidden');
                 iconInfected.classList.remove('hidden');
-                iconInfected.className = `w-7 h-7 ${accentText}`;
+                iconInfected.className = `w-6 h-6 ${accentText}`;
 
-                statCorruption.className = `font-display text-base font-bold ${accentText} mt-0.5`;
-                statXenos.className = `font-display text-base font-bold ${accentText} mt-0.5`;
-                resultNotesBox.className = `bg-black/80 p-3 rounded border ${isExtremis ? 'border-red-500/40' : 'border-amber-500/40'}`;
-                resetScanBtn.className = `w-full py-3 rounded font-display font-bold text-sm tracking-wider uppercase ${isExtremis ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-black'} transition active:scale-98 shadow-lg`;
+                statCorruption.className = `font-display text-sm sm:text-base font-bold ${accentText} mt-0.5`;
+                statXenos.className = `font-display text-sm sm:text-base font-bold ${accentText} mt-0.5`;
+                resultNotesBox.className = `bg-black/80 p-2.5 rounded border ${isExtremis ? 'border-red-500/40' : 'border-amber-500/40'}`;
+                resetScanBtn.className = `w-full py-3 rounded font-display font-bold text-xs sm:text-sm tracking-wider uppercase ${isExtremis ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-black'} transition active:scale-98 shadow-lg`;
             } else {
-                resultCard.className = 'w-full max-w-md mx-auto bg-zinc-950 border-2 border-emerald-500 rounded-lg overflow-hidden shadow-2xl';
-                resultHazard.className = 'h-3 w-full hazard-bar';
-                resultTitle.className = 'font-display text-xl sm:text-2xl font-black tracking-wide text-emerald-400 mt-0.5';
-                resultBadge.className = 'w-12 h-12 rounded-lg border-2 border-emerald-500 bg-emerald-950/50 flex items-center justify-center shrink-0';
+                resultCard.className = 'w-full max-w-md mx-auto my-auto bg-zinc-950 border-2 border-emerald-500 rounded-lg overflow-hidden shadow-2xl';
+                resultHazard.className = 'h-2.5 w-full hazard-bar';
+                resultTitle.className = 'font-display text-lg sm:text-2xl font-black tracking-wide text-emerald-400 mt-0.5';
+                resultBadge.className = 'w-11 h-11 rounded-lg border-2 border-emerald-500 bg-emerald-950/50 flex items-center justify-center shrink-0';
                 
                 iconClean.classList.remove('hidden');
                 iconInfected.classList.add('hidden');
 
-                statCorruption.className = 'font-display text-base font-bold text-emerald-400 mt-0.5';
-                statXenos.className = 'font-display text-base font-bold text-emerald-400 mt-0.5';
-                resultNotesBox.className = 'bg-black/80 p-3 rounded border border-emerald-500/30';
-                resetScanBtn.className = 'w-full py-3 rounded font-display font-bold text-sm tracking-wider uppercase bg-emerald-600 hover:bg-emerald-500 text-black transition active:scale-98 shadow-lg';
+                statCorruption.className = 'font-display text-sm sm:text-base font-bold text-emerald-400 mt-0.5';
+                statXenos.className = 'font-display text-sm sm:text-base font-bold text-emerald-400 mt-0.5';
+                resultNotesBox.className = 'bg-black/80 p-2.5 rounded border border-emerald-500/30';
+                resetScanBtn.className = 'w-full py-3 rounded font-display font-bold text-xs sm:text-sm tracking-wider uppercase bg-emerald-600 hover:bg-emerald-500 text-black transition active:scale-98 shadow-lg';
             }
 
             // Populate Dossier Text
@@ -825,7 +931,59 @@
             resultModal.classList.remove('hidden');
         }
 
+        function savePendingLog() {
+            if (!state.pendingLogEntry) return;
+            const customName = subjectNameInput.value.trim();
+            state.pendingLogEntry.subjectName = customName || `SUBJECT #${String(state.scanHistory.length + 1).padStart(2, '0')}`;
+            state.scanHistory.unshift(state.pendingLogEntry);
+            state.pendingLogEntry = null;
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            historyBadge.textContent = state.scanHistory.length;
+            
+            const cleanCount = state.scanHistory.filter(i => i.category === 'CLEAN').length;
+            const broodCount = state.scanHistory.filter(i => i.category === 'BROOD').length;
+            const infectedCount = state.scanHistory.filter(i => i.category === 'INFECTED').length;
+
+            countCleanEl.textContent = cleanCount;
+            countBroodEl.textContent = broodCount;
+            countInfectedEl.textContent = infectedCount;
+
+            if (state.scanHistory.length === 0) {
+                historyList.innerHTML = `<div class="text-center text-zinc-500 py-10 italic">No bio-signatures recorded in current cycle.</div>`;
+                return;
+            }
+
+            historyList.innerHTML = state.scanHistory.map(entry => {
+                let borderClass = 'border-emerald-500/40 bg-emerald-950/10';
+                let badgeClass = 'text-emerald-400 border-emerald-500/40 bg-emerald-950/50';
+                if (entry.category === 'INFECTED') {
+                    borderClass = 'border-red-500/50 bg-red-950/15';
+                    badgeClass = 'text-red-400 border-red-500/50 bg-red-950/60';
+                } else if (entry.category === 'BROOD') {
+                    borderClass = 'border-amber-500/50 bg-amber-950/15';
+                    badgeClass = 'text-amber-400 border-amber-500/50 bg-amber-950/60';
+                }
+
+                return `
+                    <div class="p-2.5 rounded border ${borderClass} flex flex-col gap-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold text-zinc-100 uppercase truncate">${entry.subjectName}</span>
+                            <span class="text-[10px] text-zinc-500 shrink-0">${entry.time}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="px-1.5 py-0.5 rounded border text-[10px] font-display font-bold ${badgeClass}">${entry.title}</span>
+                            <span class="text-[10px] text-zinc-400 font-mono">${entry.corruption}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function resetScanner() {
+            savePendingLog();
             playBeep(520, "16n");
             resultModal.classList.add('hidden');
             scanBtn.disabled = false;
@@ -834,14 +992,35 @@
             scanProgressBar.classList.remove('bg-red-500');
             scanProgressBar.classList.add('bg-emerald-500');
             reticleStatusText.textContent = "ALIGN SUBJECT IN FRAME";
-            reticleStatusText.className = "text-[11px] bg-black/75 px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-300 tracking-widest uppercase";
+            reticleStatusText.className = "text-[10px] sm:text-[11px] bg-black/80 px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-300 tracking-widest uppercase";
         }
 
         // --- EVENT LISTENERS ---
         scanBtn.addEventListener('click', triggerScan);
         resetScanBtn.addEventListener('click', resetScanner);
 
-        // Secret Arbiter / GM Mode Toggle (Tap FREQ button in top right to rig next scan for narrative play)
+        // History Drawer Controls
+        historyBtn.addEventListener('click', async () => {
+            await initAudio();
+            playBeep(680, "32n");
+            updateHistoryUI();
+            historyModal.classList.remove('hidden');
+        });
+
+        function closeHistory() {
+            playBeep(520, "32n");
+            historyModal.classList.add('hidden');
+        }
+        closeHistoryBtn.addEventListener('click', closeHistory);
+        closeHistoryFooterBtn.addEventListener('click', closeHistory);
+
+        clearHistoryBtn.addEventListener('click', () => {
+            playBeep(300, "16n");
+            state.scanHistory = [];
+            updateHistoryUI();
+        });
+
+        // Secret Arbiter / GM Mode Toggle (Tap FRQ button in top right to rig next scan for narrative play)
         arbiterModeBtn.addEventListener('click', async () => {
             await initAudio();
             state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
