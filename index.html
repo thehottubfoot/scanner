@@ -598,11 +598,74 @@
                     </p>
                 </div>
 
+                <!-- Encrypted Datalog Intercept Prompt (Appears when a Campaign Rune is scanned) -->
+                <div id="datalog-prompt-box" class="hidden mt-3 bg-amber-950/35 border border-amber-500/80 rounded p-2.5 flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-bold tracking-widest text-amber-400 uppercase animate-pulse">
+                            ⚠ ENCRYPTED DATALOG DETECTED
+                        </span>
+                        <span id="datalog-code-tag" class="text-[9px] font-mono text-amber-300/80">LOG // SEC-01</span>
+                    </div>
+                    <p class="text-[11px] text-stone-200 leading-snug">
+                        Sub-dermal vox-buffer recovered from <span id="datalog-prompt-rune" class="text-amber-300 font-bold">RUNE I</span>. Decrypt recovered research transmission?
+                    </p>
+                    <button id="open-datalog-btn" class="hw-btn hw-btn-amber w-full py-2 rounded font-stencil font-bold text-xs tracking-wider uppercase text-amber-300 glow-amber">
+                        DECRYPT & READ DATALOG
+                    </button>
+                </div>
+
                 <div class="mt-3.5 flex gap-2">
                     <button id="reset-scan-btn" class="hw-btn w-full py-3 rounded font-stencil font-bold text-sm tracking-wider uppercase text-[#58e678] glow-green">
                         LOG & RETURN TO AUSPEX
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         RECOVERED BLACK-SCIENCE DATALOG READER MODAL
+         ========================================================= -->
+    <div id="datalog-modal" class="hidden fixed inset-0 z-[60] bg-black/92 backdrop-blur-md flex flex-col justify-center p-3 sm:p-5 safe-top-pad safe-bottom-pad">
+        <div id="datalog-card" class="w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-amber-500 rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-[88dvh]">
+            <div class="h-2.5 w-full hazard-stripe shrink-0"></div>
+
+            <!-- Header -->
+            <div class="p-3 bg-zinc-950 border-b border-stone-800 flex items-center justify-between gap-2 shrink-0">
+                <div>
+                    <div id="datalog-header-sub" class="text-[9px] tracking-widest uppercase text-amber-500">
+                        SECUNDUS QUARANTINE // BLACK-SCIENCE ARCHIVE
+                    </div>
+                    <h3 id="datalog-title" class="font-stencil text-base sm:text-lg font-bold text-amber-400 glow-amber mt-0.5">
+                        LOG 01 // THE RADIANT ROT
+                    </h3>
+                </div>
+                <button id="close-datalog-btn" class="px-2.5 py-1 rounded border border-stone-600 bg-zinc-900 text-xs text-stone-300 shrink-0">
+                    CLOSE [X]
+                </button>
+            </div>
+
+            <!-- Metadata Strip -->
+            <div class="px-3 py-1.5 bg-black/90 border-b border-stone-800/90 flex items-center justify-between text-[9px] font-mono text-stone-400 shrink-0">
+                <span id="datalog-author">AUTHOR: MAGOS-BIOLOGIS VANE</span>
+                <span id="datalog-integrity" class="text-red-400">INTEGRITY: 64% [CORRUPTED]</span>
+            </div>
+
+            <!-- Scrollable Narrative Body -->
+            <div class="p-3.5 bg-zinc-950/95 overflow-y-auto space-y-3 text-xs leading-relaxed font-mono relative">
+                <div class="crt-scanlines absolute inset-0 pointer-events-none"></div>
+                <p id="datalog-body-1" class="text-stone-200 relative z-10"></p>
+                <p id="datalog-body-2" class="text-stone-300 relative z-10"></p>
+                <div id="datalog-whisper-box" class="p-2.5 rounded bg-black/90 border-l-2 border-amber-500 text-amber-300/95 italic text-[11px] relative z-10">
+                    <span id="datalog-whisper"></span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-2.5 bg-zinc-950 border-t border-stone-800 shrink-0">
+                <button id="close-datalog-footer-btn" class="hw-btn hw-btn-amber w-full py-2.5 rounded font-stencil font-bold text-xs tracking-wider uppercase text-amber-300">
+                    PURGE BUFFER & RETURN TO DOSSIER
+                </button>
             </div>
         </div>
     </div>
@@ -746,8 +809,25 @@
         const statPsychic = document.getElementById('stat-psychic');
         const resultNotesBox = document.getElementById('result-notes-box');
         const resultNotes = document.getElementById('result-notes');
+        const datalogPromptBox = document.getElementById('datalog-prompt-box');
+        const datalogCodeTag = document.getElementById('datalog-code-tag');
+        const datalogPromptRune = document.getElementById('datalog-prompt-rune');
+        const openDatalogBtn = document.getElementById('open-datalog-btn');
         const resetScanBtn = document.getElementById('reset-scan-btn');
         const subjectNameInput = document.getElementById('subject-name-input');
+
+        const datalogModal = document.getElementById('datalog-modal');
+        const datalogCard = document.getElementById('datalog-card');
+        const datalogHeaderSub = document.getElementById('datalog-header-sub');
+        const datalogTitle = document.getElementById('datalog-title');
+        const datalogAuthor = document.getElementById('datalog-author');
+        const datalogIntegrity = document.getElementById('datalog-integrity');
+        const datalogBody1 = document.getElementById('datalog-body-1');
+        const datalogBody2 = document.getElementById('datalog-body-2');
+        const datalogWhisperBox = document.getElementById('datalog-whisper-box');
+        const datalogWhisper = document.getElementById('datalog-whisper');
+        const closeDatalogBtn = document.getElementById('close-datalog-btn');
+        const closeDatalogFooterBtn = document.getElementById('close-datalog-footer-btn');
 
         const historyBtn = document.getElementById('history-btn');
         const historyBadge = document.getElementById('history-badge');
@@ -1003,6 +1083,56 @@
                 }
             ]
         };
+
+        // --- CRYPTIC BLACK-SCIENCE RESEARCH DATALOGS (1 PER CAMPAIGN RUNE) ---
+        const runeDatalogs = {
+            'RUNE I: AQUILA': {
+                code: 'LOG // SEC-01',
+                accent: 'emerald',
+                headerSub: 'ORDO XENOS BLACK-SITE // CONTAINMENT SEAL 01',
+                title: 'ENTRY 14: THE GLASSING FAILED',
+                author: 'MAGOS-BIOLOGIS VANE // SUB-LEVEL 9',
+                integrity: 'INTEGRITY: 88% [SEALED]',
+                p1: 'The Lance strikes did not kill the Patriarch of Secundus. They merely boiled the sump around it and cooked its genome in a crucible of rad-fire and ruptured reactor-cores. What crawled out of the ash-glass was not pure Tyranid—it was something starved, cancerous, and desperately adaptive.',
+                p2: 'I marked this seal with the Aquila cipher to warn the Palanite cordons: purity is an illusion down here. Even the dust carries necrotic spores that splice into human marrow within forty-eight hours of inhalation.',
+                whisper: '"Do not trust the clean readouts. The Malstrain learned how to hide beneath Imperial gene-markers three cycles ago. If you are reading this, check your own fingernails for translucency."'
+            },
+            'RUNE II: BROOD': {
+                code: 'LOG // SEC-02',
+                accent: 'amber',
+                headerSub: 'VIVISECTION THEATRE IV // SUBJECT 77-B',
+                title: 'ENTRY 29: THE CHITIN CHOIR',
+                author: 'MAGOS-BIOLOGIS VANE // OBSERVATION DECK',
+                integrity: 'INTEGRITY: 51% [DEGRADING]',
+                p1: 'Subject 77-B—formerly an Orlock road-warden—spoke in three overlapping voices during trepanation today. His human vocal cords were vibrating in harmony with a secondary, cartilaginous larynx growing behind his sternum.',
+                p2: 'The Malstrain does not merely rewrite flesh; it turns the nervous system into a wet-ware receiver. Their brood-mind is fractured, agonized, and loud—a constant psychic static that makes the infected weep black ichor while smiling.',
+                whisper: '"We strapped him to the iron table, yet every servitor in the wing turned its optical lens toward him in unison. He whispered that the walls themselves are hungry."'
+            },
+            'RUNE III: XENOS': {
+                code: 'LOG // SEC-03',
+                accent: 'red',
+                headerSub: 'ABYSSAL BREACH // TERMINAL VOX-RECORD',
+                title: 'ENTRY 44: COALESCENCE IN THE DARK',
+                author: 'MAGOS-BIOLOGIS VANE // [UNVERIFIED]',
+                integrity: 'INTEGRITY: 19% [BIO-CORRUPTED]',
+                p1: 'My containment shutters are buckling from the inside. The specimen tanks did not break—the biomass inside them merged through the ventilation grates, pooling together into a single multi-limbed horror with six human faces fused along its dorsal ridge.',
+                p2: 'It mimics our vox-chatter to lure rescue teams into the dark! Just now I heard my own deceased apprentice begging for medical aid from inside the creature’s ribcage. Heavy flamers only harden its outer carapace into obsidian.',
+                whisper: '"If your auspex locks onto this sigil, do not try to capture it for the Guilders. Collapse the tunnel. Burn the corpses twice. And never let it touch your bare skin."'
+            },
+            'RUNE IV: ARCHEO': {
+                code: 'LOG // SEC-04',
+                accent: 'cyan',
+                headerSub: 'FORBIDDEN VAULT // DARK AGE BLACK-SCIENCE',
+                title: 'ENTRY 00: THE PROMETHEUS SPLICE',
+                author: 'ARCH-MAGOS [REDACTED] // PRE-FALL ARCHIVE',
+                integrity: 'INTEGRITY: 97% [QUANTUM-LOCKED]',
+                p1: 'Before the Hive fell, we were not merely containing the xenos—we were harvesting it. Deep within the Secundus Abyssal Vaults, our forbidden gene-forges spliced Genestealer cellular regeneration with Dark Age cybernetic grafts to create immortal soldiers for Lord Helmawr.',
+                p2: 'The Malstrain is not a natural mutation. It is our own black-science experiment broken free of its cryo-chains, carrying stolen Archeo-tech keys fused directly into its genetic code.',
+                whisper: '"The vault doors will open for whoever bears this cipher—and for whatever wears the skin of our dead scientists inside."'
+            }
+        };
+
+        let activeDatalogData = null;
 
         // --- REAL-TIME OPTICAL GLYPH / RUNE DETECTOR ---
         function analyzeOpticalGlyph() {
@@ -1479,7 +1609,19 @@
         // --- SCANNING WORKFLOW ---
         function getCurrentOutcomeType() {
             const mode = state.arbiterModes[state.arbiterIndex];
-            if (mode !== 'AUTO') return mode;
+            if (mode !== 'AUTO') {
+                // Allow OVERRIDE mode to also attach the matching Rune Datalog for testing/GM use
+                const overrideRuneMap = {
+                    'CLEAN': 'RUNE I: AQUILA',
+                    'BROOD': 'RUNE II: BROOD',
+                    'INFECTED': 'RUNE III: XENOS',
+                    'RELIC': 'RUNE IV: ARCHEO'
+                };
+                state.detectedGlyph = overrideRuneMap[mode]
+                    ? { label: overrideRuneMap[mode], outcome: mode }
+                    : null;
+                return mode;
+            }
 
             if (state.detectedGlyph) {
                 return state.detectedGlyph.outcome;
@@ -1655,7 +1797,67 @@
             statPsychic.textContent = data.psychic;
             resultNotes.textContent = data.notes;
 
+            // Show Encrypted Datalog Prompt if a Campaign Rune was scanned
+            if (state.detectedGlyph && runeDatalogs[state.detectedGlyph.label]) {
+                activeDatalogData = runeDatalogs[state.detectedGlyph.label];
+                datalogCodeTag.textContent = activeDatalogData.code;
+                datalogPromptRune.textContent = state.detectedGlyph.label;
+                datalogPromptBox.classList.remove('hidden');
+            } else {
+                activeDatalogData = null;
+                datalogPromptBox.classList.add('hidden');
+            }
+
             resultModal.classList.remove('hidden');
+        }
+
+        function openDatalogReader() {
+            if (!activeDatalogData) return;
+            playBeep(580, "16n");
+            setTimeout(() => playBeep(860, "16n"), 90);
+
+            const accentMap = {
+                emerald: {
+                    border: 'border-[#58e678]',
+                    title: 'text-[#58e678] glow-green',
+                    whisperBorder: 'border-[#58e678] text-emerald-300'
+                },
+                amber: {
+                    border: 'border-amber-500',
+                    title: 'text-amber-400 glow-amber',
+                    whisperBorder: 'border-amber-500 text-amber-300'
+                },
+                red: {
+                    border: 'border-red-500',
+                    title: 'text-red-500 glow-red',
+                    whisperBorder: 'border-red-500 text-red-300'
+                },
+                cyan: {
+                    border: 'border-cyan-400',
+                    title: 'text-cyan-400',
+                    whisperBorder: 'border-cyan-400 text-cyan-200'
+                }
+            };
+            const theme = accentMap[activeDatalogData.accent] || accentMap.amber;
+
+            datalogCard.className = `w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 ${theme.border} rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-[88dvh]`;
+            datalogTitle.className = `font-stencil text-base sm:text-lg font-bold ${theme.title} mt-0.5`;
+            datalogWhisperBox.className = `p-2.5 rounded bg-black/90 border-l-2 ${theme.whisperBorder} italic text-[11px] relative z-10`;
+
+            datalogHeaderSub.textContent = activeDatalogData.headerSub;
+            datalogTitle.textContent = activeDatalogData.title;
+            datalogAuthor.textContent = activeDatalogData.author;
+            datalogIntegrity.textContent = activeDatalogData.integrity;
+            datalogBody1.textContent = activeDatalogData.p1;
+            datalogBody2.textContent = activeDatalogData.p2;
+            datalogWhisper.textContent = activeDatalogData.whisper;
+
+            datalogModal.classList.remove('hidden');
+        }
+
+        function closeDatalogReader() {
+            playBeep(480, "32n");
+            datalogModal.classList.add('hidden');
         }
 
         function savePendingLog() {
@@ -1730,8 +1932,13 @@
             else if (currentMode === 'RELIC') modeLabel.className = 'text-[8px] font-mono text-cyan-400 font-bold tracking-widest mt-0.5 uppercase';
             else modeLabel.className = 'text-[8px] font-mono text-stone-400 tracking-widest mt-0.5 uppercase';
 
-            playBeep(740, "32n");
+            playBeep(750, "32n");
+            if (navigator.vibrate) navigator.vibrate(25);
         });
+
+        openDatalogBtn.addEventListener('click', openDatalogReader);
+        closeDatalogBtn.addEventListener('click', closeDatalogReader);
+        closeDatalogFooterBtn.addEventListener('click', closeDatalogReader);
 
         resetScanBtn.addEventListener('click', () => {
             savePendingLog();
