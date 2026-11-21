@@ -1001,17 +1001,272 @@
         }
 
         // --- CAMERA INITIALIZATION ---
-// ... existing code ... -->
+        async function initCamera() {
+            if (state.stream) {
+                state.stream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: state.facingMode },
+                        width: { ideal: 1280 },
+                        height: { ideal: 1280 }
+                    },
+                    audio: false
+                };
+
+                state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoEl.srcObject = state.stream;
+                videoEl.classList.remove('hidden');
+                simCanvas.classList.add('hidden');
+                state.usingFallbackSim = false;
+                headerStatusText.textContent = "ACTIVE";
+                headerStatusText.className = "text-[#58e678] glow-green";
+            } catch (err) {
+                console.warn("Camera unavailable, activating AUSPEX simulation mode:", err);
+                activateFallbackSim();
+            }
+        }
+
+        function activateFallbackSim() {
+            state.usingFallbackSim = true;
+            videoEl.classList.add('hidden');
+            simCanvas.classList.remove('hidden');
+            headerStatusText.textContent = "SIM-MODE";
+            headerStatusText.className = "text-amber-400 glow-amber";
+        }
+
+        // --- GRIMDARK TENSION & HORROR SOUND ENGINE (Tone.js) ---
+        let droneSynth = null;
+        let pulseSynth = null;
+        let fxSynth = null;
+        let horrorAlarmSynth = null;
+        let scanLoopEvent = null;
+
+        async function initAudio() {
+            if (!state.audioEnabled) return;
+            try {
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                }
+                if (!droneSynth) {
+                    droneSynth = new Tone.FMSynth({
+                        harmonicity: 1.5,
+                        modulationIndex: 8,
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.4, decay: 0.5, sustain: 0.8, release: 1.2 },
+                        modulation: { type: "square" }
+                    }).toDestination();
+                    droneSynth.volume.value = -20;
+
+                    pulseSynth = new Tone.MembraneSynth({
+                        pitchDecay: 0.06,
+                        octaves: 3,
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.005, decay: 0.28, sustain: 0, release: 0.2 }
+                    }).toDestination();
+                    pulseSynth.volume.value = -10;
+
+                    fxSynth = new Tone.Synth({
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.005, decay: 0.12, sustain: 0.02, release: 0.15 }
+                    }).toDestination();
+                    fxSynth.volume.value = -13;
+
+                    horrorAlarmSynth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.02, decay: 0.35, sustain: 0.3, release: 0.6 }
+                    }).toDestination();
+                    horrorAlarmSynth.volume.value = -11;
+                }
+            } catch (e) {
+                console.warn("Audio init skipped:", e);
+            }
+        }
+
+        function playBeep(freq = 880, duration = "32n") {
+            if (!state.audioEnabled || !fxSynth) return;
+            try {
+                fxSynth.triggerAttackRelease(freq, duration);
+            } catch (e) {}
+        }
+
+        function startTensionAudio() {
+            if (!state.audioEnabled || !droneSynth || !pulseSynth) return;
+            try {
+                droneSynth.triggerAttack("C1");
+                let step = 0;
+                scanLoopEvent = new Tone.Loop((time) => {
+                    const isHeartBeat = step % 2 === 0;
+                    pulseSynth.triggerAttackRelease(isHeartBeat ? "C1" : "G1", "16n", time);
+                    if (step % 3 === 0) {
+                        const glitchFreq = 620 + Math.random() * 580;
+                        fxSynth.triggerAttackRelease(glitchFreq, "64n", time);
+                    }
+                    step++;
+                }, "8n").start(0);
+                Tone.Transport.start();
+            } catch (e) {}
+        }
+
+        function stopTensionAudio() {
+            try {
+                if (droneSynth) droneSynth.triggerRelease();
+                if (scanLoopEvent) {
+                    scanLoopEvent.stop();
+                    scanLoopEvent.dispose();
+                    scanLoopEvent = null;
+                }
+                Tone.Transport.stop();
+            } catch (e) {}
+        }
+
+        function playResultSound(type) {
+            if (!state.audioEnabled || !horrorAlarmSynth) return;
+            try {
+                const now = Tone.now();
+                if (type === 'INFECTED') {
+                    horrorAlarmSynth.triggerAttackRelease(["F2", "B2", "F#3"], "8n", now);
+                    horrorAlarmSynth.triggerAttackRelease(["E2", "Bb2", "F3"], "8n", now + 0.24);
+                    horrorAlarmSynth.triggerAttackRelease(["D#2", "A2", "E3"], "4n", now + 0.48);
+                } else if (type === 'BROOD') {
+                    horrorAlarmSynth.triggerAttackRelease(["D2", "G#2"], "8n", now);
+                    horrorAlarmSynth.triggerAttackRelease(["C#2", "G2"], "4n", now + 0.25);
+                } else if (type === 'RELIC') {
+                    horrorAlarmSynth.triggerAttackRelease(["D4", "A4", "E5"], "8n", now);
+                    horrorAlarmSynth.triggerAttackRelease(["F#4", "C#5", "A5"], "4n", now + 0.22);
+                } else {
+                    horrorAlarmSynth.triggerAttackRelease(["C4", "G4"], "8n", now);
+                    horrorAlarmSynth.triggerAttackRelease(["E4", "B4", "G5"], "4n", now + 0.2);
+                }
+            } catch (e) {}
+        }
+
+        // --- RECOVERED BLACK-SCIENCE DATALOGS (PER RUNE) ---
+        const runeDatalogs = {
+            'RUNE I: AQUILA': {
+                code: 'LOG // SEC-01',
+                headerSub: 'SECUNDUS QUARANTINE // BLACK-SCIENCE ARCHIVE',
+                title: 'THE RADIANT ROT',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
+                integrity: 'INTEGRITY: 71% [RAD-SCARRED]',
+                body1: 'Cycle 418.4 // The Orbital Lance strikes did not sterilize the Abyssal Chasm—they merely cooked the Patriarch’s genome in a crucible of dirty promethium and archaeo-radiation. Every tissue sample pulled from the ash-drifts exhibits hyper-accelerated cellular division. Where a normal Genestealer cultist hides its taint beneath smooth flesh, the Secundus strain weeps translucent ichor and sheds brittle, blackened chitin like dried parchment.',
+                body2: 'Our servitors refuse to descend past Sump-Level IX. They report static in their optic feeds that resolves into symmetrical, six-limbed silhouettes standing motionless inside the radiation fog.',
+                whisper: '"Do not trust the clean readout. In the Underhive, purity is merely a symptom of an organism that has learned how to fool the augurs."'
+            },
+            'RUNE II: BROOD': {
+                code: 'LOG // SEC-02',
+                headerSub: 'BIOLOGIS VIVISECTION // VAULT 14-B',
+                title: 'THE CHITIN CHOIR',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
+                integrity: 'INTEGRITY: 54% [NEURAL INTERFERENCE]',
+                body1: 'Cycle 422.9 // Specimen 09-Theta—formerly an Orlock road-sergeant—retained full speech and gang loyalty for eleven days following initial spore-scratch exposure. Upon cranial trepanation, we discovered a secondary, cartilaginous larynx coiled around the brainstem. It was not speaking to us; it was vibrating at 14.8 kilohertz, acting as a living relay node for something vast sleeping beneath the dust-wall.',
+                body2: 'When we severed its vocal cords, the three other captives in Isolation Cell B began humming the exact same sub-audible chord in unison.',
+                whisper: '"If your auspex registers elevated synaptic resonance, shoot the subject before they finish their sentence."'
+            },
+            'RUNE III: XENOS': {
+                code: 'LOG // SEC-03',
+                headerSub: 'TERMINAL VOX-BUFFER // CONTAINMENT BREACH',
+                title: 'COALESCENCE IN THE DARK',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
+                integrity: 'INTEGRITY: 38% [CRITICAL CORRUPTION]',
+                body1: 'Cycle 429.1 // The Malstrain does not merely infect—it salvages. When two wounded Genestealers were cornered in the nutrient vats, their ruptured carapaces melted together, knitting bone, tendon, and half-digested hive-scum biomass into a single asymmetrical horror with too many eyes and asymmetric scything talons.',
+                body2: 'The bulkhead doors are buckling inward. Something outside is tapping the exact rhythm of the Imperial Litany of Unsealing, mimicking Sub-Magos Kael’s voice—except Kael’s head has been mounted on the ventilation grate for three hours.',
+                whisper: '"Purge with phosphex. If phosphex is unavailable, collapse the tunnel and pray the rad-worms reach you first."'
+            },
+            'RUNE IV: ARCHEO': {
+                code: 'LOG // SEC-04',
+                headerSub: 'RESTRICTED OMEGA-VAULT // PROJECT PROMETHEUS',
+                title: 'THE FORBIDDEN SPLICE',
+                author: 'AUTHOR: ARCH-MAGOS HELMAWR-PRIME [REDACTED]',
+                integrity: 'INTEGRITY: 89% [CIPHER VERIFIED]',
+                body1: 'Cycle 391.0 // Let the Inquisition believe Secundus fell by xenos accident alone. Beneath the Spire’s shattered foundations lie the pre-fall gene-forges where Lord Helmawr’s black-science savants attempted to splice Genestealer regenerative tissue with Dark Age cybernetic nerve-weaves.',
+                body2: 'The surviving vault keys still resonate with dormant machine-spirits. Whoever unlocks these relic-caches claims weaponry never meant for mortal hands—and awakens the original brood-sires chained beside them.',
+                whisper: '"Take the archaeotech if you dare, outlander. Everything in the Abyss demands a tithe of flesh."'
+            }
+        };
+
+        // --- NECROMUNDA LORE & DIAGNOSTIC POOLS ---
+        const scanOutcomes = {
+            CLEAN: [
+                {
+                    title: "PURE STRAIN HUMAN",
+                    classification: "BIO-SCAN COMPLETE // SUBJECT VERIFIED",
+                    corruption: "0.02% [NEGLIGIBLE]",
+                    xenos: "NEGATIVE",
+                    mutation: "04% [RAD-SCARRING]",
+                    psychic: "DORMANT",
+                    rad: 1.45,
+                    gene: 10,
+                    bpm: 76,
+                    notes: "Subject exhibits standard Necromundan hive-dweller pulmonary soot and low-grade rad-scarring. Zero xenos genetic drift detected. Cleared for active duty."
+                },
+                {
+                    title: "SANCTIFIED AUGMETIC",
+                    classification: "BIO-SCAN COMPLETE // MECHANICUS VERIFIED",
+                    corruption: "0.00% [STERILE]",
+                    xenos: "NEGATIVE",
+                    mutation: "11% [BIONIC GRAFT]",
+                    psychic: "SHIELDED",
+                    rad: 2.15,
+                    gene: 14,
+                    bpm: 64,
+                    notes: "Sub-dermal bionics and synthetic tissue grafts register within Imperial tolerances. No Malstrain spores present in circulatory fluid."
+                }
+            ],
+            BROOD: [
+                {
+                    title: "LATENT BROOD-TAINT",
+                    classification: "WARNING // ANOMALOUS GENOME DETECTED",
+                    corruption: "38.4% [INCUBATING]",
+                    xenos: "PARTIAL MATCH [GEN. IV]",
+                    mutation: "46% [SUB-DERMAL]",
+                    psychic: "LOW HUM [14.8 kHz]",
+                    rad: 4.85,
+                    gene: 54,
+                    bpm: 118,
+                    notes: "Subject displays subtle cranial ridge thickening and elevated synaptic resonance. Suspect dormant Patriarchal compulsion. Recommend immediate quarantine."
+                }
+            ],
+            INFECTED: [
+                {
+                    title: "EXTREMIS MALSTRAIN",
+                    classification: "CRITICAL ALERT // XENOS HORROR CONFIRMED",
+                    corruption: "96.8% [TERMINAL]",
+                    xenos: "POSITIVE // SECUNDUS STRAIN",
+                    mutation: "89% [HYPER-CHITIN]",
+                    psychic: "BROOD-MIND BEACON",
+                    rad: 8.92,
+                    gene: 94,
+                    bpm: 168,
+                    notes: "CATACLYSMIC GENETIC CORRUPTION. Subject's marrow has been overwritten by mutated Hive Secundus Genestealer DNA. PURGE WITH EXTREME PREJUDICE."
+                }
+            ],
+            RELIC: [
+                {
+                    title: "ARCHEO-VAULT KEY",
+                    classification: "CIPHER UNLOCKED // DARK AGE CACHE",
+                    corruption: "0.00% [ENCRYPTED]",
+                    xenos: "MACHINE-SPIRIT",
+                    mutation: "00% [INORGANIC]",
+                    psychic: "VOX-RESONANCE",
+                    rad: 6.40,
+                    gene: 8,
+                    bpm: 92,
+                    notes: "Auspex confirms genuine pre-fall Secundus Vault transponder signature. Nearby stasis-lockers and archaeotech caches may now be breached."
+                }
+            ]
+        };
+
         // --- SCANNING WORKFLOW ---
         function getCurrentOutcomeType(fromAutoRune = false) {
-            // If triggered by optical rune lock, always honor the scanned rune directly
             if (fromAutoRune && state.detectedGlyph) {
                 return state.detectedGlyph.outcome;
             }
 
             const mode = state.arbiterModes[state.arbiterIndex];
             if (mode !== 'AUTO') {
-                // Allow OVERRIDE mode to also attach the matching Rune Datalog for testing/GM use
                 const overrideRuneMap = {
                     'CLEAN': 'RUNE I: AQUILA',
                     'BROOD': 'RUNE II: BROOD',
@@ -1063,21 +1318,589 @@
             if (navigator.vibrate) navigator.vibrate(fromAutoRune ? [60, 40, 90] : [40, 30, 40]);
 
             const scanDuration = 3400;
-// ... existing code ... -->
+            const startTime = performance.now();
+
+            function stepScan(now) {
+                const elapsed = now - startTime;
+                state.scanProgress = Math.min(1, elapsed / scanDuration);
+
+                state.radValue = 1.2 + Math.sin(elapsed * 0.012) * 2.5 + state.scanProgress * (selectedResult.rad - 1.2);
+                state.geneInstability = Math.min(100, Math.round(state.scanProgress * selectedResult.gene + Math.sin(elapsed * 0.02) * 8));
+                state.bpm = Math.round(76 + state.scanProgress * (selectedResult.bpm - 76));
+
+                const rangeVal = Math.max(1, Math.round(28 - state.scanProgress * 24));
+                teleRange.textContent = `${rangeVal}m`;
+                teleMutation.textContent = `${Math.max(0, state.geneInstability)}%`;
+
+                if (state.scanProgress < 1) {
+                    requestAnimationFrame(stepScan);
+                } else {
+                    completeScan(selectedResult);
+                }
+            }
+
+            requestAnimationFrame(stepScan);
+        }
+
+        function completeScan(result) {
+            state.isScanning = false;
+            stopTensionAudio();
+
+            scanBtn.disabled = false;
+            scanBtnText.textContent = "START SCAN";
+            openDossierBtn.classList.remove('hidden');
+
+            state.radValue = result.rad;
+            state.geneInstability = result.gene;
+            state.bpm = result.bpm;
+            updateLedMeters();
+
+            const isInfected = state.currentOutcome === 'INFECTED';
+            const isBrood = state.currentOutcome === 'BROOD';
+            const isRelic = state.currentOutcome === 'RELIC';
+
+            bioBannerTitle.classList.remove('animate-pulse');
+            if (isInfected) {
+                bioBannerTitle.textContent = "MALSTRAIN CORRUPTION DETECTED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-red-500 glow-red uppercase truncate";
+                teleAcquired.textContent = "XENOS HOST LOCKED";
+                teleThreat.textContent = "EXTREMIS";
+                teleThreat.className = "text-red-500 font-bold";
+                chassisRoot.classList.add('alarm-active');
+                if (navigator.vibrate) navigator.vibrate([180, 70, 180, 70, 320]);
+            } else if (isBrood) {
+                bioBannerTitle.textContent = "ANOMALOUS BIO-SIGNATURES";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate";
+                teleAcquired.textContent = "TARGET ACQUIRED";
+                teleThreat.textContent = "HIGH";
+                teleThreat.className = "text-amber-400 font-bold";
+                chassisRoot.classList.remove('alarm-active');
+                if (navigator.vibrate) navigator.vibrate([110, 60, 110]);
+            } else if (isRelic) {
+                bioBannerTitle.textContent = "ARCHEO-CIPHER AUTHENTICATED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-cyan-400 uppercase truncate";
+                teleAcquired.textContent = "RELIC SIGNATURE";
+                teleThreat.textContent = "UNKNOWN";
+                teleThreat.className = "text-cyan-400 font-bold";
+                chassisRoot.classList.remove('alarm-active');
+                if (navigator.vibrate) navigator.vibrate([70, 50, 140]);
+            } else {
+                bioBannerTitle.textContent = "BIO-SIGNATURES VERIFIED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-[#58e678] glow-green uppercase truncate";
+                teleAcquired.textContent = "SUBJECT CLEARED";
+                teleThreat.textContent = "LOW";
+                teleThreat.className = "text-[#58e678] font-bold";
+                chassisRoot.classList.remove('alarm-active');
+                if (navigator.vibrate) navigator.vibrate(80);
+            }
+
+            playResultSound(state.currentOutcome);
+
+            // Populate Dossier Modal
+            resultClassification.textContent = result.classification;
+            resultTitle.textContent = result.title;
+            statCorruption.textContent = result.corruption;
+            statXenos.textContent = result.xenos;
+            statMutation.textContent = result.mutation;
+            statPsychic.textContent = result.psychic;
+            resultNotes.textContent = result.notes;
+            subjectNameInput.value = '';
+
+            // Check if a Campaign Rune is attached to unlock its Recovered Datalog
+            const runeKey = state.detectedGlyph ? state.detectedGlyph.label : null;
+            if (runeKey && runeDatalogs[runeKey]) {
+                state.activeDatalog = runeDatalogs[runeKey];
+                datalogCodeTag.textContent = state.activeDatalog.code;
+                datalogPromptRune.textContent = runeKey;
+                datalogPromptBox.classList.remove('hidden');
+            } else {
+                state.activeDatalog = null;
+                datalogPromptBox.classList.add('hidden');
+            }
+
+            if (isInfected) {
+                resultCard.style.borderColor = '#ef4444';
+                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-red-500 glow-red mt-0.5";
+                resultBadge.className = "w-11 h-11 rounded border-2 border-red-500 bg-red-950/60 flex items-center justify-center shrink-0";
+                iconClean.classList.add('hidden');
+                iconInfected.classList.remove('hidden');
+                iconInfected.className = "w-6 h-6 text-red-500";
+                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
+                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
+                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-red-500/45";
+            } else if (isBrood) {
+                resultCard.style.borderColor = '#f59e0b';
+                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-amber-400 glow-amber mt-0.5";
+                resultBadge.className = "w-11 h-11 rounded border-2 border-amber-500 bg-amber-950/60 flex items-center justify-center shrink-0";
+                iconClean.classList.add('hidden');
+                iconInfected.classList.remove('hidden');
+                iconInfected.className = "w-6 h-6 text-amber-400";
+                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
+                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
+                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-amber-500/45";
+            } else if (isRelic) {
+                resultCard.style.borderColor = '#22d3ee';
+                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-cyan-400 mt-0.5";
+                resultBadge.className = "w-11 h-11 rounded border-2 border-cyan-400 bg-cyan-950/60 flex items-center justify-center shrink-0";
+                iconClean.classList.remove('hidden');
+                iconClean.className = "w-6 h-6 text-cyan-400";
+                iconInfected.classList.add('hidden');
+                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
+                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
+                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-cyan-500/45";
+            } else {
+                resultCard.style.borderColor = '#58e678';
+                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-[#58e678] glow-green mt-0.5";
+                resultBadge.className = "w-11 h-11 rounded border-2 border-[#58e678] bg-emerald-950/60 flex items-center justify-center shrink-0";
+                iconClean.classList.remove('hidden');
+                iconClean.className = "w-6 h-6 text-[#58e678]";
+                iconInfected.classList.add('hidden');
+                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
+                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
+                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-emerald-500/35";
+            }
+
+            state.pendingLogEntry = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                outcome: state.currentOutcome,
+                title: result.title,
+                corruption: result.corruption,
+                subject: 'UNIDENTIFIED FIGHTER'
+            };
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function savePendingLog() {
+            if (!state.pendingLogEntry) return;
+            const customName = subjectNameInput.value.trim();
+            if (customName) {
+                state.pendingLogEntry.subject = customName.toUpperCase();
+            }
+            subjectTagDisplay.textContent = `SUBJECT: ${state.pendingLogEntry.subject}`;
+            state.scanHistory.unshift(state.pendingLogEntry);
+            if (state.scanHistory.length > 50) state.scanHistory.pop();
+            localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
+            state.pendingLogEntry = null;
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            historyBadge.textContent = state.scanHistory.length;
+            let cleanCount = 0, broodCount = 0, infectedCount = 0;
+
+            state.scanHistory.forEach(item => {
+                if (item.outcome === 'INFECTED') infectedCount++;
+                else if (item.outcome === 'BROOD') broodCount++;
+                else cleanCount++;
+            });
+
+            countCleanEl.textContent = cleanCount;
+            countBroodEl.textContent = broodCount;
+            countInfectedEl.textContent = infectedCount;
+
+            if (state.scanHistory.length === 0) {
+                historyList.innerHTML = `<div class="text-center text-stone-500 py-10 italic">No bio-signatures recorded in current cycle.</div>`;
+                return;
+            }
+
+            historyList.innerHTML = state.scanHistory.map(item => {
+                const isInf = item.outcome === 'INFECTED';
+                const isBrd = item.outcome === 'BROOD';
+                const borderCol = isInf ? 'border-red-500/50' : (isBrd ? 'border-amber-500/50' : 'border-emerald-500/40');
+                const titleCol = isInf ? 'text-red-500' : (isBrd ? 'text-amber-400' : 'text-[#58e678]');
+                return `
+                    <div class="p-2.5 rounded bg-black/80 border ${borderCol} flex items-center justify-between gap-2">
+                        <div>
+                            <div class="text-[10px] text-stone-400">${item.timestamp} // <span class="text-amber-400 font-bold">${item.subject}</span></div>
+                            <div class="font-stencil font-bold text-xs ${titleCol}">${item.title}</div>
+                        </div>
+                        <div class="text-right text-[10px] font-mono ${titleCol}">${item.corruption}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- LIVE CANVAS RENDERERS (RADAR + WIREFRAME HOLOGRAM + ECG) ---
+        function resizeCanvases() {
+            const aperture = document.getElementById('radar-aperture');
+            if (aperture) {
+                radarCanvas.width = aperture.clientWidth;
+                radarCanvas.height = aperture.clientHeight;
+                simCanvas.width = aperture.clientWidth;
+                simCanvas.height = aperture.clientHeight;
+            }
+            if (portraitCanvas.parentElement) {
+                portraitCanvas.width = portraitCanvas.parentElement.clientWidth;
+                portraitCanvas.height = portraitCanvas.parentElement.clientHeight;
+            }
+            if (ecgCanvas.parentElement) {
+                ecgCanvas.width = ecgCanvas.parentElement.clientWidth;
+                ecgCanvas.height = ecgCanvas.parentElement.clientHeight;
+            }
+        }
+
+        function drawRadarOverlay(time) {
+            const w = radarCanvas.width;
+            const h = radarCanvas.height;
+            if (!w || !h) return;
+
+            const cx = w / 2;
+            const cy = h / 2;
+            const maxR = Math.min(cx, cy) - 4;
+
+            if (state.usingFallbackSim) {
+                simCtx.fillStyle = '#070e09';
+                simCtx.fillRect(0, 0, w, h);
+                simCtx.strokeStyle = 'rgba(88, 230, 120, 0.08)';
+                simCtx.lineWidth = 1;
+                const step = 18;
+                for (let x = 0; x < w; x += step) {
+                    simCtx.beginPath(); simCtx.moveTo(x, 0); simCtx.lineTo(x, h); simCtx.stroke();
+                }
+                for (let y = 0; y < h; y += step) {
+                    simCtx.beginPath(); simCtx.moveTo(0, y); simCtx.lineTo(w, y); simCtx.stroke();
+                }
+            }
+
+            radarCtx.clearRect(0, 0, w, h);
+
+            // Subtle phosphor vignette
+            const vig = radarCtx.createRadialGradient(cx, cy, maxR * 0.35, cx, cy, maxR);
+            vig.addColorStop(0, 'rgba(12, 34, 18, 0.14)');
+            vig.addColorStop(1, 'rgba(4, 12, 6, 0.62)');
+            radarCtx.fillStyle = vig;
+            radarCtx.fillRect(0, 0, w, h);
+
+            const isInfected = state.currentOutcome === 'INFECTED' && !state.isScanning && chassisRoot.classList.contains('alarm-active');
+            const primaryColor = isInfected ? 'rgba(239, 68, 68, 0.72)' : 'rgba(88, 230, 120, 0.55)';
+            const amberColor = 'rgba(245, 158, 11, 0.45)';
+
+            // Concentric radar rings
+            [0.25, 0.48, 0.72, 0.94].forEach((ratio, idx) => {
+                radarCtx.beginPath();
+                radarCtx.arc(cx, cy, maxR * ratio, 0, Math.PI * 2);
+                radarCtx.strokeStyle = idx === 3 ? primaryColor : amberColor;
+                radarCtx.lineWidth = idx === 3 ? 2 : 1;
+                radarCtx.stroke();
+            });
+
+            // 12 Radial Spokes
+            for (let i = 0; i < 12; i++) {
+                const a = (i * Math.PI) / 6;
+                radarCtx.beginPath();
+                radarCtx.moveTo(cx + Math.cos(a) * (maxR * 0.16), cy + Math.sin(a) * (maxR * 0.16));
+                radarCtx.lineTo(cx + Math.cos(a) * (maxR * 0.94), cy + Math.sin(a) * (maxR * 0.94));
+                radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
+                radarCtx.lineWidth = 1;
+                radarCtx.stroke();
+            }
+
+            // Rotating Radar Sweep Sector
+            const sweepSpeed = state.isScanning ? 0.065 : 0.024;
+            state.radarAngle = (state.radarAngle + sweepSpeed) % (Math.PI * 2);
+
+            radarCtx.save();
+            radarCtx.translate(cx, cy);
+            radarCtx.rotate(state.radarAngle);
+            const grad = radarCtx.createLinearGradient(0, 0, maxR * 0.94, 0);
+            grad.addColorStop(0, isInfected ? 'rgba(239, 68, 68, 0.05)' : 'rgba(245, 158, 11, 0.04)');
+            grad.addColorStop(1, isInfected ? 'rgba(239, 68, 68, 0.34)' : 'rgba(245, 158, 11, 0.32)');
+            radarCtx.beginPath();
+            radarCtx.moveTo(0, 0);
+            radarCtx.arc(0, 0, maxR * 0.94, -0.45, 0);
+            radarCtx.closePath();
+            radarCtx.fillStyle = grad;
+            radarCtx.fill();
+
+            radarCtx.beginPath();
+            radarCtx.moveTo(0, 0);
+            radarCtx.lineTo(maxR * 0.94, 0);
+            radarCtx.strokeStyle = isInfected ? '#ef4444' : '#f59e0b';
+            radarCtx.lineWidth = 2;
+            radarCtx.stroke();
+            radarCtx.restore();
+
+            // Active Sonar Pulse Rings
+            for (let i = state.pulseRings.length - 1; i >= 0; i--) {
+                const p = state.pulseRings[i];
+                p.r += 4.2;
+                p.alpha -= 0.016;
+                if (p.alpha <= 0 || p.r > maxR) {
+                    state.pulseRings.splice(i, 1);
+                    continue;
+                }
+                radarCtx.beginPath();
+                radarCtx.arc(cx, cy, p.r, 0, Math.PI * 2);
+                radarCtx.strokeStyle = `rgba(245, 158, 11, ${p.alpha})`;
+                radarCtx.lineWidth = 2.5;
+                radarCtx.stroke();
+            }
+
+            // Radar Contact Blips
+            state.blips.forEach(b => {
+                const bx = cx + Math.cos(b.angle) * (maxR * b.dist);
+                const by = cy + Math.sin(b.angle) * (maxR * b.dist);
+                const pulse = 0.5 + 0.5 * Math.sin(time * 0.005 + b.phase);
+                radarCtx.beginPath();
+                radarCtx.arc(bx, by, 3 + pulse * 2, 0, Math.PI * 2);
+                radarCtx.fillStyle = b.type === 'danger'
+                    ? `rgba(239, 68, 68, ${0.45 + pulse * 0.55})`
+                    : `rgba(88, 230, 120, ${0.4 + pulse * 0.55})`;
+                radarCtx.fill();
+            });
+
+            // Center Optical Targeting Crosshair (Optical Rune Lock Zone)
+            const reticleR = maxR * 0.22;
+            radarCtx.strokeStyle = state.detectedGlyph ? '#58e678' : '#f59e0b';
+            radarCtx.lineWidth = state.detectedGlyph ? 2.5 : 1.8;
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, reticleR, 0, Math.PI * 2);
+            radarCtx.stroke();
+
+            // Crosshair ticks
+            const tick = 8;
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx - reticleR - tick, cy); radarCtx.lineTo(cx - reticleR + 4, cy);
+            radarCtx.moveTo(cx + reticleR - 4, cy); radarCtx.lineTo(cx + reticleR + tick, cy);
+            radarCtx.moveTo(cx, cy - reticleR - tick); radarCtx.lineTo(cx, cy - reticleR + 4);
+            radarCtx.moveTo(cx, cy + reticleR - 4); radarCtx.lineTo(cx, cy + reticleR + tick);
+            radarCtx.stroke();
+
+            // Scanning Arc Progress Indicator
+            if (state.isScanning) {
+                radarCtx.beginPath();
+                radarCtx.arc(cx, cy, maxR * 0.96, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * state.scanProgress);
+                radarCtx.strokeStyle = '#58e678';
+                radarCtx.lineWidth = 4;
+                radarCtx.stroke();
+            }
+        }
+
+        function drawWireframePortrait(time) {
+            const w = portraitCanvas.width;
+            const h = portraitCanvas.height;
+            if (!w || !h) return;
+
+            portraitCtx.fillStyle = '#040906';
+            portraitCtx.fillRect(0, 0, w, h);
+
+            const cx = w / 2;
+            const cy = h / 2;
+            const isMutated = state.geneInstability >= 55;
+            const strokeCol = isMutated ? 'rgba(239, 68, 68, 0.85)' : 'rgba(88, 230, 120, 0.82)';
+
+            portraitCtx.strokeStyle = strokeCol;
+            portraitCtx.lineWidth = 1.1;
+
+            // Wireframe Cranium & Jaw Mesh
+            const headRx = w * 0.24;
+            const headRy = h * 0.32;
+            portraitCtx.beginPath();
+            portraitCtx.ellipse(cx, cy - 2, headRx, headRy, 0, 0, Math.PI * 2);
+            portraitCtx.stroke();
+
+            // Horizontal latitude wireframe rings
+            for (let i = -2; i <= 2; i++) {
+                const yOff = i * (headRy * 0.34);
+                const rowW = Math.sqrt(Math.max(0.05, 1 - Math.pow(yOff / headRy, 2))) * headRx;
+                portraitCtx.beginPath();
+                portraitCtx.ellipse(cx, cy - 2 + yOff, rowW, 3.2, 0, 0, Math.PI * 2);
+                portraitCtx.stroke();
+            }
+
+            // Vertical longitude arcs
+            [-0.5, 0, 0.5].forEach(frac => {
+                portraitCtx.beginPath();
+                portraitCtx.ellipse(cx, cy - 2, Math.abs(frac) * headRx + 2, headRy, 0, 0, Math.PI * 2);
+                portraitCtx.stroke();
+            });
+
+            // Glowing Auger Eye / Brood-Node
+            const eyePulse = 0.6 + 0.4 * Math.sin(time * 0.008);
+            portraitCtx.fillStyle = isMutated ? `rgba(239, 68, 68, ${eyePulse})` : `rgba(245, 158, 11, ${eyePulse})`;
+            portraitCtx.beginPath();
+            portraitCtx.arc(cx + headRx * 0.38, cy - 5, 3.2, 0, Math.PI * 2);
+            portraitCtx.fill();
+
+            // Occasional CRT glitch bar
+            if (Math.random() < (state.isScanning ? 0.35 : 0.08)) {
+                const gy = Math.random() * h;
+                portraitCtx.fillStyle = isMutated ? 'rgba(239, 68, 68, 0.35)' : 'rgba(88, 230, 120, 0.28)';
+                portraitCtx.fillRect(0, gy, w, 2);
+            }
+        }
+
+        function drawEcgWaveform() {
+            const w = ecgCanvas.width;
+            const h = ecgCanvas.height;
+            if (!w || !h) return;
+
+            // Advance heartbeat phase proportional to current BPM
+            state.ecgPhase += (state.bpm / 60) * 0.045;
+            const cycle = state.ecgPhase % 1;
+            let sample = 0;
+
+            if (cycle > 0.12 && cycle < 0.18) sample = -0.22;
+            else if (cycle >= 0.18 && cycle < 0.23) sample = 0.92;
+            else if (cycle >= 0.23 && cycle < 0.28) sample = -0.45;
+            else if (cycle >= 0.36 && cycle < 0.46) sample = 0.28;
+            else sample = (Math.random() - 0.5) * 0.06;
+
+            state.ecgHistory.push(sample);
+            if (state.ecgHistory.length > 75) state.ecgHistory.shift();
+
+            ecgCtx.clearRect(0, 0, w, h);
+
+            const isDanger = state.geneInstability >= 70;
+            ecgCtx.strokeStyle = isDanger ? '#ef4444' : '#58e678';
+            ecgCtx.lineWidth = 1.6;
+            ecgCtx.beginPath();
+
+            const midY = h * 0.54;
+            const amp = h * 0.42;
+            state.ecgHistory.forEach((val, idx) => {
+                const x = (idx / (state.ecgHistory.length - 1)) * w;
+                const y = midY - val * amp;
+                if (idx === 0) ecgCtx.moveTo(x, y);
+                else ecgCtx.lineTo(x, y);
+            });
+            ecgCtx.stroke();
+        }
+
+        function mainLoop(time) {
+            analyzeOpticalGlyph();
+            drawRadarOverlay(time);
+            drawWireframePortrait(time);
+            drawEcgWaveform();
+            requestAnimationFrame(mainLoop);
+        }
+
         // --- EVENT LISTENERS ---
         scanBtn.addEventListener('click', () => triggerScan(false));
 
         pulseBtn.addEventListener('click', async () => {
-// ... existing code ... -->
+            await initAudio();
+            playBeep(640, "16n");
+            state.pulseRings.push({ r: 12, alpha: 0.95 });
+            const randomRange = Math.floor(6 + Math.random() * 24);
+            teleRange.textContent = `${randomRange}m`;
+            teleAcquired.textContent = "SONAR PING SENT";
+            if (navigator.vibrate) navigator.vibrate(35);
+        });
+
+        arbiterModeBtn.addEventListener('click', async () => {
+            await initAudio();
+            state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
+            const currentMode = state.arbiterModes[state.arbiterIndex];
+            modeLabel.textContent = `SYS: ${currentMode}`;
+            playBeep(currentMode === 'AUTO' ? 520 : 880, "32n");
+            if (navigator.vibrate) navigator.vibrate(25);
+        });
+
+        audioBtn.addEventListener('click', async () => {
+            state.audioEnabled = !state.audioEnabled;
+            if (state.audioEnabled) {
+                await initAudio();
+                playBeep(780, "16n");
+                audioSkullSvg.className = "w-7 h-7 text-emerald-400 transition-colors";
+                audioBadge.textContent = "VOX";
+                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-emerald-950 border border-emerald-500/60 text-[8px] font-bold text-emerald-400";
+            } else {
+                stopTensionAudio();
+                audioSkullSvg.className = "w-7 h-7 text-stone-600 transition-colors";
+                audioBadge.textContent = "MUTE";
+                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-zinc-900 border border-stone-600 text-[8px] font-bold text-stone-400";
+            }
+        });
+
+        switchCamBtn.addEventListener('click', () => {
+            state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+            playBeep(680, "32n");
+            initCamera();
+        });
+
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    activateFallbackSim();
+                    simCtx.drawImage(img, 0, 0, simCanvas.width, simCanvas.height);
+                    teleAcquired.textContent = "PICT LOADED";
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Glyph Grimoire Modal Controls
+        glyphGuideBtn.addEventListener('click', () => {
+            playBeep(720, "32n");
+            glyphModal.classList.remove('hidden');
+        });
+        closeGlyphBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
+        closeGlyphFooterBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
+
+        // Dossier Modal Controls
         resetScanBtn.addEventListener('click', () => {
             savePendingLog();
             playBeep(520, "16n");
             resultModal.classList.add('hidden');
-            // 2.5s cooldown so returning to the camera doesn't immediately re-scan the same rune
             state.glyphCooldownUntil = Date.now() + 2500;
             state.detectedGlyph = null;
             glyphLockPill.classList.add('hidden');
         });
 
         openDossierBtn.addEventListener('click', () => {
-// ... existing code ... -->
+            playBeep(660, "32n");
+            resultModal.classList.remove('hidden');
+        });
+
+        // Datalog Reader Modal Controls
+        openDatalogBtn.addEventListener('click', () => {
+            if (!state.activeDatalog) return;
+            playBeep(940, "16n");
+            datalogHeaderSub.textContent = state.activeDatalog.headerSub;
+            datalogTitle.textContent = state.activeDatalog.title;
+            datalogAuthor.textContent = state.activeDatalog.author;
+            datalogIntegrity.textContent = state.activeDatalog.integrity;
+            datalogBody1.textContent = state.activeDatalog.body1;
+            datalogBody2.textContent = state.activeDatalog.body2;
+            datalogWhisper.textContent = state.activeDatalog.whisper;
+            datalogModal.classList.remove('hidden');
+        });
+
+        closeDatalogBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
+        closeDatalogFooterBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
+
+        // History Modal Controls
+        historyBtn.addEventListener('click', () => {
+            updateHistoryUI();
+            playBeep(620, "32n");
+            historyModal.classList.remove('hidden');
+        });
+        closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+        closeHistoryFooterBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+        clearHistoryBtn.addEventListener('click', () => {
+            state.scanHistory = [];
+            localStorage.removeItem('necromunda_malstrain_logs');
+            updateHistoryUI();
+            playBeep(360, "16n");
+        });
+
+        // --- BOOT SEQUENCE ---
+        window.addEventListener('resize', resizeCanvases);
+        window.onload = function () {
+            resizeCanvases();
+            updateLedMeters();
+            updateHistoryUI();
+            initCamera();
+            requestAnimationFrame(mainLoop);
+        };
+    </script>
+</body>
+</html>
