@@ -570,6 +570,18 @@
                     <input id="subject-name-input" type="text" maxlength="28" placeholder="Name fighter (e.g. Ganger Vex)..." class="w-full bg-transparent text-xs text-emerald-300 placeholder-stone-600 focus:outline-none font-mono" />
                 </div>
 
+                <!-- Captured Miniature Pict-Feed Frame -->
+                <div id="result-pict-wrapper" class="hidden mt-3 bg-black/90 p-1.5 rounded border border-stone-700 relative overflow-hidden">
+                    <div class="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider mb-1 px-0.5">
+                        <span>OPTIC PICT-CAPTURE // LOCK FRAME</span>
+                        <span id="result-pict-stamp" class="text-emerald-400 font-mono">00:00</span>
+                    </div>
+                    <div class="relative w-full h-36 sm:h-40 rounded overflow-hidden border border-emerald-500/30 bg-black">
+                        <img id="result-pict-img" alt="Captured Subject Pict" class="w-full h-full object-cover" />
+                        <div class="crt-scanlines absolute inset-0"></div>
+                    </div>
+                </div>
+
                 <!-- 2x2 Biometric Grid -->
                 <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div class="bg-black/80 p-2 rounded border border-stone-800">
@@ -749,12 +761,13 @@
             bpm: 78,
             radValue: 1.42,
             geneInstability: 12,
+            capturedPict: null,
             scanHistory: JSON.parse(localStorage.getItem('necromunda_malstrain_logs') || '[]'),
             pendingLogEntry: null,
             activeDatalog: null
         };
 
-        // --- DOM REFERENCES ---
+        // --- DOM ELEMENTS ---
         const chassisRoot = document.getElementById('chassis-root');
         const videoEl = document.getElementById('camera-feed');
         const simCanvas = document.getElementById('sim-canvas');
@@ -766,23 +779,23 @@
         const ecgCanvas = document.getElementById('ecg-canvas');
         const ecgCtx = ecgCanvas.getContext('2d');
 
-        // Offscreen canvas for optical glyph sampling
-        const glyphSampleCanvas = document.createElement('canvas');
-        glyphSampleCanvas.width = 48;
-        glyphSampleCanvas.height = 48;
-        const glyphSampleCtx = glyphSampleCanvas.getContext('2d', { willReadFrequently: true });
+        // Hidden Offscreen Canvas for Optical 2x2 Glyph Analysis
+        const glyphCanvas = document.createElement('canvas');
+        glyphCanvas.width = 48;
+        glyphCanvas.height = 48;
+        const glyphCtx = glyphCanvas.getContext('2d', { willReadFrequently: true });
 
         const headerStatusText = document.getElementById('header-status-text');
-        const glyphLockPill = document.getElementById('glyph-lock-pill');
-        const glyphLockName = document.getElementById('glyph-lock-name');
         const teleAcquired = document.getElementById('tele-acquired');
         const teleRange = document.getElementById('tele-range');
         const teleMutation = document.getElementById('tele-mutation');
         const teleThreat = document.getElementById('tele-threat');
+        const glyphLockPill = document.getElementById('glyph-lock-pill');
+        const glyphLockName = document.getElementById('glyph-lock-name');
 
         const bioBannerTitle = document.getElementById('bio-banner-title');
-        const subjectTagDisplay = document.getElementById('subject-tag-display');
         const openDossierBtn = document.getElementById('open-dossier-btn');
+        const subjectTagDisplay = document.getElementById('subject-tag-display');
         const radValLabel = document.getElementById('rad-val-label');
         const radMeterBar = document.getElementById('rad-meter-bar');
         const geneStatusLabel = document.getElementById('gene-status-label');
@@ -803,13 +816,13 @@
         const switchCamBtn = document.getElementById('switch-cam-btn');
         const fileUpload = document.getElementById('file-upload');
 
-        // Glyph Modal Elements
+        // Glyph Grimoire Modal
         const glyphGuideBtn = document.getElementById('glyph-guide-btn');
         const glyphModal = document.getElementById('glyph-modal');
         const closeGlyphBtn = document.getElementById('close-glyph-btn');
         const closeGlyphFooterBtn = document.getElementById('close-glyph-footer-btn');
 
-        // Dossier Modal Elements
+        // Result Modal Elements
         const resultModal = document.getElementById('result-modal');
         const resultCard = document.getElementById('result-card');
         const resultClassification = document.getElementById('result-classification');
@@ -818,19 +831,22 @@
         const iconClean = document.getElementById('icon-clean');
         const iconInfected = document.getElementById('icon-infected');
         const subjectNameInput = document.getElementById('subject-name-input');
+        const resultPictWrapper = document.getElementById('result-pict-wrapper');
+        const resultPictImg = document.getElementById('result-pict-img');
+        const resultPictStamp = document.getElementById('result-pict-stamp');
         const statCorruption = document.getElementById('stat-corruption');
         const statXenos = document.getElementById('stat-xenos');
         const statMutation = document.getElementById('stat-mutation');
         const statPsychic = document.getElementById('stat-psychic');
         const resultNotesBox = document.getElementById('result-notes-box');
         const resultNotes = document.getElementById('result-notes');
+        const resetScanBtn = document.getElementById('reset-scan-btn');
+
+        // Datalog Prompt & Reader Elements
         const datalogPromptBox = document.getElementById('datalog-prompt-box');
         const datalogCodeTag = document.getElementById('datalog-code-tag');
         const datalogPromptRune = document.getElementById('datalog-prompt-rune');
         const openDatalogBtn = document.getElementById('open-datalog-btn');
-        const resetScanBtn = document.getElementById('reset-scan-btn');
-
-        // Datalog Modal Elements
         const datalogModal = document.getElementById('datalog-modal');
         const datalogHeaderSub = document.getElementById('datalog-header-sub');
         const datalogTitle = document.getElementById('datalog-title');
@@ -848,159 +864,406 @@
         const historyModal = document.getElementById('history-modal');
         const closeHistoryBtn = document.getElementById('close-history-btn');
         const closeHistoryFooterBtn = document.getElementById('close-history-footer-btn');
-        const clearHistoryBtn = document.getElementById('clear-history-btn');
         const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
         const countCleanEl = document.getElementById('count-clean');
         const countBroodEl = document.getElementById('count-brood');
         const countInfectedEl = document.getElementById('count-infected');
 
-        // --- BUILD SEGMENTED LED METER BARS ---
-        function buildLedSegments(container, count) {
-            container.innerHTML = '';
-            for (let i = 0; i < count; i++) {
-                const seg = document.createElement('div');
-                seg.className = 'led-segment';
-                container.appendChild(seg);
-            }
+        // --- INITIALIZE SEGMENTED LED BARS ---
+        const RAD_SEGMENTS = 24;
+        const GENE_SEGMENTS = 20;
+        for (let i = 0; i < RAD_SEGMENTS; i++) {
+            const seg = document.createElement('div');
+            seg.className = 'led-segment';
+            radMeterBar.appendChild(seg);
         }
-        buildLedSegments(radMeterBar, 24);
-        buildLedSegments(geneMeterBar, 20);
+        for (let i = 0; i < GENE_SEGMENTS; i++) {
+            const seg = document.createElement('div');
+            seg.className = 'led-segment';
+            geneMeterBar.appendChild(seg);
+        }
 
         function updateLedMeters() {
-            const radSegs = radMeterBar.children;
-            const radActive = Math.min(radSegs.length, Math.max(2, Math.round((state.radValue / 10) * radSegs.length)));
-            for (let i = 0; i < radSegs.length; i++) {
-                radSegs[i].className = 'led-segment';
-                if (i < radActive) {
-                    if (i > 18) radSegs[i].classList.add('active-red');
-                    else if (i > 12) radSegs[i].classList.add('active-amber');
-                    else radSegs[i].classList.add('active-green');
+            const radFill = Math.round(Math.min(1, Math.max(0.1, state.radValue / 10)) * RAD_SEGMENTS);
+            Array.from(radMeterBar.children).forEach((seg, idx) => {
+                seg.className = 'led-segment';
+                if (idx < radFill) {
+                    if (idx > 18) seg.classList.add('active-red');
+                    else if (idx > 13) seg.classList.add('active-amber');
+                    else seg.classList.add('active-green');
                 }
-            }
-            radValLabel.textContent = `${state.radValue.toFixed(2)} mSv`;
+            });
 
-            const geneSegs = geneMeterBar.children;
-            const geneActive = Math.min(geneSegs.length, Math.max(1, Math.round((state.geneInstability / 100) * geneSegs.length)));
-            for (let i = 0; i < geneSegs.length; i++) {
-                geneSegs[i].className = 'led-segment';
-                if (i < geneActive) {
-                    if (state.geneInstability >= 70) geneSegs[i].classList.add('active-red');
-                    else if (state.geneInstability >= 35) geneSegs[i].classList.add('active-amber');
-                    else geneSegs[i].classList.add('active-green');
+            const geneFill = Math.round(Math.min(1, Math.max(0.08, state.geneInstability / 100)) * GENE_SEGMENTS);
+            const isDanger = state.geneInstability >= 65;
+            const isWarn = state.geneInstability >= 35 && state.geneInstability < 65;
+
+            Array.from(geneMeterBar.children).forEach((seg, idx) => {
+                seg.className = 'led-segment';
+                if (idx < geneFill) {
+                    if (isDanger) seg.classList.add('active-red');
+                    else if (isWarn) seg.classList.add('active-amber');
+                    else seg.classList.add('active-green');
                 }
-            }
+            });
 
-            if (state.geneInstability >= 70) {
-                geneStatusLabel.textContent = "GENE-WARPED";
-                geneStatusLabel.className = "text-red-500 glow-red";
-                geneValLabel.textContent = `${state.geneInstability}% CRITICAL`;
-                geneValLabel.className = "text-[9px] font-mono text-red-400";
-                warningTriangle.className = "shrink-0 text-red-500 animate-pulse";
-            } else if (state.geneInstability >= 35) {
-                geneStatusLabel.textContent = "GENE-DRIFT";
-                geneStatusLabel.className = "text-amber-400 glow-amber";
-                geneValLabel.textContent = `${state.geneInstability}% ELEVATED`;
-                geneValLabel.className = "text-[9px] font-mono text-amber-300";
-                warningTriangle.className = "shrink-0 text-amber-400";
+            if (isDanger) {
+                geneStatusLabel.textContent = 'GENE-WARPED';
+                geneStatusLabel.className = 'text-red-500 glow-red';
+                geneValLabel.textContent = `${Math.round(state.geneInstability)}% CRITICAL`;
+                geneValLabel.className = 'text-[9px] font-mono text-red-400 font-bold';
+                warningTriangle.className = 'shrink-0 text-red-500 animate-pulse';
+            } else if (isWarn) {
+                geneStatusLabel.textContent = 'GENE-DRIFT';
+                geneStatusLabel.className = 'text-amber-400 glow-amber';
+                geneValLabel.textContent = `${Math.round(state.geneInstability)}% ELEVATED`;
+                geneValLabel.className = 'text-[9px] font-mono text-amber-300';
+                warningTriangle.className = 'shrink-0 text-amber-400';
             } else {
-                geneStatusLabel.textContent = "GENE-STABILITY";
-                geneStatusLabel.className = "text-[#58e678] glow-green";
-                geneValLabel.textContent = "NOMINAL";
-                geneValLabel.className = "text-[9px] font-mono text-emerald-300";
-                warningTriangle.className = "shrink-0 text-amber-500/35";
+                geneStatusLabel.textContent = 'GENE-STABILITY';
+                geneStatusLabel.className = 'text-[#58e678] glow-green';
+                geneValLabel.textContent = 'NOMINAL';
+                geneValLabel.className = 'text-[9px] font-mono text-emerald-300';
+                warningTriangle.className = 'shrink-0 text-amber-500/30';
             }
-
-            bpmLabel.textContent = `${Math.round(state.bpm)} BPM`;
         }
 
-        // --- REAL-TIME OPTICAL GLYPH / RUNE DETECTOR ---
+        // --- OPTICAL 2x2 CAMPAIGN GLYPH RECOGNIZER ---
+        const GLYPH_DEFINITIONS = {
+            '1000': { code: 'RUNE-I', name: 'AQUILA SEAL', outcome: 'CLEAN' },
+            '0110': { code: 'RUNE-II', name: 'BROOD-MARK', outcome: 'BROOD' },
+            '1001': { code: 'RUNE-III', name: 'XENOS SIGIL', outcome: 'INFECTED' },
+            '0011': { code: 'RUNE-IV', name: 'ARCHEO-KEY', outcome: 'RELIC' }
+        };
+
         function analyzeOpticalGlyph() {
-            // Do not auto-trigger while modals are open or during brief post-scan cooldown
-            const anyModalOpen =
-                !resultModal.classList.contains('hidden') ||
-                !datalogModal.classList.contains('hidden') ||
-                !glyphModal.classList.contains('hidden') ||
-                !historyModal.classList.contains('hidden');
-
-            if (anyModalOpen || Date.now() < state.glyphCooldownUntil) {
-                state.glyphLockFrames = 0;
-                glyphLockPill.classList.add('hidden');
-                return;
-            }
-
             const source = state.usingFallbackSim ? simCanvas : videoEl;
             const srcW = state.usingFallbackSim ? simCanvas.width : videoEl.videoWidth;
             const srcH = state.usingFallbackSim ? simCanvas.height : videoEl.videoHeight;
             if (!srcW || !srcH) return;
 
-            try {
-                // Sample central 28% square of camera frame (where the crosshair sits)
-                const cropSize = Math.min(srcW, srcH) * 0.28;
-                const sx = (srcW - cropSize) / 2;
-                const sy = (srcH - cropSize) / 2;
-                glyphSampleCtx.drawImage(source, sx, sy, cropSize, cropSize, 0, 0, 48, 48);
+            const cropSize = Math.min(srcW, srcH) * 0.24;
+            const sx = (srcW - cropSize) / 2;
+            const sy = (srcH - cropSize) / 2;
 
-                const imgData = glyphSampleCtx.getImageData(0, 0, 48, 48).data;
-                // Compute average luma in 4 quadrants (TL, TR, BL, BR)
-                const quadSums = [0, 0, 0, 0];
-                const quadCounts = [0, 0, 0, 0];
+            glyphCtx.drawImage(source, sx, sy, cropSize, cropSize, 0, 0, 48, 48);
+            const imgData = glyphCtx.getImageData(0, 0, 48, 48).data;
 
-                for (let y = 4; y < 44; y++) {
-                    // Skip central divider gap
-                    if (y >= 21 && y <= 26) continue;
-                    for (let x = 4; x < 44; x++) {
-                        if (x >= 21 && x <= 26) continue;
-                        const idx = (y * 48 + x) * 4;
-                        const luma = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
-                        const qIdx = (y >= 24 ? 2 : 0) + (x >= 24 ? 1 : 0);
-                        quadSums[qIdx] += luma;
-                        quadCounts[qIdx]++;
-                    }
+            const quadLuma = [0, 0, 0, 0];
+            const quadCount = [0, 0, 0, 0];
+            let minLuma = 255;
+            let maxLuma = 0;
+
+            for (let y = 4; y < 44; y++) {
+                if (y >= 21 && y <= 26) continue;
+                for (let x = 4; x < 44; x++) {
+                    if (x >= 21 && x <= 26) continue;
+                    const idx = (y * 48 + x) * 4;
+                    const luma = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
+                    if (luma < minLuma) minLuma = luma;
+                    if (luma > maxLuma) maxLuma = luma;
+
+                    const qIdx = (y >= 24 ? 2 : 0) + (x >= 24 ? 1 : 0);
+                    quadLuma[qIdx] += luma;
+                    quadCount[qIdx]++;
                 }
-
-                const avgs = quadSums.map((sum, i) => sum / Math.max(1, quadCounts[i]));
-                const minLuma = Math.min(...avgs);
-                const maxLuma = Math.max(...avgs);
-
-                // Require strong high-contrast black-on-white pattern (contrast delta >= 55)
-                if (maxLuma - minLuma >= 55) {
-                    const threshold = (minLuma + maxLuma) / 2;
-                    // Bitmask: 1 = dark quadrant, 0 = bright quadrant (TL, TR, BL, BR)
-                    const bits = avgs.map(v => (v < threshold ? '1' : '0')).join('');
-
-                    const glyphMap = {
-                        '1000': { label: 'RUNE I: AQUILA', outcome: 'CLEAN' },
-                        '0110': { label: 'RUNE II: BROOD', outcome: 'BROOD' },
-                        '1001': { label: 'RUNE III: XENOS', outcome: 'INFECTED' },
-                        '0011': { label: 'RUNE IV: ARCHEO', outcome: 'RELIC' }
-                    };
-
-                    if (glyphMap[bits]) {
-                        const prevLabel = state.detectedGlyph ? state.detectedGlyph.label : null;
-                        state.detectedGlyph = glyphMap[bits];
-                        state.glyphLockFrames = (prevLabel === glyphMap[bits].label) ? state.glyphLockFrames + 1 : 1;
-
-                        glyphLockPill.classList.remove('hidden');
-                        glyphLockName.textContent = `${glyphMap[bits].label} [AUTO-LOCK]`;
-
-                        // Auto-start the scan after ~18 consecutive frames (~0.35s) of steady rune lock
-                        if (state.glyphLockFrames >= 18 && !state.isScanning) {
-                            state.glyphLockFrames = 0;
-                            triggerScan(true);
-                        }
-                        return;
-                    }
-                }
-            } catch (e) {
-                // Ignore unready frame
             }
 
-            state.detectedGlyph = null;
+            if (maxLuma - minLuma < 65) {
+                clearGlyphLock();
+                return;
+            }
+
+            const avgQuads = quadLuma.map((sum, i) => sum / Math.max(1, quadCount[i]));
+            const midThreshold = (Math.min(...avgQuads) + Math.max(...avgQuads)) / 2;
+
+            const darkCount = avgQuads.filter(v => v < midThreshold).length;
+            if (darkCount < 1 || darkCount > 2 || (Math.max(...avgQuads) - Math.min(...avgQuads) < 42)) {
+                clearGlyphLock();
+                return;
+            }
+
+            const signature = avgQuads.map(v => (v < midThreshold ? '1' : '0')).join('');
+            const matched = GLYPH_DEFINITIONS[signature];
+
+            if (matched) {
+                state.glyphLockFrames++;
+                if (state.glyphLockFrames >= 2) {
+                    const isNewLock = !state.detectedGlyph || state.detectedGlyph.code !== matched.code;
+                    state.detectedGlyph = matched;
+                    glyphLockPill.classList.remove('hidden');
+                    glyphLockName.textContent = `${matched.code}: ${matched.name}`;
+
+                    if (isNewLock && !state.isScanning) {
+                        playGlyphLockSound();
+                        if (navigator.vibrate) navigator.vibrate([45, 30, 60]);
+                    }
+
+                    // Auto-lock & trigger hands-free scan once confirmed (~0.35s hover)
+                    if (
+                        state.glyphLockFrames >= 4 &&
+                        !state.isScanning &&
+                        Date.now() > state.glyphCooldownUntil &&
+                        resultModal.classList.contains('hidden') &&
+                        glyphModal.classList.contains('hidden') &&
+                        historyModal.classList.contains('hidden') &&
+                        datalogModal.classList.contains('hidden')
+                    ) {
+                        glyphLockName.textContent = `${matched.code} LOCKED...`;
+                        triggerScan(true);
+                    }
+                }
+            } else {
+                clearGlyphLock();
+            }
+        }
+
+        function clearGlyphLock() {
             state.glyphLockFrames = 0;
+            state.detectedGlyph = null;
             glyphLockPill.classList.add('hidden');
         }
 
-        // --- CAMERA INITIALIZATION ---
+        // --- HORROR & TENSION WEB AUDIO ENGINE (TONE.JS) ---
+        let audioInitialized = false;
+        let scanSynth, alarmSynth, cleanSynth, bassDrone, droneFilter, sonarSynth;
+
+        async function initAudio() {
+            if (audioInitialized || !window.Tone) return;
+            try {
+                await Tone.start();
+
+                droneFilter = new Tone.Filter(125, "lowpass").toDestination();
+                bassDrone = new Tone.Oscillator({
+                    type: "sawtooth",
+                    frequency: 42,
+                    volume: -25
+                }).connect(droneFilter);
+
+                if (state.audioEnabled) bassDrone.start();
+
+                scanSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.04,
+                    octaves: 3,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.005, decay: 0.14, sustain: 0, release: 0.06 },
+                    volume: -10
+                }).toDestination();
+
+                sonarSynth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.01, decay: 0.45, sustain: 0, release: 0.3 },
+                    volume: -12
+                }).toDestination();
+
+                alarmSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.02, decay: 0.35, sustain: 0.35, release: 0.7 },
+                    volume: -8
+                }).toDestination();
+
+                cleanSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.02, decay: 0.25, sustain: 0.2, release: 0.8 },
+                    volume: -10
+                }).toDestination();
+
+                audioInitialized = true;
+            } catch (e) {
+                console.warn("Audio init deferred:", e);
+            }
+        }
+
+        function playGlyphLockSound() {
+            if (!state.audioEnabled || !audioInitialized) return;
+            try {
+                const now = Tone.now();
+                sonarSynth.triggerAttackRelease("E5", "32n", now);
+                sonarSynth.triggerAttackRelease("B5", "16n", now + 0.07);
+            } catch (e) {}
+        }
+
+        function playPulsePing() {
+            if (!state.audioEnabled || !audioInitialized) return;
+            try {
+                sonarSynth.triggerAttackRelease("A5", "16n");
+            } catch (e) {}
+        }
+
+        function playScanHeartbeat(progress) {
+            if (!state.audioEnabled || !audioInitialized) return;
+            try {
+                const now = Tone.now();
+                if (droneFilter) droneFilter.frequency.rampTo(115 + progress * 2.8, 0.1);
+                scanSynth.triggerAttackRelease(progress > 72 ? "D1" : "C1", "16n", now);
+                setTimeout(() => {
+                    if (state.audioEnabled && state.isScanning) {
+                        scanSynth.triggerAttackRelease(progress > 72 ? "G1" : "F1", "32n");
+                    }
+                }, 115);
+            } catch (e) {}
+        }
+
+        function playResultSound(type) {
+            if (!state.audioEnabled || !audioInitialized) return;
+            try {
+                if (droneFilter) droneFilter.frequency.rampTo(125, 0.4);
+                const now = Tone.now();
+                if (type === 'INFECTED') {
+                    alarmSynth.triggerAttackRelease(["C2", "F#2", "C3", "Eb3"], "4n", now);
+                    alarmSynth.triggerAttackRelease(["B1", "F2", "B2", "D3"], "4n", now + 0.32);
+                    alarmSynth.triggerAttackRelease(["Bb1", "E2", "Bb2", "Db3"], "2n", now + 0.65);
+                } else if (type === 'BROOD') {
+                    alarmSynth.triggerAttackRelease(["D2", "Ab2", "F3"], "4n", now);
+                    alarmSynth.triggerAttackRelease(["C#2", "G2", "E3"], "3n", now + 0.38);
+                } else if (type === 'RELIC') {
+                    cleanSynth.triggerAttackRelease(["D4", "A4", "E5"], "8n", now);
+                    cleanSynth.triggerAttackRelease(["F#4", "C#5", "A5"], "2n", now + 0.16);
+                } else {
+                    cleanSynth.triggerAttackRelease(["C4", "G4", "D5"], "8n", now);
+                    cleanSynth.triggerAttackRelease(["E4", "B4", "G5"], "2n", now + 0.18);
+                }
+            } catch (e) {}
+        }
+
+        // --- LORE & BIO-SCAN DATABASES ---
+        const SCAN_DATABASE = {
+            CLEAN: [
+                {
+                    title: "PURE STRAIN HUMAN",
+                    corruption: "0.02% [NEGLIGIBLE]",
+                    xenos: "NEGATIVE",
+                    mutation: "0.4% (RAD-SCARRING)",
+                    psychic: "DORMANT",
+                    notes: "Subject genome conforms to Necromundan Hive-Primus baseline. Minor sump-toxin degradation detected in respiratory alveoli, but zero Tyranid/Malstrain markers present. Cleared for duty."
+                },
+                {
+                    title: "SANCTIFIED AUGMETIC",
+                    corruption: "0.00% [CLEAN]",
+                    xenos: "NEGATIVE",
+                    mutation: "BIONIC OVERRIDE",
+                    psychic: "NULL-SHIELDED",
+                    notes: "High-density iron-polymer bionics masking 41% of organic mass. Remaining flesh verified uncorrupted by Ordo Xenos genetic ciphers. Machine Spirit appeased."
+                },
+                {
+                    title: "ABHUMAN VARIANT // STABLE",
+                    corruption: "0.11% [TRACE]",
+                    xenos: "NON-MATCHING",
+                    mutation: "APPROVED STRAIN",
+                    psychic: "INERT",
+                    notes: "Muscular density and bone-plate thickness exceed standard human template. Cross-referenced against sanctioned Ogryn/Goliath gene-forges: strain is stable and free of brood-taint."
+                }
+            ],
+            BROOD: [
+                {
+                    title: "LATENT BROOD-TAINT",
+                    corruption: "38.4% [ELEVATED]",
+                    xenos: "PARTIAL MATCH",
+                    mutation: "SUB-DERMAL CHITIN",
+                    psychic: "WEAK ECHO",
+                    notes: "WARNING: Dormant xenos-spores detected along spinal column. Subject displays heightened aggression and subtle cranial ridge thickening. Quarantine for immediate interrogation."
+                },
+                {
+                    title: "SECUNDUS HYDRA-CARRIER",
+                    corruption: "44.9% [UNSTABLE]",
+                    xenos: "GENESTEALER ECHO",
+                    mutation: "CELLULAR DRIFT",
+                    psychic: "BEACON ACTIVE",
+                    notes: "Subject carries asymptomatic Malstrain contagion in lymphatic fluid. Capable of transmitting brood-madness to nearby gang fighters. Recommend immediate containment."
+                }
+            ],
+            INFECTED: [
+                {
+                    title: "MALSTRAIN CORRUPTION",
+                    corruption: "94.7% [EXTREMIS]",
+                    xenos: "TYRANID // MALSTRAIN",
+                    mutation: "SEVERE CARAPACE",
+                    psychic: "BROOD-MIND LINKED",
+                    notes: "PURGE PROTOCOL AUTHORIZED: Subject's DNA has been violently rewritten by Hive Secundus Malstrain contagion. Extra-skeletal chitin spurs and hyper-acidic blood detected. Terminate with extreme prejudice!"
+                },
+                {
+                    title: "ABYSSAL GENESTEALER HYBRID",
+                    corruption: "98.2% [TERMINAL]",
+                    xenos: "PURE MALSTRAIN",
+                    mutation: "APEX PREDATOR",
+                    psychic: "SYNAPTIC NODE",
+                    notes: "CRITICAL THREAT: Radiated xenos-horror masquerading in underhive silhouette. Cellular regeneration off the scale. Alert nearest Palanite Enforcer precinct and deploy heavy promethium!"
+                },
+                {
+                    title: "COALESCENCE HORROR",
+                    corruption: "89.5% [CRITICAL]",
+                    xenos: "MUTATED BROOD-KIN",
+                    mutation: "MULTI-LIMB GROWTH",
+                    psychic: "PSYCHIC SHRIEK",
+                    notes: "Bio-auspex overwhelmed by necrotic radiation and hyper-dense xenos musculature. Subject is no longer human—it is an instrument of the Abyssal Brood."
+                }
+            ],
+            RELIC: [
+                {
+                    title: "ARCHEO-TECH VAULT KEY",
+                    corruption: "0.00% [LOCKED]",
+                    xenos: "DAOT CIPHER",
+                    mutation: "QUANTUM LATTICE",
+                    psychic: "MACHINE SPIRIT",
+                    notes: "ANCIENT RELIC DETECTED: Sub-atomic photonic signature matches pre-Imperial Hive Secundus research vaults. Subject or cache contains an uncorrupted Dark Age of Technology data-core."
+                }
+            ]
+        };
+
+        // --- RECOVERED BLACK-SCIENCE DATALOGS (UNLOCKED BY SCANNING RUNES) ---
+        const RUNE_DATALOGS = {
+            'RUNE-I': {
+                code: 'LOG // SEC-01',
+                runeLabel: 'RUNE I: AQUILA SEAL',
+                headerSub: 'SECUNDUS QUARANTINE // CONTAINMENT ARCHIVE',
+                title: 'LOG 01 // THE RADIANT ROT',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE',
+                integrity: 'INTEGRITY: 71% [RAD-SCORCHED]',
+                body1: 'They told the upper spires that the Orbital Lance cleansed Hive Secundus. A lie carved in glass. The thermal lance did not kill the Patriarch—it cooked its genome inside an abyssal reactor of melted adamantium and rad-sludge.',
+                body2: 'What crawled out of the crater is starved, cancerous, and asymmetric. Normal Genestealers are sleek predators; the Malstrain is a weeping tumor that refuses to die, shedding radioactive spores that rewrite marrow in seventy heartbeats.',
+                whisper: '"If the auspex reads pure today, seal the bulkhead anyway. The radiation hides inside the bone until the dark comes."',
+                accent: 'emerald'
+            },
+            'RUNE-II': {
+                code: 'LOG // SEC-02',
+                runeLabel: 'RUNE II: BROOD-MARK',
+                headerSub: 'VIVISECTION THEATRE 04 // SUBJECT 19-B',
+                title: 'LOG 02 // THE CHITIN CHOIR',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE',
+                integrity: 'INTEGRITY: 54% [NEURAL STATIC]',
+                body1: 'Subject 19-B was a Van Saar tech-scavenger pulled from the Dust Wall perimeter. Physically unremarkable—until we opened his sternum. A secondary cartilaginous larynx had grown around his trachea, vibrating at an infrasonic frequency none of our vox-grids could filter.',
+                body2: 'He did not scream when the bone-saw bit. He smiled with three rows of translucent needle-teeth and recited the exact patrol roster of the Palanite garrison two kilometers above us.',
+                whisper: '"The Brood-Mind no longer commands them with psychic majesty. It whispers through their teeth like wet static."',
+                accent: 'amber'
+            },
+            'RUNE-III': {
+                code: 'LOG // SEC-03',
+                runeLabel: 'RUNE III: XENOS SIGIL',
+                headerSub: 'ABYSSAL DEPTHS // TERMINAL VOX-BUFFER',
+                title: 'LOG 03 // COALESCENCE IN THE DARK',
+                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
+                integrity: 'INTEGRITY: 28% [CRITICAL CORRUPTION]',
+                body1: 'Day 41 below the Exclusion Zone. My servo-skulls have stopped returning from the ventilation shafts. The Malstrain strains are no longer competing for biomass—they are fusing together in the dark, knitting limbs, skulls, and rending claws into sprawling colonial horrors.',
+                body2: 'Worst of all, they have learned to mimic the vox-clicks of dying Enforcers. Something heavy is scraping against the exterior blast door right now, calling out my name in my own voice.',
+                whisper: '"Do not open the seal. Do not trust the face behind the respirator. Burn the whole shaft."',
+                accent: 'red'
+            },
+            'RUNE-IV': {
+                code: 'LOG // SEC-04',
+                runeLabel: 'RUNE IV: ARCHEO-KEY',
+                headerSub: 'OMEGA-VAULT // FORBIDDEN GENE-FORGE',
+                title: 'LOG 04 // THE PROMETHEUS SPLICE',
+                author: 'AUTHOR: ARCH-HERETEK HERMION',
+                integrity: 'INTEGRITY: 89% [CIPHER-LOCKED]',
+                body1: 'Before the fall of Secundus, the spire-lords funded black-science vaults beneath the underhive—desperate to graft xenos cellular regeneration onto failing noble bloodlines. They kept the first brood-specimens in cryo-stasis three centuries before the bombs fell.',
+                body2: 'This Archeo-Key bears the biometric stamp of Vault Nine. Inside lie unrefined gene-serums, Dark Age augmetics, and the original captive strain that birthed the Abyssal nightmare.',
+                whisper: '"Knowledge is the deadliest contagion in the Underhive—and every gang in Necromunda will bleed to own it."',
+                accent: 'cyan'
+            }
+        };
+
+        // --- CAMERA & FALLBACK SIMULATION ---
         async function initCamera() {
             if (state.stream) {
                 state.stream.getTracks().forEach(track => track.stop());
@@ -1018,13 +1281,14 @@
 
                 state.stream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoEl.srcObject = state.stream;
+                await videoEl.play();
+                state.usingFallbackSim = false;
                 videoEl.classList.remove('hidden');
                 simCanvas.classList.add('hidden');
-                state.usingFallbackSim = false;
-                headerStatusText.textContent = "ACTIVE";
-                headerStatusText.className = "text-[#58e678] glow-green";
+                teleAcquired.textContent = "OPTIC FEED LIVE";
+                teleAcquired.className = "text-[9px] sm:text-[10px] text-[#58e678] font-bold tracking-wider";
             } catch (err) {
-                console.warn("Camera unavailable, activating AUSPEX simulation mode:", err);
+                console.warn("Camera unavailable, activating Auspex Pict-Sim mode:", err);
                 activateFallbackSim();
             }
         }
@@ -1033,260 +1297,78 @@
             state.usingFallbackSim = true;
             videoEl.classList.add('hidden');
             simCanvas.classList.remove('hidden');
-            headerStatusText.textContent = "SIM-MODE";
-            headerStatusText.className = "text-amber-400 glow-amber";
+            teleAcquired.textContent = state.uploadedImage ? "PICT-SLATE LOADED" : "SIM-RADAR MODE";
+            teleAcquired.className = "text-[9px] sm:text-[10px] text-amber-400 font-bold tracking-wider";
         }
 
-        // --- GRIMDARK TENSION & HORROR SOUND ENGINE (Tone.js) ---
-        let droneSynth = null;
-        let pulseSynth = null;
-        let fxSynth = null;
-        let horrorAlarmSynth = null;
-        let scanLoopEvent = null;
-
-        async function initAudio() {
-            if (!state.audioEnabled) return;
-            try {
-                if (Tone.context.state !== 'running') {
-                    await Tone.start();
-                }
-                if (!droneSynth) {
-                    droneSynth = new Tone.FMSynth({
-                        harmonicity: 1.5,
-                        modulationIndex: 8,
-                        oscillator: { type: "sawtooth" },
-                        envelope: { attack: 0.4, decay: 0.5, sustain: 0.8, release: 1.2 },
-                        modulation: { type: "square" }
-                    }).toDestination();
-                    droneSynth.volume.value = -20;
-
-                    pulseSynth = new Tone.MembraneSynth({
-                        pitchDecay: 0.06,
-                        octaves: 3,
-                        oscillator: { type: "sine" },
-                        envelope: { attack: 0.005, decay: 0.28, sustain: 0, release: 0.2 }
-                    }).toDestination();
-                    pulseSynth.volume.value = -10;
-
-                    fxSynth = new Tone.Synth({
-                        oscillator: { type: "triangle" },
-                        envelope: { attack: 0.005, decay: 0.12, sustain: 0.02, release: 0.15 }
-                    }).toDestination();
-                    fxSynth.volume.value = -13;
-
-                    horrorAlarmSynth = new Tone.PolySynth(Tone.Synth, {
-                        oscillator: { type: "sawtooth" },
-                        envelope: { attack: 0.02, decay: 0.35, sustain: 0.3, release: 0.6 }
-                    }).toDestination();
-                    horrorAlarmSynth.volume.value = -11;
-                }
-            } catch (e) {
-                console.warn("Audio init skipped:", e);
-            }
-        }
-
-        function playBeep(freq = 880, duration = "32n") {
-            if (!state.audioEnabled || !fxSynth) return;
-            try {
-                fxSynth.triggerAttackRelease(freq, duration);
-            } catch (e) {}
-        }
-
-        function startTensionAudio() {
-            if (!state.audioEnabled || !droneSynth || !pulseSynth) return;
-            try {
-                droneSynth.triggerAttack("C1");
-                let step = 0;
-                scanLoopEvent = new Tone.Loop((time) => {
-                    const isHeartBeat = step % 2 === 0;
-                    pulseSynth.triggerAttackRelease(isHeartBeat ? "C1" : "G1", "16n", time);
-                    if (step % 3 === 0) {
-                        const glitchFreq = 620 + Math.random() * 580;
-                        fxSynth.triggerAttackRelease(glitchFreq, "64n", time);
-                    }
-                    step++;
-                }, "8n").start(0);
-                Tone.Transport.start();
-            } catch (e) {}
-        }
-
-        function stopTensionAudio() {
-            try {
-                if (droneSynth) droneSynth.triggerRelease();
-                if (scanLoopEvent) {
-                    scanLoopEvent.stop();
-                    scanLoopEvent.dispose();
-                    scanLoopEvent = null;
-                }
-                Tone.Transport.stop();
-            } catch (e) {}
-        }
-
-        function playResultSound(type) {
-            if (!state.audioEnabled || !horrorAlarmSynth) return;
-            try {
-                const now = Tone.now();
-                if (type === 'INFECTED') {
-                    horrorAlarmSynth.triggerAttackRelease(["F2", "B2", "F#3"], "8n", now);
-                    horrorAlarmSynth.triggerAttackRelease(["E2", "Bb2", "F3"], "8n", now + 0.24);
-                    horrorAlarmSynth.triggerAttackRelease(["D#2", "A2", "E3"], "4n", now + 0.48);
-                } else if (type === 'BROOD') {
-                    horrorAlarmSynth.triggerAttackRelease(["D2", "G#2"], "8n", now);
-                    horrorAlarmSynth.triggerAttackRelease(["C#2", "G2"], "4n", now + 0.25);
-                } else if (type === 'RELIC') {
-                    horrorAlarmSynth.triggerAttackRelease(["D4", "A4", "E5"], "8n", now);
-                    horrorAlarmSynth.triggerAttackRelease(["F#4", "C#5", "A5"], "4n", now + 0.22);
-                } else {
-                    horrorAlarmSynth.triggerAttackRelease(["C4", "G4"], "8n", now);
-                    horrorAlarmSynth.triggerAttackRelease(["E4", "B4", "G5"], "4n", now + 0.2);
-                }
-            } catch (e) {}
-        }
-
-        // --- RECOVERED BLACK-SCIENCE DATALOGS (PER RUNE) ---
-        const runeDatalogs = {
-            'RUNE I: AQUILA': {
-                code: 'LOG // SEC-01',
-                headerSub: 'SECUNDUS QUARANTINE // BLACK-SCIENCE ARCHIVE',
-                title: 'THE RADIANT ROT',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
-                integrity: 'INTEGRITY: 71% [RAD-SCARRED]',
-                body1: 'Cycle 418.4 // The Orbital Lance strikes did not sterilize the Abyssal Chasm—they merely cooked the Patriarch’s genome in a crucible of dirty promethium and archaeo-radiation. Every tissue sample pulled from the ash-drifts exhibits hyper-accelerated cellular division. Where a normal Genestealer cultist hides its taint beneath smooth flesh, the Secundus strain weeps translucent ichor and sheds brittle, blackened chitin like dried parchment.',
-                body2: 'Our servitors refuse to descend past Sump-Level IX. They report static in their optic feeds that resolves into symmetrical, six-limbed silhouettes standing motionless inside the radiation fog.',
-                whisper: '"Do not trust the clean readout. In the Underhive, purity is merely a symptom of an organism that has learned how to fool the augurs."'
-            },
-            'RUNE II: BROOD': {
-                code: 'LOG // SEC-02',
-                headerSub: 'BIOLOGIS VIVISECTION // VAULT 14-B',
-                title: 'THE CHITIN CHOIR',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
-                integrity: 'INTEGRITY: 54% [NEURAL INTERFERENCE]',
-                body1: 'Cycle 422.9 // Specimen 09-Theta—formerly an Orlock road-sergeant—retained full speech and gang loyalty for eleven days following initial spore-scratch exposure. Upon cranial trepanation, we discovered a secondary, cartilaginous larynx coiled around the brainstem. It was not speaking to us; it was vibrating at 14.8 kilohertz, acting as a living relay node for something vast sleeping beneath the dust-wall.',
-                body2: 'When we severed its vocal cords, the three other captives in Isolation Cell B began humming the exact same sub-audible chord in unison.',
-                whisper: '"If your auspex registers elevated synaptic resonance, shoot the subject before they finish their sentence."'
-            },
-            'RUNE III: XENOS': {
-                code: 'LOG // SEC-03',
-                headerSub: 'TERMINAL VOX-BUFFER // CONTAINMENT BREACH',
-                title: 'COALESCENCE IN THE DARK',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
-                integrity: 'INTEGRITY: 38% [CRITICAL CORRUPTION]',
-                body1: 'Cycle 429.1 // The Malstrain does not merely infect—it salvages. When two wounded Genestealers were cornered in the nutrient vats, their ruptured carapaces melted together, knitting bone, tendon, and half-digested hive-scum biomass into a single asymmetrical horror with too many eyes and asymmetric scything talons.',
-                body2: 'The bulkhead doors are buckling inward. Something outside is tapping the exact rhythm of the Imperial Litany of Unsealing, mimicking Sub-Magos Kael’s voice—except Kael’s head has been mounted on the ventilation grate for three hours.',
-                whisper: '"Purge with phosphex. If phosphex is unavailable, collapse the tunnel and pray the rad-worms reach you first."'
-            },
-            'RUNE IV: ARCHEO': {
-                code: 'LOG // SEC-04',
-                headerSub: 'RESTRICTED OMEGA-VAULT // PROJECT PROMETHEUS',
-                title: 'THE FORBIDDEN SPLICE',
-                author: 'AUTHOR: ARCH-MAGOS HELMAWR-PRIME [REDACTED]',
-                integrity: 'INTEGRITY: 89% [CIPHER VERIFIED]',
-                body1: 'Cycle 391.0 // Let the Inquisition believe Secundus fell by xenos accident alone. Beneath the Spire’s shattered foundations lie the pre-fall gene-forges where Lord Helmawr’s black-science savants attempted to splice Genestealer regenerative tissue with Dark Age cybernetic nerve-weaves.',
-                body2: 'The surviving vault keys still resonate with dormant machine-spirits. Whoever unlocks these relic-caches claims weaponry never meant for mortal hands—and awakens the original brood-sires chained beside them.',
-                whisper: '"Take the archaeotech if you dare, outlander. Everything in the Abyss demands a tithe of flesh."'
-            }
-        };
-
-        // --- NECROMUNDA LORE & DIAGNOSTIC POOLS ---
-        const scanOutcomes = {
-            CLEAN: [
-                {
-                    title: "PURE STRAIN HUMAN",
-                    classification: "BIO-SCAN COMPLETE // SUBJECT VERIFIED",
-                    corruption: "0.02% [NEGLIGIBLE]",
-                    xenos: "NEGATIVE",
-                    mutation: "04% [RAD-SCARRING]",
-                    psychic: "DORMANT",
-                    rad: 1.45,
-                    gene: 10,
-                    bpm: 76,
-                    notes: "Subject exhibits standard Necromundan hive-dweller pulmonary soot and low-grade rad-scarring. Zero xenos genetic drift detected. Cleared for active duty."
-                },
-                {
-                    title: "SANCTIFIED AUGMETIC",
-                    classification: "BIO-SCAN COMPLETE // MECHANICUS VERIFIED",
-                    corruption: "0.00% [STERILE]",
-                    xenos: "NEGATIVE",
-                    mutation: "11% [BIONIC GRAFT]",
-                    psychic: "SHIELDED",
-                    rad: 2.15,
-                    gene: 14,
-                    bpm: 64,
-                    notes: "Sub-dermal bionics and synthetic tissue grafts register within Imperial tolerances. No Malstrain spores present in circulatory fluid."
-                }
-            ],
-            BROOD: [
-                {
-                    title: "LATENT BROOD-TAINT",
-                    classification: "WARNING // ANOMALOUS GENOME DETECTED",
-                    corruption: "38.4% [INCUBATING]",
-                    xenos: "PARTIAL MATCH [GEN. IV]",
-                    mutation: "46% [SUB-DERMAL]",
-                    psychic: "LOW HUM [14.8 kHz]",
-                    rad: 4.85,
-                    gene: 54,
-                    bpm: 118,
-                    notes: "Subject displays subtle cranial ridge thickening and elevated synaptic resonance. Suspect dormant Patriarchal compulsion. Recommend immediate quarantine."
-                }
-            ],
-            INFECTED: [
-                {
-                    title: "EXTREMIS MALSTRAIN",
-                    classification: "CRITICAL ALERT // XENOS HORROR CONFIRMED",
-                    corruption: "96.8% [TERMINAL]",
-                    xenos: "POSITIVE // SECUNDUS STRAIN",
-                    mutation: "89% [HYPER-CHITIN]",
-                    psychic: "BROOD-MIND BEACON",
-                    rad: 8.92,
-                    gene: 94,
-                    bpm: 168,
-                    notes: "CATACLYSMIC GENETIC CORRUPTION. Subject's marrow has been overwritten by mutated Hive Secundus Genestealer DNA. PURGE WITH EXTREME PREJUDICE."
-                }
-            ],
-            RELIC: [
-                {
-                    title: "ARCHEO-VAULT KEY",
-                    classification: "CIPHER UNLOCKED // DARK AGE CACHE",
-                    corruption: "0.00% [ENCRYPTED]",
-                    xenos: "MACHINE-SPIRIT",
-                    mutation: "00% [INORGANIC]",
-                    psychic: "VOX-RESONANCE",
-                    rad: 6.40,
-                    gene: 8,
-                    bpm: 92,
-                    notes: "Auspex confirms genuine pre-fall Secundus Vault transponder signature. Nearby stasis-lockers and archaeotech caches may now be breached."
-                }
-            ]
-        };
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.uploadedImage = img;
+                    activateFallbackSim();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
 
         // --- SCANNING WORKFLOW ---
+        function captureOpticSnapshot() {
+            try {
+                const source = state.usingFallbackSim ? simCanvas : videoEl;
+                const srcW = state.usingFallbackSim ? simCanvas.width : videoEl.videoWidth;
+                const srcH = state.usingFallbackSim ? simCanvas.height : videoEl.videoHeight;
+                if (!srcW || !srcH) return null;
+
+                const size = 240;
+                const snapCanvas = document.createElement('canvas');
+                snapCanvas.width = size;
+                snapCanvas.height = size;
+                const sCtx = snapCanvas.getContext('2d');
+
+                const minSide = Math.min(srcW, srcH);
+                const sx = (srcW - minSide) / 2;
+                const sy = (srcH - minSide) / 2;
+                sCtx.drawImage(source, sx, sy, minSide, minSide, 0, 0, size, size);
+
+                // Subtle phosphor green auspex tint & corner targeting brackets
+                sCtx.fillStyle = 'rgba(16, 48, 24, 0.18)';
+                sCtx.fillRect(0, 0, size, size);
+                sCtx.strokeStyle = 'rgba(88, 230, 120, 0.75)';
+                sCtx.lineWidth = 2;
+                const b = 18;
+                sCtx.beginPath();
+                sCtx.moveTo(8, 8 + b); sCtx.lineTo(8, 8); sCtx.lineTo(8 + b, 8);
+                sCtx.moveTo(size - 8 - b, 8); sCtx.lineTo(size - 8, 8); sCtx.lineTo(size - 8, 8 + b);
+                sCtx.moveTo(8, size - 8 - b); sCtx.lineTo(8, size - 8); sCtx.lineTo(8 + b, size - 8);
+                sCtx.moveTo(size - 8 - b, size - 8); sCtx.lineTo(size - 8, size - 8); sCtx.lineTo(size - 8, size - 8 - b);
+                sCtx.stroke();
+
+                return snapCanvas.toDataURL('image/jpeg', 0.68);
+            } catch (e) {
+                console.warn('Optic snapshot skipped:', e);
+                return null;
+            }
+        }
+
         function getCurrentOutcomeType(fromAutoRune = false) {
-            if (fromAutoRune && state.detectedGlyph) {
-                return state.detectedGlyph.outcome;
-            }
-
-            const mode = state.arbiterModes[state.arbiterIndex];
-            if (mode !== 'AUTO') {
-                const overrideRuneMap = {
-                    'CLEAN': 'RUNE I: AQUILA',
-                    'BROOD': 'RUNE II: BROOD',
-                    'INFECTED': 'RUNE III: XENOS',
-                    'RELIC': 'RUNE IV: ARCHEO'
-                };
-                state.detectedGlyph = overrideRuneMap[mode]
-                    ? { label: overrideRuneMap[mode], outcome: mode }
-                    : null;
-                return mode;
-            }
-
+            // 1. If a Campaign Glyph is actively locked in the camera crosshair, prioritize it!
             if (state.detectedGlyph) {
                 return state.detectedGlyph.outcome;
             }
+            // 2. Otherwise check Arbiter OVERRIDE switch
+            const mode = state.arbiterModes[state.arbiterIndex];
+            if (mode !== 'AUTO') return mode;
 
+            // 3. Weighted random roll for normal miniatures
             const roll = Math.random();
-            if (roll < 0.45) return 'INFECTED';
-            if (roll < 0.70) return 'BROOD';
-            return 'CLEAN';
+            if (roll < 0.45) return 'CLEAN';
+            if (roll < 0.72) return 'BROOD';
+            return 'INFECTED';
         }
 
         async function triggerScan(fromAutoRune = false) {
@@ -1295,109 +1377,131 @@
 
             state.isScanning = true;
             state.scanProgress = 0;
+            state.capturedPict = captureOpticSnapshot();
             state.currentOutcome = getCurrentOutcomeType(fromAutoRune);
 
-            const pool = scanOutcomes[state.currentOutcome];
-            const selectedResult = pool[Math.floor(Math.random() * pool.length)];
-
             scanBtn.disabled = true;
-            scanBtnText.textContent = fromAutoRune ? "RUNE LOCKED..." : "SCANNING...";
-            openDossierBtn.classList.add('hidden');
-            bioBannerTitle.textContent = fromAutoRune
-                ? `CIPHER ACQUIRED // ${state.detectedGlyph.label}`
-                : "SEQUENCING BIO-SIGNATURES...";
+            scanBtnText.textContent = "SCANNING...";
+            headerStatusText.textContent = "SCANNING";
+            headerStatusText.className = "text-amber-400 glow-amber animate-pulse";
+            bioBannerTitle.textContent = fromAutoRune && state.detectedGlyph
+                ? `RUNE LOCK: ${state.detectedGlyph.name}`
+                : "BIO-SIGNATURES ANALYZING...";
             bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate animate-pulse";
-            teleAcquired.textContent = fromAutoRune ? "CIPHER LOCKED [HOLD FREE]" : "LOCKING TARGET...";
-            teleThreat.textContent = "ANALYZING";
-            teleThreat.className = "text-amber-400 font-bold";
+            teleAcquired.textContent = fromAutoRune ? "RUNE CIPHER LOCKED" : "TARGET ACQUIRED";
+            teleAcquired.className = "text-[9px] sm:text-[10px] text-amber-400 font-bold tracking-wider";
+            openDossierBtn.classList.add('hidden');
+            chassisRoot.classList.remove('alarm-active');
 
-            if (fromAutoRune) {
-                playBeep(980, "16n");
-            }
-            startTensionAudio();
-            if (navigator.vibrate) navigator.vibrate(fromAutoRune ? [60, 40, 90] : [40, 30, 40]);
+            if (navigator.vibrate) navigator.vibrate(40);
 
-            const scanDuration = 3400;
-            const startTime = performance.now();
+            const duration = 2600;
+            const intervalMs = 45;
+            const step = 100 / (duration / intervalMs);
+            let tickCounter = 0;
 
-            function stepScan(now) {
-                const elapsed = now - startTime;
-                state.scanProgress = Math.min(1, elapsed / scanDuration);
+            const scanTimer = setInterval(() => {
+                state.scanProgress = Math.min(100, state.scanProgress + step);
+                tickCounter++;
 
-                state.radValue = 1.2 + Math.sin(elapsed * 0.012) * 2.5 + state.scanProgress * (selectedResult.rad - 1.2);
-                state.geneInstability = Math.min(100, Math.round(state.scanProgress * selectedResult.gene + Math.sin(elapsed * 0.02) * 8));
-                state.bpm = Math.round(76 + state.scanProgress * (selectedResult.bpm - 76));
-
-                const rangeVal = Math.max(1, Math.round(28 - state.scanProgress * 24));
-                teleRange.textContent = `${rangeVal}m`;
-                teleMutation.textContent = `${Math.max(0, state.geneInstability)}%`;
-
-                if (state.scanProgress < 1) {
-                    requestAnimationFrame(stepScan);
+                // Ramp telemetry values dramatically during scan
+                const factor = state.scanProgress / 100;
+                if (state.currentOutcome === 'INFECTED') {
+                    state.geneInstability = 18 + factor * 76 + (Math.random() * 6 - 3);
+                    state.radValue = 2.1 + factor * 6.8;
+                    state.bpm = Math.round(84 + factor * 78);
+                    teleMutation.textContent = `${Math.round(state.geneInstability)}%`;
+                    teleMutation.className = "text-red-500 font-bold";
+                    teleThreat.textContent = factor > 0.6 ? "EXTREMIS" : "HIGH";
+                    teleThreat.className = "text-red-500 font-bold";
+                } else if (state.currentOutcome === 'BROOD') {
+                    state.geneInstability = 15 + factor * 38 + (Math.random() * 4 - 2);
+                    state.radValue = 1.8 + factor * 3.1;
+                    state.bpm = Math.round(80 + factor * 36);
+                    teleMutation.textContent = `${Math.round(state.geneInstability)}%`;
+                    teleMutation.className = "text-amber-400 font-bold";
+                    teleThreat.textContent = "ELEVATED";
+                    teleThreat.className = "text-amber-400 font-bold";
+                } else if (state.currentOutcome === 'RELIC') {
+                    state.geneInstability = 8;
+                    state.radValue = 4.9 + Math.sin(factor * 10) * 1.2;
+                    state.bpm = 72;
+                    teleMutation.textContent = "DAOT-KEY";
+                    teleMutation.className = "text-cyan-400 font-bold";
+                    teleThreat.textContent = "VAULT";
+                    teleThreat.className = "text-cyan-400 font-bold";
                 } else {
-                    completeScan(selectedResult);
+                    state.geneInstability = 10 + Math.sin(factor * 8) * 5;
+                    state.radValue = 1.3 + Math.random() * 0.4;
+                    state.bpm = Math.round(76 + Math.random() * 8);
+                    teleMutation.textContent = "04%";
+                    teleMutation.className = "text-[#58e678] font-bold";
+                    teleThreat.textContent = "LOW";
+                    teleThreat.className = "text-[#58e678] font-bold";
                 }
-            }
 
-            requestAnimationFrame(stepScan);
+                radValLabel.textContent = `${state.radValue.toFixed(2)} mSv`;
+                bpmLabel.textContent = `${state.bpm} BPM`;
+                updateLedMeters();
+
+                if (tickCounter % 8 === 0) {
+                    playScanHeartbeat(state.scanProgress);
+                }
+
+                if (state.scanProgress >= 100) {
+                    clearInterval(scanTimer);
+                    completeScan();
+                }
+            }, intervalMs);
         }
 
-        function completeScan(result) {
+        function completeScan() {
             state.isScanning = false;
-            stopTensionAudio();
-
             scanBtn.disabled = false;
             scanBtnText.textContent = "START SCAN";
-            openDossierBtn.classList.remove('hidden');
 
-            state.radValue = result.rad;
-            state.geneInstability = result.gene;
-            state.bpm = result.bpm;
-            updateLedMeters();
-
-            const isInfected = state.currentOutcome === 'INFECTED';
-            const isBrood = state.currentOutcome === 'BROOD';
-            const isRelic = state.currentOutcome === 'RELIC';
-
-            bioBannerTitle.classList.remove('animate-pulse');
-            if (isInfected) {
-                bioBannerTitle.textContent = "MALSTRAIN CORRUPTION DETECTED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-red-500 glow-red uppercase truncate";
-                teleAcquired.textContent = "XENOS HOST LOCKED";
-                teleThreat.textContent = "EXTREMIS";
-                teleThreat.className = "text-red-500 font-bold";
-                chassisRoot.classList.add('alarm-active');
-                if (navigator.vibrate) navigator.vibrate([180, 70, 180, 70, 320]);
-            } else if (isBrood) {
-                bioBannerTitle.textContent = "ANOMALOUS BIO-SIGNATURES";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate";
-                teleAcquired.textContent = "TARGET ACQUIRED";
-                teleThreat.textContent = "HIGH";
-                teleThreat.className = "text-amber-400 font-bold";
-                chassisRoot.classList.remove('alarm-active');
-                if (navigator.vibrate) navigator.vibrate([110, 60, 110]);
-            } else if (isRelic) {
-                bioBannerTitle.textContent = "ARCHEO-CIPHER AUTHENTICATED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-cyan-400 uppercase truncate";
-                teleAcquired.textContent = "RELIC SIGNATURE";
-                teleThreat.textContent = "UNKNOWN";
-                teleThreat.className = "text-cyan-400 font-bold";
-                chassisRoot.classList.remove('alarm-active');
-                if (navigator.vibrate) navigator.vibrate([70, 50, 140]);
-            } else {
-                bioBannerTitle.textContent = "BIO-SIGNATURES VERIFIED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-[#58e678] glow-green uppercase truncate";
-                teleAcquired.textContent = "SUBJECT CLEARED";
-                teleThreat.textContent = "LOW";
-                teleThreat.className = "text-[#58e678] font-bold";
-                chassisRoot.classList.remove('alarm-active');
-                if (navigator.vibrate) navigator.vibrate(80);
-            }
+            const pool = SCAN_DATABASE[state.currentOutcome];
+            const result = pool[Math.floor(Math.random() * pool.length)];
 
             playResultSound(state.currentOutcome);
+            if (navigator.vibrate) {
+                if (state.currentOutcome === 'INFECTED') navigator.vibrate([180, 70, 180, 70, 320]);
+                else if (state.currentOutcome === 'BROOD') navigator.vibrate([120, 60, 120]);
+                else navigator.vibrate(70);
+            }
+
+            // Update main dashboard banner & status
+            bioBannerTitle.classList.remove('animate-pulse');
+            openDossierBtn.classList.remove('hidden');
+
+            if (state.currentOutcome === 'INFECTED') {
+                headerStatusText.textContent = "ALERT // INFECTED";
+                headerStatusText.className = "text-red-500 glow-red animate-pulse";
+                bioBannerTitle.textContent = "MALSTRAIN CONTAGION DETECTED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-red-500 glow-red uppercase truncate";
+                chassisRoot.classList.add('alarm-active');
+            } else if (state.currentOutcome === 'BROOD') {
+                headerStatusText.textContent = "WARN // BROOD-TAINT";
+                headerStatusText.className = "text-amber-400 glow-amber";
+                bioBannerTitle.textContent = "BROOD-TAINT DETECTED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate";
+            } else if (state.currentOutcome === 'RELIC') {
+                headerStatusText.textContent = "RELIC LOCKED";
+                headerStatusText.className = "text-cyan-400";
+                bioBannerTitle.textContent = "ARCHEO-KEY VERIFIED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-cyan-400 uppercase truncate";
+            } else {
+                headerStatusText.textContent = "ACTIVE // CLEAN";
+                headerStatusText.className = "text-[#58e678] glow-green";
+                bioBannerTitle.textContent = "BIO-SIGNATURES VERIFIED";
+                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-[#58e678] glow-green uppercase truncate";
+            }
 
             // Populate Dossier Modal
-            resultClassification.textContent = result.classification;
+            const isInf = state.currentOutcome === 'INFECTED';
+            const isBrd = state.currentOutcome === 'BROOD';
+            const isRel = state.currentOutcome === 'RELIC';
+
             resultTitle.textContent = result.title;
             statCorruption.textContent = result.corruption;
             statXenos.textContent = result.xenos;
@@ -1406,20 +1510,36 @@
             resultNotes.textContent = result.notes;
             subjectNameInput.value = '';
 
+            const scanTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (state.capturedPict) {
+                resultPictImg.src = state.capturedPict;
+                resultPictStamp.textContent = scanTimeStr;
+                resultPictWrapper.classList.remove('hidden');
+            } else {
+                resultPictWrapper.classList.add('hidden');
+            }
+
             // Check if a Campaign Rune is attached to unlock its Recovered Datalog
-            const runeKey = state.detectedGlyph ? state.detectedGlyph.label : null;
-            if (runeKey && runeDatalogs[runeKey]) {
-                state.activeDatalog = runeDatalogs[runeKey];
+            let matchedRuneCode = state.detectedGlyph ? state.detectedGlyph.code : null;
+            if (!matchedRuneCode && state.arbiterModes[state.arbiterIndex] !== 'AUTO') {
+                const modeMap = { CLEAN: 'RUNE-I', BROOD: 'RUNE-II', INFECTED: 'RUNE-III', RELIC: 'RUNE-IV' };
+                matchedRuneCode = modeMap[state.currentOutcome] || null;
+            }
+
+            if (matchedRuneCode && RUNE_DATALOGS[matchedRuneCode]) {
+                state.activeDatalog = RUNE_DATALOGS[matchedRuneCode];
                 datalogCodeTag.textContent = state.activeDatalog.code;
-                datalogPromptRune.textContent = runeKey;
+                datalogPromptRune.textContent = state.activeDatalog.runeLabel;
                 datalogPromptBox.classList.remove('hidden');
             } else {
                 state.activeDatalog = null;
                 datalogPromptBox.classList.add('hidden');
             }
 
-            if (isInfected) {
-                resultCard.style.borderColor = '#ef4444';
+            if (isInf) {
+                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-red-500 rounded-lg overflow-hidden shadow-2xl";
+                resultClassification.textContent = "CRITICAL BIO-HAZARD // PURGE DIRECTIVE";
+                resultClassification.className = "text-[10px] tracking-widest uppercase text-red-400 font-bold";
                 resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-red-500 glow-red mt-0.5";
                 resultBadge.className = "w-11 h-11 rounded border-2 border-red-500 bg-red-950/60 flex items-center justify-center shrink-0";
                 iconClean.classList.add('hidden');
@@ -1427,9 +1547,11 @@
                 iconInfected.className = "w-6 h-6 text-red-500";
                 statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
                 statXenos.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-red-500/45";
-            } else if (isBrood) {
-                resultCard.style.borderColor = '#f59e0b';
+                resultNotesBox.className = "mt-3 bg-red-950/25 p-2.5 rounded border border-red-500/40";
+            } else if (isBrd) {
+                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-amber-500 rounded-lg overflow-hidden shadow-2xl";
+                resultClassification.textContent = "WARNING // CONTAGION VECTOR DETECTED";
+                resultClassification.className = "text-[10px] tracking-widest uppercase text-amber-400 font-bold";
                 resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-amber-400 glow-amber mt-0.5";
                 resultBadge.className = "w-11 h-11 rounded border-2 border-amber-500 bg-amber-950/60 flex items-center justify-center shrink-0";
                 iconClean.classList.add('hidden');
@@ -1437,36 +1559,41 @@
                 iconInfected.className = "w-6 h-6 text-amber-400";
                 statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
                 statXenos.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-amber-500/45";
-            } else if (isRelic) {
-                resultCard.style.borderColor = '#22d3ee';
-                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-cyan-400 mt-0.5";
+                resultNotesBox.className = "mt-3 bg-amber-950/25 p-2.5 rounded border border-amber-500/40";
+            } else if (isRel) {
+                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-cyan-400 rounded-lg overflow-hidden shadow-2xl";
+                resultClassification.textContent = "ARCHEO-KEY MATCH // VAULT UNSEALED";
+                resultClassification.className = "text-[10px] tracking-widest uppercase text-cyan-400 font-bold";
+                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-cyan-300 mt-0.5";
                 resultBadge.className = "w-11 h-11 rounded border-2 border-cyan-400 bg-cyan-950/60 flex items-center justify-center shrink-0";
+                iconInfected.classList.add('hidden');
                 iconClean.classList.remove('hidden');
                 iconClean.className = "w-6 h-6 text-cyan-400";
-                iconInfected.classList.add('hidden');
                 statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
                 statXenos.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-cyan-500/45";
+                resultNotesBox.className = "mt-3 bg-cyan-950/25 p-2.5 rounded border border-cyan-500/40";
             } else {
-                resultCard.style.borderColor = '#58e678';
+                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-[#58e678] rounded-lg overflow-hidden shadow-2xl";
+                resultClassification.textContent = "BIO-SCAN COMPLETE // SUBJECT VERIFIED";
+                resultClassification.className = "text-[10px] tracking-widest uppercase text-stone-400";
                 resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-[#58e678] glow-green mt-0.5";
-                resultBadge.className = "w-11 h-11 rounded border-2 border-[#58e678] bg-emerald-950/60 flex items-center justify-center shrink-0";
+                resultBadge.className = "w-11 h-11 rounded border-2 border-[#58e678] bg-emerald-950/50 flex items-center justify-center shrink-0";
+                iconInfected.classList.add('hidden');
                 iconClean.classList.remove('hidden');
                 iconClean.className = "w-6 h-6 text-[#58e678]";
-                iconInfected.classList.add('hidden');
                 statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
                 statXenos.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
-                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-emerald-500/35";
+                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-emerald-500/30";
             }
 
             state.pendingLogEntry = {
                 id: Date.now(),
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: scanTimeStr,
                 outcome: state.currentOutcome,
                 title: result.title,
                 corruption: result.corruption,
-                subject: 'UNIDENTIFIED FIGHTER'
+                subject: 'UNIDENTIFIED FIGHTER',
+                pict: state.capturedPict
             };
 
             resultModal.classList.remove('hidden');
@@ -1480,19 +1607,31 @@
             }
             subjectTagDisplay.textContent = `SUBJECT: ${state.pendingLogEntry.subject}`;
             state.scanHistory.unshift(state.pendingLogEntry);
-            if (state.scanHistory.length > 50) state.scanHistory.pop();
-            localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
+            if (state.scanHistory.length > 35) state.scanHistory.pop();
+
+            try {
+                localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
+            } catch (e) {
+                // If storage quota fills up, drop pict data on older logs and retry
+                state.scanHistory.forEach((entry, idx) => {
+                    if (idx > 8) entry.pict = null;
+                });
+                try {
+                    localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
+                } catch (err) {}
+            }
+
             state.pendingLogEntry = null;
             updateHistoryUI();
         }
 
         function updateHistoryUI() {
             historyBadge.textContent = state.scanHistory.length;
-            let cleanCount = 0, broodCount = 0, infectedCount = 0;
 
-            state.scanHistory.forEach(item => {
-                if (item.outcome === 'INFECTED') infectedCount++;
-                else if (item.outcome === 'BROOD') broodCount++;
+            let cleanCount = 0, broodCount = 0, infectedCount = 0;
+            state.scanHistory.forEach(entry => {
+                if (entry.outcome === 'INFECTED') infectedCount++;
+                else if (entry.outcome === 'BROOD') broodCount++;
                 else cleanCount++;
             });
 
@@ -1510,271 +1649,353 @@
                 const isBrd = item.outcome === 'BROOD';
                 const borderCol = isInf ? 'border-red-500/50' : (isBrd ? 'border-amber-500/50' : 'border-emerald-500/40');
                 const titleCol = isInf ? 'text-red-500' : (isBrd ? 'text-amber-400' : 'text-[#58e678]');
+                const thumbHtml = item.pict
+                    ? `<img src="${item.pict}" alt="${item.subject}" class="w-12 h-12 rounded object-cover border border-stone-700 shrink-0" />`
+                    : `<div class="w-12 h-12 rounded bg-zinc-900 border border-stone-800 flex items-center justify-center text-[9px] text-stone-600 shrink-0">NO PICT</div>`;
                 return `
-                    <div class="p-2.5 rounded bg-black/80 border ${borderCol} flex items-center justify-between gap-2">
-                        <div>
-                            <div class="text-[10px] text-stone-400">${item.timestamp} // <span class="text-amber-400 font-bold">${item.subject}</span></div>
-                            <div class="font-stencil font-bold text-xs ${titleCol}">${item.title}</div>
+                    <div class="p-2 rounded bg-black/80 border ${borderCol} flex items-center justify-between gap-2.5">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            ${thumbHtml}
+                            <div class="min-w-0">
+                                <div class="text-[10px] text-stone-400 truncate">${item.timestamp} // <span class="text-amber-400 font-bold">${item.subject}</span></div>
+                                <div class="font-stencil font-bold text-xs ${titleCol} truncate">${item.title}</div>
+                            </div>
                         </div>
-                        <div class="text-right text-[10px] font-mono ${titleCol}">${item.corruption}</div>
+                        <div class="text-right text-[10px] font-mono ${titleCol} shrink-0">${item.corruption}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        // --- LIVE CANVAS RENDERERS (RADAR + WIREFRAME HOLOGRAM + ECG) ---
-        function resizeCanvases() {
+        // --- CANVAS RENDERERS (RADAR OVERLAY, WIREFRAME HOLOGRAM & ECG) ---
+        function resizeAllCanvases() {
             const aperture = document.getElementById('radar-aperture');
             if (aperture) {
-                radarCanvas.width = aperture.clientWidth;
-                radarCanvas.height = aperture.clientHeight;
-                simCanvas.width = aperture.clientWidth;
-                simCanvas.height = aperture.clientHeight;
+                const rect = aperture.getBoundingClientRect();
+                radarCanvas.width = rect.width;
+                radarCanvas.height = rect.height;
+                simCanvas.width = rect.width;
+                simCanvas.height = rect.height;
             }
             if (portraitCanvas.parentElement) {
-                portraitCanvas.width = portraitCanvas.parentElement.clientWidth;
-                portraitCanvas.height = portraitCanvas.parentElement.clientHeight;
+                const pRect = portraitCanvas.parentElement.getBoundingClientRect();
+                portraitCanvas.width = pRect.width;
+                portraitCanvas.height = pRect.height;
             }
             if (ecgCanvas.parentElement) {
-                ecgCanvas.width = ecgCanvas.parentElement.clientWidth;
-                ecgCanvas.height = ecgCanvas.parentElement.clientHeight;
+                const eRect = ecgCanvas.parentElement.getBoundingClientRect();
+                ecgCanvas.width = eRect.width;
+                ecgCanvas.height = eRect.height;
             }
         }
 
-        function drawRadarOverlay(time) {
-            const w = radarCanvas.width;
-            const h = radarCanvas.height;
-            if (!w || !h) return;
+        function drawFallbackSim(w, h, time) {
+            simCtx.fillStyle = '#07110a';
+            simCtx.fillRect(0, 0, w, h);
 
+            if (state.uploadedImage) {
+                const imgRatio = state.uploadedImage.width / state.uploadedImage.height;
+                const canvasRatio = w / h;
+                let drawW, drawH, offsetX, offsetY;
+                if (imgRatio > canvasRatio) {
+                    drawH = h;
+                    drawW = h * imgRatio;
+                    offsetX = (w - drawW) / 2;
+                    offsetY = 0;
+                } else {
+                    drawW = w;
+                    drawH = w / imgRatio;
+                    offsetX = 0;
+                    offsetY = (h - drawH) / 2;
+                }
+                simCtx.save();
+                simCtx.filter = 'contrast(1.2) saturate(0.45) sepia(0.35) hue-rotate(65deg)';
+                simCtx.drawImage(state.uploadedImage, offsetX, offsetY, drawW, drawH);
+                simCtx.restore();
+            } else {
+                // Wireframe Genestealer / Ganger silhouette placeholder when no camera
+                const cx = w / 2;
+                const cy = h / 2 + 6;
+                const bob = Math.sin(time * 0.0025) * 3;
+                simCtx.save();
+                simCtx.strokeStyle = 'rgba(88, 230, 120, 0.32)';
+                simCtx.lineWidth = 1.2;
+                for (let i = -3; i <= 3; i++) {
+                    simCtx.beginPath();
+                    simCtx.ellipse(cx, cy - 26 + bob, 14 - Math.abs(i) * 2, 18, 0, 0, Math.PI * 2);
+                    simCtx.stroke();
+                    simCtx.beginPath();
+                    simCtx.ellipse(cx, cy + 12 + bob, 26 - Math.abs(i) * 3, 24, 0, 0, Math.PI * 2);
+                    simCtx.stroke();
+                }
+                simCtx.restore();
+            }
+        }
+
+        function drawRadarOverlay(w, h, time) {
+            radarCtx.clearRect(0, 0, w, h);
             const cx = w / 2;
             const cy = h / 2;
-            const maxR = Math.min(cx, cy) - 4;
+            const radius = Math.min(cx, cy) - 6;
+            if (radius <= 10) return;
 
-            if (state.usingFallbackSim) {
-                simCtx.fillStyle = '#070e09';
-                simCtx.fillRect(0, 0, w, h);
-                simCtx.strokeStyle = 'rgba(88, 230, 120, 0.08)';
-                simCtx.lineWidth = 1;
-                const step = 18;
-                for (let x = 0; x < w; x += step) {
-                    simCtx.beginPath(); simCtx.moveTo(x, 0); simCtx.lineTo(x, h); simCtx.stroke();
-                }
-                for (let y = 0; y < h; y += step) {
-                    simCtx.beginPath(); simCtx.moveTo(0, y); simCtx.lineTo(w, y); simCtx.stroke();
-                }
-            }
+            const isDanger = state.currentOutcome === 'INFECTED' && !state.isScanning && chassisRoot.classList.contains('alarm-active');
+            const primaryColor = isDanger ? 'rgba(239, 68, 68, 0.85)' : 'rgba(88, 230, 120, 0.82)';
+            const amberColor = 'rgba(245, 158, 11, 0.65)';
 
-            radarCtx.clearRect(0, 0, w, h);
-
-            // Subtle phosphor vignette
-            const vig = radarCtx.createRadialGradient(cx, cy, maxR * 0.35, cx, cy, maxR);
-            vig.addColorStop(0, 'rgba(12, 34, 18, 0.14)');
-            vig.addColorStop(1, 'rgba(4, 12, 6, 0.62)');
-            radarCtx.fillStyle = vig;
-            radarCtx.fillRect(0, 0, w, h);
-
-            const isInfected = state.currentOutcome === 'INFECTED' && !state.isScanning && chassisRoot.classList.contains('alarm-active');
-            const primaryColor = isInfected ? 'rgba(239, 68, 68, 0.72)' : 'rgba(88, 230, 120, 0.55)';
-            const amberColor = 'rgba(245, 158, 11, 0.45)';
-
-            // Concentric radar rings
-            [0.25, 0.48, 0.72, 0.94].forEach((ratio, idx) => {
-                radarCtx.beginPath();
-                radarCtx.arc(cx, cy, maxR * ratio, 0, Math.PI * 2);
-                radarCtx.strokeStyle = idx === 3 ? primaryColor : amberColor;
-                radarCtx.lineWidth = idx === 3 ? 2 : 1;
-                radarCtx.stroke();
-            });
-
-            // 12 Radial Spokes
-            for (let i = 0; i < 12; i++) {
-                const a = (i * Math.PI) / 6;
-                radarCtx.beginPath();
-                radarCtx.moveTo(cx + Math.cos(a) * (maxR * 0.16), cy + Math.sin(a) * (maxR * 0.16));
-                radarCtx.lineTo(cx + Math.cos(a) * (maxR * 0.94), cy + Math.sin(a) * (maxR * 0.94));
-                radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
-                radarCtx.lineWidth = 1;
-                radarCtx.stroke();
-            }
-
-            // Rotating Radar Sweep Sector
-            const sweepSpeed = state.isScanning ? 0.065 : 0.024;
-            state.radarAngle = (state.radarAngle + sweepSpeed) % (Math.PI * 2);
-
-            radarCtx.save();
-            radarCtx.translate(cx, cy);
-            radarCtx.rotate(state.radarAngle);
-            const grad = radarCtx.createLinearGradient(0, 0, maxR * 0.94, 0);
-            grad.addColorStop(0, isInfected ? 'rgba(239, 68, 68, 0.05)' : 'rgba(245, 158, 11, 0.04)');
-            grad.addColorStop(1, isInfected ? 'rgba(239, 68, 68, 0.34)' : 'rgba(245, 158, 11, 0.32)');
+            // 1. Subtle phosphor tint over camera
+            radarCtx.fillStyle = isDanger ? 'rgba(45, 8, 8, 0.22)' : 'rgba(8, 30, 14, 0.18)';
             radarCtx.beginPath();
-            radarCtx.moveTo(0, 0);
-            radarCtx.arc(0, 0, maxR * 0.94, -0.45, 0);
+            radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            radarCtx.fill();
+
+            // 2. Rotating Radar Sweep Wedge
+            state.radarAngle += state.isScanning ? 0.075 : 0.022;
+            radarCtx.save();
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx, cy);
+            radarCtx.arc(cx, cy, radius, state.radarAngle - 0.52, state.radarAngle);
             radarCtx.closePath();
+            const grad = radarCtx.createRadialGradient(cx, cy, 4, cx, cy, radius);
+            grad.addColorStop(0, isDanger ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.06)');
+            grad.addColorStop(1, isDanger ? 'rgba(239, 68, 68, 0.34)' : 'rgba(245, 158, 11, 0.32)');
             radarCtx.fillStyle = grad;
             radarCtx.fill();
 
+            // Leading sweep line
             radarCtx.beginPath();
-            radarCtx.moveTo(0, 0);
-            radarCtx.lineTo(maxR * 0.94, 0);
-            radarCtx.strokeStyle = isInfected ? '#ef4444' : '#f59e0b';
+            radarCtx.moveTo(cx, cy);
+            radarCtx.lineTo(cx + Math.cos(state.radarAngle) * radius, cy + Math.sin(state.radarAngle) * radius);
+            radarCtx.strokeStyle = isDanger ? 'rgba(239, 68, 68, 0.9)' : 'rgba(251, 191, 36, 0.9)';
             radarCtx.lineWidth = 2;
             radarCtx.stroke();
             radarCtx.restore();
 
-            // Active Sonar Pulse Rings
-            for (let i = state.pulseRings.length - 1; i >= 0; i--) {
-                const p = state.pulseRings[i];
-                p.r += 4.2;
-                p.alpha -= 0.016;
-                if (p.alpha <= 0 || p.r > maxR) {
-                    state.pulseRings.splice(i, 1);
-                    continue;
-                }
+            // 3. Concentric Radar Rings & Radial Spokes
+            radarCtx.strokeStyle = amberColor;
+            radarCtx.lineWidth = 1;
+            [0.28, 0.52, 0.76, 0.98].forEach(ratio => {
                 radarCtx.beginPath();
-                radarCtx.arc(cx, cy, p.r, 0, Math.PI * 2);
-                radarCtx.strokeStyle = `rgba(245, 158, 11, ${p.alpha})`;
-                radarCtx.lineWidth = 2.5;
+                radarCtx.arc(cx, cy, radius * ratio, 0, Math.PI * 2);
+                radarCtx.stroke();
+            });
+
+            for (let i = 0; i < 12; i++) {
+                const a = (i * Math.PI) / 6;
+                radarCtx.beginPath();
+                radarCtx.moveTo(cx + Math.cos(a) * (radius * 0.28), cy + Math.sin(a) * (radius * 0.28));
+                radarCtx.lineTo(cx + Math.cos(a) * (radius * 0.98), cy + Math.sin(a) * (radius * 0.98));
+                radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
                 radarCtx.stroke();
             }
 
-            // Radar Contact Blips
-            state.blips.forEach(b => {
-                const bx = cx + Math.cos(b.angle) * (maxR * b.dist);
-                const by = cy + Math.sin(b.angle) * (maxR * b.dist);
-                const pulse = 0.5 + 0.5 * Math.sin(time * 0.005 + b.phase);
+            // 4. Outer Phosphor Rim & Degree Ticks
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            radarCtx.strokeStyle = primaryColor;
+            radarCtx.lineWidth = 3;
+            radarCtx.stroke();
+
+            for (let i = 0; i < 72; i++) {
+                const a = (i * Math.PI * 2) / 72;
+                const inner = i % 6 === 0 ? radius - 9 : radius - 5;
                 radarCtx.beginPath();
-                radarCtx.arc(bx, by, 3 + pulse * 2, 0, Math.PI * 2);
-                radarCtx.fillStyle = b.type === 'danger'
-                    ? `rgba(239, 68, 68, ${0.45 + pulse * 0.55})`
-                    : `rgba(88, 230, 120, ${0.4 + pulse * 0.55})`;
+                radarCtx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+                radarCtx.lineTo(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius);
+                radarCtx.strokeStyle = i % 6 === 0 ? primaryColor : 'rgba(88, 230, 120, 0.45)';
+                radarCtx.lineWidth = i % 6 === 0 ? 1.8 : 1;
+                radarCtx.stroke();
+            }
+
+            // 5. Radar Contact Blips
+            state.blips.forEach(blip => {
+                const bx = cx + Math.cos(blip.angle) * (radius * blip.dist);
+                const by = cy + Math.sin(blip.angle) * (radius * blip.dist);
+                const pulse = 0.55 + 0.45 * Math.sin(time * 0.005 + blip.phase);
+                radarCtx.beginPath();
+                radarCtx.arc(bx, by, blip.type === 'danger' ? 4.2 : 3.2, 0, Math.PI * 2);
+                radarCtx.fillStyle = blip.type === 'danger'
+                    ? `rgba(239, 68, 68, ${pulse})`
+                    : (blip.type === 'warn' ? `rgba(245, 158, 11, ${pulse})` : `rgba(88, 230, 120, ${pulse})`);
                 radarCtx.fill();
             });
 
-            // Center Optical Targeting Crosshair (Optical Rune Lock Zone)
-            const reticleR = maxR * 0.22;
+            // 6. Active Sonar Pulse Rings (triggered by PULSE button)
+            state.pulseRings = state.pulseRings.filter(r => r.alpha > 0.02);
+            state.pulseRings.forEach(ring => {
+                ring.r += 3.8;
+                ring.alpha *= 0.965;
+                radarCtx.beginPath();
+                radarCtx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+                radarCtx.strokeStyle = `rgba(251, 191, 36, ${ring.alpha})`;
+                radarCtx.lineWidth = 2.5;
+                radarCtx.stroke();
+            });
+
+            // 7. Center Amber Crosshair Reticle (Also serves as Optical Glyph Lock Zone)
+            const retR = state.detectedGlyph ? 26 : 22;
+            radarCtx.save();
             radarCtx.strokeStyle = state.detectedGlyph ? '#58e678' : '#f59e0b';
-            radarCtx.lineWidth = state.detectedGlyph ? 2.5 : 1.8;
+            radarCtx.lineWidth = state.detectedGlyph ? 2.6 : 2;
             radarCtx.beginPath();
-            radarCtx.arc(cx, cy, reticleR, 0, Math.PI * 2);
+            radarCtx.arc(cx, cy, retR, 0, Math.PI * 2);
+            radarCtx.stroke();
+
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, retR * 0.52, 0, Math.PI * 2);
             radarCtx.stroke();
 
             // Crosshair ticks
-            const tick = 8;
+            const gap = 6;
+            const len = retR + 8;
             radarCtx.beginPath();
-            radarCtx.moveTo(cx - reticleR - tick, cy); radarCtx.lineTo(cx - reticleR + 4, cy);
-            radarCtx.moveTo(cx + reticleR - 4, cy); radarCtx.lineTo(cx + reticleR + tick, cy);
-            radarCtx.moveTo(cx, cy - reticleR - tick); radarCtx.lineTo(cx, cy - reticleR + 4);
-            radarCtx.moveTo(cx, cy + reticleR - 4); radarCtx.lineTo(cx, cy + reticleR + tick);
+            radarCtx.moveTo(cx - len, cy); radarCtx.lineTo(cx - gap, cy);
+            radarCtx.moveTo(cx + gap, cy); radarCtx.lineTo(cx + len, cy);
+            radarCtx.moveTo(cx, cy - len); radarCtx.lineTo(cx, cy - gap);
+            radarCtx.moveTo(cx, cy + gap); radarCtx.lineTo(cx, cy + len);
             radarCtx.stroke();
+            radarCtx.restore();
 
-            // Scanning Arc Progress Indicator
-            if (state.isScanning) {
-                radarCtx.beginPath();
-                radarCtx.arc(cx, cy, maxR * 0.96, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * state.scanProgress);
-                radarCtx.strokeStyle = '#58e678';
-                radarCtx.lineWidth = 4;
-                radarCtx.stroke();
+            // 8. Horizontal CRT Glitch Streaks during active scans or infection alert
+            if (state.isScanning || isDanger) {
+                for (let g = 0; g < 3; g++) {
+                    if (Math.random() < 0.35) {
+                        const gy = cy + (Math.random() - 0.5) * radius * 1.4;
+                        const gw = 28 + Math.random() * 65;
+                        const gx = cx + (Math.random() - 0.5) * radius;
+                        radarCtx.fillStyle = Math.random() > 0.5 ? 'rgba(88, 230, 120, 0.35)' : 'rgba(239, 68, 68, 0.35)';
+                        radarCtx.fillRect(gx, gy, gw, 2);
+                    }
+                }
             }
         }
 
-        function drawWireframePortrait(time) {
-            const w = portraitCanvas.width;
-            const h = portraitCanvas.height;
-            if (!w || !h) return;
-
-            portraitCtx.fillStyle = '#040906';
+        function drawWireframePortrait(w, h, time) {
+            portraitCtx.fillStyle = '#040805';
             portraitCtx.fillRect(0, 0, w, h);
+            if (w <= 0 || h <= 0) return;
 
             const cx = w / 2;
             const cy = h / 2;
-            const isMutated = state.geneInstability >= 55;
-            const strokeCol = isMutated ? 'rgba(239, 68, 68, 0.85)' : 'rgba(88, 230, 120, 0.82)';
+            const isDanger = state.geneInstability >= 65;
+            const wireCol = isDanger ? '#ef4444' : '#58e678';
 
-            portraitCtx.strokeStyle = strokeCol;
+            // Subtle grid background
+            portraitCtx.strokeStyle = 'rgba(88, 230, 120, 0.12)';
+            portraitCtx.lineWidth = 0.7;
+            const step = 9;
+            for (let x = 0; x < w; x += step) {
+                portraitCtx.beginPath();
+                portraitCtx.moveTo(x, 0);
+                portraitCtx.lineTo(x, h);
+                portraitCtx.stroke();
+            }
+            for (let y = 0; y < h; y += step) {
+                portraitCtx.beginPath();
+                portraitCtx.moveTo(0, y);
+                portraitCtx.lineTo(w, y);
+                portraitCtx.stroke();
+            }
+
+            // Wireframe Head & Cybernetic Eye
+            const sway = Math.sin(time * 0.002) * 2.5;
+            portraitCtx.save();
+            portraitCtx.strokeStyle = wireCol;
             portraitCtx.lineWidth = 1.1;
 
-            // Wireframe Cranium & Jaw Mesh
-            const headRx = w * 0.24;
-            const headRy = h * 0.32;
-            portraitCtx.beginPath();
-            portraitCtx.ellipse(cx, cy - 2, headRx, headRy, 0, 0, Math.PI * 2);
-            portraitCtx.stroke();
-
-            // Horizontal latitude wireframe rings
-            for (let i = -2; i <= 2; i++) {
-                const yOff = i * (headRy * 0.34);
-                const rowW = Math.sqrt(Math.max(0.05, 1 - Math.pow(yOff / headRy, 2))) * headRx;
+            // Cranium mesh rings
+            for (let r = -2; r <= 2; r++) {
                 portraitCtx.beginPath();
-                portraitCtx.ellipse(cx, cy - 2 + yOff, rowW, 3.2, 0, 0, Math.PI * 2);
+                portraitCtx.ellipse(cx + sway * 0.4, cy - 3, (w * 0.24) - Math.abs(r) * 2.2, h * 0.31, 0, 0, Math.PI * 2);
                 portraitCtx.stroke();
             }
-
-            // Vertical longitude arcs
-            [-0.5, 0, 0.5].forEach(frac => {
-                portraitCtx.beginPath();
-                portraitCtx.ellipse(cx, cy - 2, Math.abs(frac) * headRx + 2, headRy, 0, 0, Math.PI * 2);
-                portraitCtx.stroke();
+            // Horizontal contour bands
+            [-14, -6, 2, 10, 17].forEach(dy => {
+                const halfW = (w * 0.23) * Math.cos((dy / 24) * 1.1);
+                if (halfW > 2) {
+                    portraitCtx.beginPath();
+                    portraitCtx.ellipse(cx + sway * 0.4, cy + dy, halfW, 3.2, 0, 0, Math.PI * 2);
+                    portraitCtx.stroke();
+                }
             });
 
-            // Glowing Auger Eye / Brood-Node
-            const eyePulse = 0.6 + 0.4 * Math.sin(time * 0.008);
-            portraitCtx.fillStyle = isMutated ? `rgba(239, 68, 68, ${eyePulse})` : `rgba(245, 158, 11, ${eyePulse})`;
+            // Left Eye Socket & Right Bionics Lens
             portraitCtx.beginPath();
-            portraitCtx.arc(cx + headRx * 0.38, cy - 5, 3.2, 0, Math.PI * 2);
+            portraitCtx.arc(cx - 7 + sway * 0.5, cy - 5, 3.2, 0, Math.PI * 2);
+            portraitCtx.stroke();
+
+            portraitCtx.fillStyle = isDanger ? '#ef4444' : '#fbbf24';
+            portraitCtx.beginPath();
+            portraitCtx.arc(cx + 7 + sway * 0.5, cy - 5, 3.6, 0, Math.PI * 2);
+            portraitCtx.stroke();
+            portraitCtx.beginPath();
+            portraitCtx.arc(cx + 7 + sway * 0.5, cy - 5, 1.5, 0, Math.PI * 2);
             portraitCtx.fill();
 
-            // Occasional CRT glitch bar
-            if (Math.random() < (state.isScanning ? 0.35 : 0.08)) {
+            // Glitch slice on portrait
+            if (Math.random() < (isDanger ? 0.45 : 0.14)) {
                 const gy = Math.random() * h;
-                portraitCtx.fillStyle = isMutated ? 'rgba(239, 68, 68, 0.35)' : 'rgba(88, 230, 120, 0.28)';
+                portraitCtx.fillStyle = isDanger ? 'rgba(239, 68, 68, 0.45)' : 'rgba(88, 230, 120, 0.35)';
                 portraitCtx.fillRect(0, gy, w, 2);
             }
+            portraitCtx.restore();
         }
 
-        function drawEcgWaveform() {
-            const w = ecgCanvas.width;
-            const h = ecgCanvas.height;
-            if (!w || !h) return;
+        function drawEcgWaveform(w, h) {
+            ecgCtx.clearRect(0, 0, w, h);
+            if (w <= 0 || h <= 0) return;
 
-            // Advance heartbeat phase proportional to current BPM
-            state.ecgPhase += (state.bpm / 60) * 0.045;
+            const speed = (state.bpm / 60) * 0.16;
+            state.ecgPhase += speed;
             const cycle = state.ecgPhase % 1;
-            let sample = 0;
 
-            if (cycle > 0.12 && cycle < 0.18) sample = -0.22;
-            else if (cycle >= 0.18 && cycle < 0.23) sample = 0.92;
-            else if (cycle >= 0.23 && cycle < 0.28) sample = -0.45;
-            else if (cycle >= 0.36 && cycle < 0.46) sample = 0.28;
-            else sample = (Math.random() - 0.5) * 0.06;
+            let val = 0;
+            if (cycle > 0.12 && cycle < 0.20) val = -0.22 * Math.sin(((cycle - 0.12) / 0.08) * Math.PI);
+            else if (cycle >= 0.28 && cycle < 0.32) val = 0.28;
+            else if (cycle >= 0.32 && cycle < 0.37) val = -0.92;
+            else if (cycle >= 0.37 && cycle < 0.42) val = 0.45;
+            else if (cycle >= 0.55 && cycle < 0.68) val = -0.32 * Math.sin(((cycle - 0.55) / 0.13) * Math.PI);
+            else val = (Math.random() - 0.5) * 0.06;
 
-            state.ecgHistory.push(sample);
+            state.ecgHistory.push(val);
             if (state.ecgHistory.length > 75) state.ecgHistory.shift();
 
-            ecgCtx.clearRect(0, 0, w, h);
-
-            const isDanger = state.geneInstability >= 70;
+            const isDanger = state.geneInstability >= 65;
             ecgCtx.strokeStyle = isDanger ? '#ef4444' : '#58e678';
             ecgCtx.lineWidth = 1.6;
-            ecgCtx.beginPath();
+            ecgCtx.shadowColor = isDanger ? 'rgba(239,68,68,0.8)' : 'rgba(88,230,120,0.8)';
+            ecgCtx.shadowBlur = 5;
 
+            ecgCtx.beginPath();
             const midY = h * 0.54;
             const amp = h * 0.42;
-            state.ecgHistory.forEach((val, idx) => {
+            state.ecgHistory.forEach((pt, idx) => {
                 const x = (idx / (state.ecgHistory.length - 1)) * w;
-                const y = midY - val * amp;
+                const y = midY + pt * amp;
                 if (idx === 0) ecgCtx.moveTo(x, y);
                 else ecgCtx.lineTo(x, y);
             });
             ecgCtx.stroke();
+            ecgCtx.shadowBlur = 0;
         }
 
-        function mainLoop(time) {
-            analyzeOpticalGlyph();
-            drawRadarOverlay(time);
-            drawWireframePortrait(time);
-            drawEcgWaveform();
-            requestAnimationFrame(mainLoop);
+        // --- MAIN ANIMATION LOOP ---
+        let frameTick = 0;
+        function renderLoop(time) {
+            frameTick++;
+            if (state.usingFallbackSim) {
+                drawFallbackSim(simCanvas.width, simCanvas.height, time);
+            }
+            drawRadarOverlay(radarCanvas.width, radarCanvas.height, time);
+            drawWireframePortrait(portraitCanvas.width, portraitCanvas.height, time);
+            drawEcgWaveform(ecgCanvas.width, ecgCanvas.height);
+
+            // Analyze center reticle for 2x2 Campaign Glyphs every ~6 frames
+            if (frameTick % 6 === 0 && !state.isScanning) {
+                analyzeOpticalGlyph();
+            }
+
+            requestAnimationFrame(renderLoop);
         }
 
         // --- EVENT LISTENERS ---
@@ -1782,105 +2003,80 @@
 
         pulseBtn.addEventListener('click', async () => {
             await initAudio();
-            playBeep(640, "16n");
+            playPulsePing();
             state.pulseRings.push({ r: 12, alpha: 0.95 });
-            const randomRange = Math.floor(6 + Math.random() * 24);
+            const randomRange = Math.floor(4 + Math.random() * 24);
             teleRange.textContent = `${randomRange}m`;
-            teleAcquired.textContent = "SONAR PING SENT";
-            if (navigator.vibrate) navigator.vibrate(35);
-        });
-
-        arbiterModeBtn.addEventListener('click', async () => {
-            await initAudio();
-            state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
-            const currentMode = state.arbiterModes[state.arbiterIndex];
-            modeLabel.textContent = `SYS: ${currentMode}`;
-            playBeep(currentMode === 'AUTO' ? 520 : 880, "32n");
             if (navigator.vibrate) navigator.vibrate(25);
         });
 
+        arbiterModeBtn.addEventListener('click', () => {
+            state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
+            const mode = state.arbiterModes[state.arbiterIndex];
+            modeLabel.textContent = `SYS: ${mode}`;
+            if (mode === 'INFECTED') modeLabel.className = "text-[8px] font-mono text-red-400 font-bold tracking-widest mt-0.5 uppercase";
+            else if (mode === 'BROOD') modeLabel.className = "text-[8px] font-mono text-amber-400 font-bold tracking-widest mt-0.5 uppercase";
+            else if (mode === 'RELIC') modeLabel.className = "text-[8px] font-mono text-cyan-400 font-bold tracking-widest mt-0.5 uppercase";
+            else if (mode === 'CLEAN') modeLabel.className = "text-[8px] font-mono text-emerald-400 font-bold tracking-widest mt-0.5 uppercase";
+            else modeLabel.className = "text-[8px] font-mono text-stone-400 tracking-widest mt-0.5 uppercase";
+            if (navigator.vibrate) navigator.vibrate(15);
+        });
+
         audioBtn.addEventListener('click', async () => {
+            await initAudio();
             state.audioEnabled = !state.audioEnabled;
             if (state.audioEnabled) {
-                await initAudio();
-                playBeep(780, "16n");
                 audioSkullSvg.className = "w-7 h-7 text-emerald-400 transition-colors";
                 audioBadge.textContent = "VOX";
                 audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-emerald-950 border border-emerald-500/60 text-[8px] font-bold text-emerald-400";
+                if (bassDrone && bassDrone.state !== 'started') bassDrone.start();
             } else {
-                stopTensionAudio();
                 audioSkullSvg.className = "w-7 h-7 text-stone-600 transition-colors";
                 audioBadge.textContent = "MUTE";
-                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-zinc-900 border border-stone-600 text-[8px] font-bold text-stone-400";
+                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-zinc-900 border border-stone-700 text-[8px] font-bold text-stone-500";
+                if (bassDrone && bassDrone.state === 'started') bassDrone.stop();
             }
         });
 
         switchCamBtn.addEventListener('click', () => {
             state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
-            playBeep(680, "32n");
             initCamera();
         });
 
-        fileUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const img = new Image();
-                img.onload = () => {
-                    activateFallbackSim();
-                    simCtx.drawImage(img, 0, 0, simCanvas.width, simCanvas.height);
-                    teleAcquired.textContent = "PICT LOADED";
-                };
-                img.src = ev.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-
         // Glyph Grimoire Modal Controls
-        glyphGuideBtn.addEventListener('click', () => {
-            playBeep(720, "32n");
-            glyphModal.classList.remove('hidden');
-        });
+        glyphGuideBtn.addEventListener('click', () => glyphModal.classList.remove('hidden'));
         closeGlyphBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
         closeGlyphFooterBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
 
-        // Dossier Modal Controls
+        // Result Dossier Controls
+        openDossierBtn.addEventListener('click', () => resultModal.classList.remove('hidden'));
         resetScanBtn.addEventListener('click', () => {
             savePendingLog();
-            playBeep(520, "16n");
             resultModal.classList.add('hidden');
             state.glyphCooldownUntil = Date.now() + 2500;
-            state.detectedGlyph = null;
-            glyphLockPill.classList.add('hidden');
+            clearGlyphLock();
         });
 
-        openDossierBtn.addEventListener('click', () => {
-            playBeep(660, "32n");
-            resultModal.classList.remove('hidden');
-        });
-
-        // Datalog Reader Modal Controls
+        // Datalog Reader Controls
         openDatalogBtn.addEventListener('click', () => {
             if (!state.activeDatalog) return;
-            playBeep(940, "16n");
-            datalogHeaderSub.textContent = state.activeDatalog.headerSub;
-            datalogTitle.textContent = state.activeDatalog.title;
-            datalogAuthor.textContent = state.activeDatalog.author;
-            datalogIntegrity.textContent = state.activeDatalog.integrity;
-            datalogBody1.textContent = state.activeDatalog.body1;
-            datalogBody2.textContent = state.activeDatalog.body2;
-            datalogWhisper.textContent = state.activeDatalog.whisper;
+            const log = state.activeDatalog;
+            datalogHeaderSub.textContent = log.headerSub;
+            datalogTitle.textContent = log.title;
+            datalogAuthor.textContent = log.author;
+            datalogIntegrity.textContent = log.integrity;
+            datalogBody1.textContent = log.body1;
+            datalogBody2.textContent = log.body2;
+            datalogWhisper.textContent = log.whisper;
             datalogModal.classList.remove('hidden');
+            if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
         });
-
         closeDatalogBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
         closeDatalogFooterBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
 
-        // History Modal Controls
+        // History Archive Controls
         historyBtn.addEventListener('click', () => {
             updateHistoryUI();
-            playBeep(620, "32n");
             historyModal.classList.remove('hidden');
         });
         closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
@@ -1889,17 +2085,16 @@
             state.scanHistory = [];
             localStorage.removeItem('necromunda_malstrain_logs');
             updateHistoryUI();
-            playBeep(360, "16n");
         });
 
-        // --- BOOT SEQUENCE ---
-        window.addEventListener('resize', resizeCanvases);
+        // --- BOOT ON WINDOW LOAD ---
+        window.addEventListener('resize', resizeAllCanvases);
         window.onload = function () {
-            resizeCanvases();
+            resizeAllCanvases();
             updateLedMeters();
             updateHistoryUI();
             initCamera();
-            requestAnimationFrame(mainLoop);
+            requestAnimationFrame(renderLoop);
         };
     </script>
 </body>
