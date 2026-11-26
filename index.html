@@ -453,6 +453,17 @@
         </div>
 
         <div class="flex flex-col gap-2.5 pt-1">
+          <button id="btn-start-ar" class="btn-auspex w-full py-3 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66] border-[#33ff66]">
+            INITIALIZE LIVE AR CAMERA
+          </button>
+          <button id="btn-start-sim" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ffb000] border-[#ffb000]/70">
+            USE SIMULATED AUSPEX VISOR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== MODAL 2: MATERIALIZATION & COMBAT WINDOW DOSSIER ==================== -->
   <div id="modal-intel" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
     <div class="hud-panel rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col overflow-hidden border-2 border-[#ff4b6e]/90 shadow-[0_0_45px_rgba(255,75,110,0.35)]">
@@ -1246,6 +1257,47 @@
     // ==================== 8. PROCEDURAL GRAPHICS RENDERER ====================
 
     /**
+     * Draws the simulated 360° Necromunda Underhive visor grid when live camera is off
+     */
+    function drawSimulatedUnderhive(w, h) {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#020805');
+      grad.addColorStop(0.5, '#05150c');
+      grad.addColorStop(1, '#020905');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      const horizonY = h * 0.5 + (state.pitch / (state.fovY / 2)) * (h * 0.5);
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
+      ctx.lineWidth = 1;
+
+      // Vertical azimuth meridian lines every 15°
+      const startAz = Math.floor((state.heading - state.fovX * 0.7) / 15) * 15;
+      const endAz = state.heading + state.fovX * 0.7;
+      for (let az = startAz; az <= endAz; az += 15) {
+        const rel = angleDiff(state.heading, normalizeAngle(az));
+        const x = w * 0.5 + (rel / (state.fovX / 2)) * (w * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      // Horizontal perspective floor/ceiling grid lines
+      for (let i = -4; i <= 4; i++) {
+        const y = horizonY + i * (h * 0.11);
+        ctx.strokeStyle = i === 0 ? 'rgba(51, 255, 102, 0.32)' : 'rgba(51, 255, 102, 0.11)';
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /**
      * Draws the Hollow Drifter medallion icon (matching hollow_drifter_head_1024.png)
      * with reactive zap recoil, eye-flare, and electrical discharge arcs.
      */
@@ -1603,194 +1655,6 @@
         tag = `[IMMATERIUM ECHO • ${distText}]`;
       }
       ctx.fillText(tag, 0, -r * 1.32);
-
-      ctx.restore();
-    }
-
-    /**
-     * Procedurally draws a stationary, grounded Necromunda spectral entity at (x, y)
-     */
-    function drawSpectralGhost(ghost, x, y, scale, isLocked) {
-      const style = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
-      const t = state.time;
-
-      // Stationary anchor: no erratic jumping or flying around
-      const cx = x;
-      const cy = y;
-      const r = 48 * scale;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-
-      // Grounded holographic anchor ring below the ghost
-      ctx.save();
-      ctx.strokeStyle = style.primary;
-      ctx.globalAlpha = ghost.scanned ? 0.28 : 0.6;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.ellipse(0, r * 1.18, r * 0.92, r * 0.22, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.globalAlpha = 0.25;
-      ctx.beginPath();
-      ctx.ellipse(0, r * 1.18, r * 0.52, r * 0.12, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Soft outer spectral aura glow
-      const aura = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.85);
-      aura.addColorStop(0, style.primary + (ghost.scanned ? '38' : '58'));
-      aura.addColorStop(0.55, style.secondary + '1f');
-      aura.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 1.85, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Steady rotating psychic rune ring
-      ctx.save();
-      ctx.rotate(t * (isLocked ? 1.1 : 0.4));
-      ctx.strokeStyle = style.primary;
-      ctx.globalAlpha = ghost.scanned ? 0.35 : 0.78;
-      ctx.lineWidth = isLocked ? 2.2 : 1.3;
-      ctx.setLineDash([8, 6]);
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 1.22, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Draw distinct silhouette per Necromunda archetype
-      ctx.globalAlpha = (ghost.scanned ? 0.52 : 0.88) + Math.sin(t * 3) * 0.04;
-      ctx.strokeStyle = style.primary;
-      ctx.fillStyle = style.primary + '26';
-      ctx.lineWidth = 2;
-
-      if (ghost.archetype === 'skull') {
-        ctx.beginPath();
-        ctx.arc(0, -r * 0.12, r * 0.52, Math.PI * 0.85, Math.PI * 2.15);
-        ctx.lineTo(r * 0.28, r * 0.45);
-        ctx.lineTo(-r * 0.28, r * 0.45);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = style.primary;
-        ctx.beginPath();
-        ctx.arc(-r * 0.18, -r * 0.1, r * 0.12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(r * 0.18, -r * 0.1, r * 0.16, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(r * 0.18, -r * 0.1, r * 0.06, 0, Math.PI * 2);
-        ctx.fill();
-
-        for (let i = -1; i <= 1; i++) {
-          ctx.beginPath();
-          ctx.moveTo(i * r * 0.16, r * 0.45);
-          ctx.quadraticCurveTo(i * r * 0.26, r * 0.82, i * r * 0.18, r * 1.06);
-          ctx.stroke();
-        }
-      } else if (ghost.archetype === 'machine') {
-        const teeth = 10;
-        ctx.beginPath();
-        for (let i = 0; i < teeth * 2; i++) {
-          const ang = (i / (teeth * 2)) * Math.PI * 2 + t * 0.35;
-          const rad = i % 2 === 0 ? r * 0.72 : r * 0.56;
-          const px = Math.cos(ang) * rad;
-          const py = Math.sin(ang) * rad;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.26, 0, Math.PI * 2);
-        ctx.fillStyle = style.primary;
-        ctx.fill();
-      } else if (ghost.archetype === 'malstrain') {
-        for (let i = 0; i < 6; i++) {
-          const ang = (i / 6) * Math.PI * 2 + Math.sin(t * 1.4 + i) * 0.08;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(
-            Math.cos(ang + 0.35) * r * 0.62,
-            Math.sin(ang + 0.35) * r * 0.62,
-            Math.cos(ang) * r * 0.98,
-            Math.sin(ang) * r * 0.98
-          );
-          ctx.stroke();
-        }
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#ffffff';
-        [-0.14, 0, 0.14].forEach((ox, idx) => {
-          ctx.beginPath();
-          ctx.arc(ox * r, (idx === 1 ? -0.1 : 0.06) * r, r * 0.06, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      } else {
-        // Hooded Warp Wraith / Delaque Whisper-Shade
-        ctx.beginPath();
-        ctx.moveTo(0, -r * 0.85);
-        ctx.bezierCurveTo(r * 0.65, -r * 0.65, r * 0.6, r * 0.35, r * 0.45, r * 0.95);
-        ctx.lineTo(r * 0.2, r * 0.72);
-        ctx.lineTo(0, r * 1.0);
-        ctx.lineTo(-r * 0.22, r * 0.72);
-        ctx.lineTo(-r * 0.45, r * 0.95);
-        ctx.bezierCurveTo(-r * 0.6, r * 0.35, -r * 0.65, -r * 0.65, 0, -r * 0.85);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = style.primary;
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        ctx.ellipse(-r * 0.15, -r * 0.22, r * 0.09, r * 0.045, 0.2, 0, Math.PI * 2);
-        ctx.ellipse(r * 0.15, -r * 0.22, r * 0.09, r * 0.045, -0.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      // Gentle rising ectoplasmic embers
-      ctx.fillStyle = style.primary;
-      for (let i = 0; i < 5; i++) {
-        const pAngle = t * 0.8 + i * 1.25;
-        const pDist = r * (0.65 + (i % 3) * 0.12);
-        const px = Math.cos(pAngle) * pDist;
-        const py = Math.sin(pAngle) * pDist * 0.5 - ((t * 14 + i * 18) % 28);
-        ctx.globalAlpha = 0.55;
-        ctx.fillRect(px, py, 2.5, 2.5);
-      }
-
-      // Active scan sweep line when scanning this ghost
-      if (state.isScanning && state.scanningGhost === ghost) {
-        ctx.globalAlpha = 0.9;
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 2.5;
-        const scanY = Math.sin(t * 10) * r;
-        ctx.beginPath();
-        ctx.moveTo(-r * 1.15, scanY);
-        ctx.lineTo(r * 1.15, scanY);
-        ctx.stroke();
-      }
-
-      // Label & distance readout above ghost
-      ctx.globalAlpha = 0.95;
-      ctx.font = 'bold 11px "Share Tech Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = ghost.scanned ? '#33ff66' : style.primary;
-      const distText = `${Number(ghost.distance || 2.5).toFixed(1)}m`;
-      const tag = ghost.scanned
-        ? `[LOGGED] ${ghost.name.toUpperCase()}`
-        : `[WARP SIGNATURE • ${distText}]`;
-      ctx.fillText(tag, 0, -r * 1.38);
 
       ctx.restore();
     }
