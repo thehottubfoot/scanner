@@ -8,31 +8,22 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Tone.js for procedural Auspex sonar pings, warp static, and beam audio -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-
-  <!-- Three.js r147 + GLTFLoader + DRACOLoader + MeshoptDecoder + SkeletonUtils -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.20.0/meshopt_decoder.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script>
-
-  <!-- Grimdark tactical monospace & display fonts -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+
+  <!-- Tone.js Procedural Audio -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <!-- Three.js r147 + GLTF / Draco / Meshopt / SkeletonUtils -->
+  <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://unpkg.com/meshoptimizer@0.18.1/meshopt_decoder.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script>
 
   <style>
-    :root {
-      --phosphor: #33ff66;
-      --phosphor-dim: rgba(51, 255, 102, 0.35);
-      --amber: #ffb000;
-      --cyan: #00f0ff;
-      --crimson: #ff2244;
-      --bg-dark: #020905;
-    }
-
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
@@ -43,18 +34,19 @@
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100dvh;
+      height: 100%;
       overflow: hidden;
-      background: linear-gradient(180deg, #020805 0%, #05150c 50%, #020905 100%);
-      color: var(--phosphor);
+      background-color: #030906;
+      color: #33ff66;
       font-family: 'Share Tech Mono', monospace;
+      touch-action: none;
     }
 
     .font-display {
       font-family: 'Orbitron', sans-serif;
     }
 
-    /* Live AR camera layer */
+    /* Camera Feed */
     #camera-feed {
       position: fixed;
       inset: 0;
@@ -62,70 +54,60 @@
       height: 100%;
       object-fit: cover;
       z-index: 1;
+      background: radial-gradient(circle at center, #081a11 0%, #020805 100%);
+      transition: filter 0.3s ease;
     }
 
-    .filter-auspex {
-      filter: grayscale(100%) sepia(100%) hue-rotate(82deg) saturate(2.3) contrast(1.25) brightness(0.72);
+    .visor-filtered {
+      filter: contrast(1.18) brightness(0.88) sepia(0.35) hue-rotate(82deg) saturate(1.55);
     }
 
-    .filter-raw {
-      filter: contrast(1.08) brightness(0.85);
-    }
-
-    /* Transparent Three.js WebGL layer for 3D .glb ghost models */
+    /* 3D WebGL Layer & 2D Overlay Layer */
     #three-canvas {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
-      display: block;
       z-index: 2;
       pointer-events: none;
+      display: block;
     }
 
-    /* 2D AR overlay canvas for fallback Hollow Drifter icons, Null-Phase Beam, and grid */
     #ar-canvas {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
-      display: block;
       z-index: 3;
-      touch-action: none;
-      cursor: grab;
+      pointer-events: auto;
+      display: block;
     }
 
-    #ar-canvas:active {
-      cursor: grabbing;
-    }
-
-    /* CRT Scanlines & Vignette Overlay */
+    /* CRT Scanlines & Vignette */
     .crt-overlay {
       position: fixed;
       inset: 0;
       z-index: 4;
       pointer-events: none;
       background:
-        repeating-linear-gradient(
-          0deg,
-          rgba(0, 0, 0, 0.22) 0px,
-          rgba(0, 0, 0, 0.22) 1px,
-          transparent 1px,
-          transparent 3px
-        ),
-        radial-gradient(circle at center, transparent 52%, rgba(0, 10, 4, 0.78) 100%);
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+        radial-gradient(circle at center, transparent 58%, rgba(0, 12, 6, 0.72) 100%);
+      background-size: 100% 4px, 100% 100%;
     }
 
-    /* Tactical Auspex Buttons */
+    /* Auspex HUD Glass Panels */
+    .hud-panel {
+      background: rgba(4, 18, 11, 0.78);
+      border: 1px solid rgba(51, 255, 102, 0.42);
+      box-shadow: 0 0 18px rgba(0, 255, 102, 0.12), inset 0 0 12px rgba(0, 255, 102, 0.08);
+      backdrop-filter: blur(6px);
+    }
+
     .btn-auspex {
-      background: linear-gradient(180deg, rgba(10, 34, 20, 0.88) 0%, rgba(3, 14, 8, 0.94) 100%);
-      border: 1px solid rgba(51, 255, 102, 0.55);
-      box-shadow: 0 0 12px rgba(51, 255, 102, 0.16), inset 0 0 10px rgba(51, 255, 102, 0.08);
-      transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-
-    .btn-auspex:hover {
-      box-shadow: 0 0 16px rgba(51, 255, 102, 0.35), inset 0 0 12px rgba(51, 255, 102, 0.18);
+      background: linear-gradient(180deg, rgba(10, 42, 24, 0.88) 0%, rgba(4, 18, 11, 0.94) 100%);
+      border: 1px solid rgba(51, 255, 102, 0.6);
+      box-shadow: 0 0 12px rgba(51, 255, 102, 0.16), inset 0 0 8px rgba(51, 255, 102, 0.1);
+      transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
 
     .btn-auspex:active {
@@ -133,16 +115,42 @@
     }
 
     .btn-beam-active {
-      border-color: var(--cyan) !important;
-      color: var(--cyan) !important;
-      box-shadow: 0 0 24px rgba(0, 240, 255, 0.65), inset 0 0 16px rgba(0, 240, 255, 0.35) !important;
+      background: linear-gradient(180deg, rgba(0, 140, 180, 0.92) 0%, rgba(0, 52, 82, 0.96) 100%) !important;
+      border-color: #00f0ff !important;
+      color: #e6ffff !important;
+      box-shadow: 0 0 26px rgba(0, 240, 255, 0.75), inset 0 0 14px rgba(0, 240, 255, 0.45) !important;
     }
 
-    .hud-panel {
-      background: rgba(3, 14, 8, 0.76);
-      border: 1px solid rgba(51, 255, 102, 0.42);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 0 16px rgba(0, 0, 0, 0.55);
+    /* Sinister Bargain Styling */
+    @keyframes sinisterPulse {
+      0%, 100% {
+        box-shadow: 0 0 24px rgba(180, 0, 35, 0.45), inset 0 0 22px rgba(120, 0, 20, 0.35);
+      }
+      50% {
+        box-shadow: 0 0 44px rgba(255, 20, 60, 0.85), inset 0 0 36px rgba(160, 0, 30, 0.55);
+      }
+    }
+
+    .sinister-panel {
+      background: radial-gradient(circle at top, rgba(36, 4, 12, 0.96) 0%, rgba(8, 2, 5, 0.98) 100%);
+      border: 1px solid rgba(255, 34, 68, 0.72);
+      animation: sinisterPulse 2.4s ease-in-out infinite;
+    }
+
+    .btn-sinister {
+      background: linear-gradient(180deg, rgba(65, 6, 18, 0.92) 0%, rgba(24, 2, 8, 0.96) 100%);
+      border: 1px solid rgba(255, 42, 74, 0.75);
+      box-shadow: 0 0 14px rgba(255, 34, 68, 0.25), inset 0 0 10px rgba(255, 34, 68, 0.14);
+      transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-sinister:hover {
+      border-color: #ff6680;
+      box-shadow: 0 0 22px rgba(255, 34, 68, 0.55), inset 0 0 14px rgba(255, 34, 68, 0.25);
+    }
+
+    .btn-sinister:active {
+      transform: scale(0.97);
     }
 
     .custom-scroll::-webkit-scrollbar {
@@ -155,51 +163,45 @@
       background: rgba(51, 255, 102, 0.45);
       border-radius: 9999px;
     }
-
-    @keyframes pulseBorder {
-      0%, 100% { box-shadow: 0 0 12px rgba(255, 34, 68, 0.45); }
-      50% { box-shadow: 0 0 28px rgba(255, 34, 68, 0.9); }
-    }
-
-    .breach-alert {
-      animation: pulseBorder 0.8s infinite;
-    }
   </style>
 </head>
-<body class="relative w-full h-full overflow-hidden">
+<body class="overflow-hidden">
 
-  <!-- ==================== LAYER 1: LIVE CAMERA FEED ==================== -->
-  <video id="camera-feed" class="hidden filter-auspex" autoplay playsinline muted></video>
+  <!-- Live AR Camera Feed -->
+  <video id="camera-feed" class="visor-filtered" autoplay playsinline muted></video>
 
-  <!-- ==================== LAYER 2: THREE.JS 3D MODEL CANVAS ==================== -->
+  <!-- Three.js 3D Model Canvas -->
   <canvas id="three-canvas"></canvas>
 
-  <!-- ==================== LAYER 3: 2D AR OVERLAY & BEAM CANVAS ==================== -->
+  <!-- 2D Targeting & Beam Canvas -->
   <canvas id="ar-canvas"></canvas>
 
-  <!-- ==================== LAYER 4: CRT SCANLINES & VIGNETTE ==================== -->
+  <!-- CRT Scanlines Overlay -->
   <div class="crt-overlay"></div>
 
-  <!-- ==================== LAYER 5: TACTICAL HUD ==================== -->
-  <div id="hud-root" class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-2.5 sm:p-4">
+  <!-- ==================== MAIN HUD ==================== -->
+  <div class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-2.5 sm:p-4">
 
-    <!-- TOP BAR: Telemetry + Quick Actions -->
+    <!-- TOP BAR -->
     <div class="flex items-start justify-between gap-2">
-      <!-- Left: Auspex Status -->
-      <div class="hud-panel rounded-xl px-3 py-2 pointer-events-auto max-w-[60%] sm:max-w-xs">
+      <!-- Left: Telemetry -->
+      <div class="hud-panel rounded-xl px-3 py-2 pointer-events-auto">
         <div class="flex items-center gap-2">
-          <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-[#33ff66] shadow-[0_0_8px_#33ff66]"></span>
-          <span class="font-display text-[11px] sm:text-xs tracking-wider text-[#33ff66] truncate">AUSPEX MK.IV // WARP-SCAN</span>
+          <span id="status-dot" class="w-2 h-2 rounded-full bg-[#33ff66] shadow-[0_0_8px_#33ff66]"></span>
+          <span class="font-display text-[11px] sm:text-xs tracking-wider text-[#33ff66]">AUSPEX MK.IV</span>
         </div>
-        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] sm:text-xs text-[#33ff66]/80">
-          <span>HDG <strong id="hud-heading" class="text-[#33ff66]">000°</strong></span>
-          <span>PITCH <strong id="hud-pitch" class="text-[#33ff66]">+00°</strong></span>
-          <span>SIG <strong id="hud-count" class="text-[#ffb000]">0/0</strong></span>
+        <div class="flex items-center gap-3 mt-1 text-[10px] sm:text-xs text-[#33ff66]/85">
+          <span>HDG <strong id="hud-heading" class="text-[#00f0ff]">000°</strong></span>
+          <span>PIT <strong id="hud-pitch" class="text-[#00f0ff]">-08°</strong></span>
+          <span>ENT <strong id="hud-count" class="text-[#ffb000]">5/5</strong></span>
         </div>
       </div>
 
       <!-- Right: Controls -->
       <div class="flex flex-wrap justify-end gap-1.5 sm:gap-2 pointer-events-auto">
+        <button id="btn-codes" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#ffb000] border-[#ffb000]/75" title="Warp Translation Codes">
+          CODES: <span id="hud-codes-count">0/5</span>
+        </button>
         <button id="btn-filter" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#33ff66]" title="Toggle Visor Filter">
           VISOR
         </button>
@@ -212,24 +214,32 @@
       </div>
     </div>
 
-    <!-- CENTER: Material Plane Breach Alert Banner -->
-    <div id="breach-banner" class="hidden self-center hud-panel breach-alert rounded-xl px-4 py-2.5 border-[#ff2244] bg-[#24040a]/90 text-center max-w-sm pointer-events-auto">
-      <div class="font-display text-xs sm:text-sm text-[#ff2244] tracking-widest">MATERIAL PLANE BREACH!</div>
-      <div id="breach-name" class="text-xs text-white mt-0.5 font-bold">ENTITY SOLIDIFIED</div>
-      <div class="mt-1.5 flex items-center justify-center gap-3 text-[11px] text-[#ffb000]">
-        <span>COMBAT WINDOW: <strong id="breach-timer">15.0s</strong></span>
-        <button id="btn-banish" class="btn-auspex px-2.5 py-1 rounded-lg border-[#ff2244] text-[#ff2244] text-[10px] font-display">
-          BANISH
+    <!-- CENTER: Toast Notification -->
+    <div id="toast-banner" class="hidden self-center hud-panel rounded-xl px-4 py-2 border-[#00f0ff]/80 bg-[#02141a]/90 text-center max-w-xs">
+      <div id="toast-content" class="text-[11px] sm:text-xs text-[#00f0ff] tracking-wider"></div>
+    </div>
+
+    <!-- CENTER: Warp Translation Code Acquired Banner -->
+    <div id="code-banner" class="hidden self-center hud-panel rounded-xl px-4 py-3 border-[#00f0ff] bg-[#03141a]/92 text-center max-w-sm pointer-events-auto shadow-[0_0_24px_rgba(0,240,255,0.45)]">
+      <div class="font-display text-[11px] sm:text-xs text-[#00f0ff] tracking-widest">WARP TRANSLATION CIPHER EXTRACTED</div>
+      <div id="code-banner-entity" class="text-[11px] text-[#33ff66]/85 mt-0.5">ENTITY BANISHED</div>
+      <div id="code-banner-digits" class="font-display text-2xl sm:text-3xl tracking-[0.28em] text-[#ffb000] my-1.5">00000</div>
+      <div class="flex items-center justify-center gap-2 mt-1">
+        <button id="btn-open-vault-from-banner" class="btn-auspex px-2.5 py-1 rounded-lg border-[#ffb000]/70 text-[#ffb000] text-[10px] font-display">
+          VIEW ALL CODES
+        </button>
+        <button id="btn-dismiss-code-banner" class="btn-auspex px-2.5 py-1 rounded-lg border-[#00f0ff]/70 text-[#00f0ff] text-[10px] font-display">
+          DISMISS
         </button>
       </div>
     </div>
 
-    <!-- BOTTOM BAR: Radar + Null-Phase Beam Fire Control -->
+    <!-- BOTTOM BAR: Radar + Null-Phase Beam Fire Control + Walk Pad -->
     <div class="flex items-end justify-between gap-2 sm:gap-4">
 
       <!-- Bottom-Left: Circular Auspex Radar -->
       <div class="hud-panel rounded-2xl p-2 pointer-events-auto flex flex-col items-center">
-        <canvas id="radar-canvas" width="112" height="112" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full"></canvas>
+        <canvas id="radar-canvas" width="112" height="112" class="w-20 h-20 sm:w-28 sm:h-28 rounded-full"></canvas>
         <div class="text-[9px] text-[#33ff66]/75 mt-1 tracking-widest">360° PROXIMITY</div>
       </div>
 
@@ -237,8 +247,7 @@
       <div class="flex-1 max-w-xs flex flex-col items-center gap-2 pointer-events-auto">
         <div id="target-readout" class="hud-panel rounded-xl px-3 py-1.5 w-full text-center">
           <div id="target-name" class="font-display text-[11px] sm:text-xs text-[#33ff66] truncate">SCANNING SECTOR...</div>
-          <div id="target-meta" class="text-[10px] text-[#33ff66]/70">DRAG VIEW OR MOVE DEVICE TO LOCATE</div>
-          <!-- Progress Bar -->
+          <div id="target-meta" class="text-[10px] text-[#33ff66]/70">WALK OR SWEEP TO INSPECT 3D ENTITIES</div>
           <div class="w-full h-1.5 bg-black/70 rounded-full overflow-hidden mt-1.5 border border-[#33ff66]/30">
             <div id="scan-bar" class="h-full w-0 bg-[#00f0ff] transition-all duration-75"></div>
           </div>
@@ -249,131 +258,133 @@
         </button>
       </div>
 
-      <!-- Bottom-Right: Recenter / Scatter -->
-      <div class="flex flex-col gap-1.5 pointer-events-auto">
-        <button id="btn-recenter" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#33ff66]">
-          ZERO
-        </button>
-        <button id="btn-scatter" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#ffb000] border-[#ffb000]/60">
-          SCATTER
-        </button>
+      <!-- Bottom-Right: Walk-Around Pad & Utility -->
+      <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+        <div class="hud-panel rounded-xl p-1.5 grid grid-cols-3 gap-1 w-[94px] sm:w-[106px]">
+          <div></div>
+          <button id="walk-fwd" class="btn-auspex rounded-lg py-1.5 text-[10px] text-[#33ff66] font-bold" title="Walk Forward (W)">▲</button>
+          <div></div>
+          <button id="walk-left" class="btn-auspex rounded-lg py-1.5 text-[10px] text-[#33ff66] font-bold" title="Strafe Left (A)">◀</button>
+          <button id="walk-back" class="btn-auspex rounded-lg py-1.5 text-[10px] text-[#33ff66] font-bold" title="Walk Back (S)">▼</button>
+          <button id="walk-right" class="btn-auspex rounded-lg py-1.5 text-[10px] text-[#33ff66] font-bold" title="Strafe Right (D)">▶</button>
+        </div>
+        <div class="flex gap-1">
+          <button id="btn-recenter" class="btn-auspex rounded-xl px-2 py-1.5 text-[10px] text-[#33ff66]">
+            ZERO
+          </button>
+          <button id="btn-scatter" class="btn-auspex rounded-xl px-2 py-1.5 text-[10px] text-[#ffb000] border-[#ffb000]/60">
+            SCATTER
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- TOAST BANNER (Above modals so status is always visible) -->
-  <div id="toast-banner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none max-w-[92vw]">
-    <div id="toast-content" class="hud-panel rounded-xl px-4 py-2 text-xs text-[#00f0ff] border-[#00f0ff]/70 tracking-wider text-center">
-      SYSTEM READY
-    </div>
-  </div>
-
-  <!-- ==================== BOOT / STARTUP MODAL ==================== -->
-  <div id="boot-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-    <div class="hud-panel rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 border-[#33ff66]/70">
-      <div class="text-center space-y-1">
-        <div class="text-[10px] tracking-[0.25em] text-[#ffb000]">ADEPTUS MECHANICUS // UNDERHIVE DIV.</div>
-        <h1 class="font-display text-lg sm:text-xl text-[#33ff66] tracking-wider">NECROMUNDA AUSPEX AR</h1>
-        <p class="text-xs text-[#33ff66]/80 leading-relaxed">
-          Track Immaterium entities anchored around your room. Lock onto a Hollow Drifter and hold the
-          <span class="text-[#00f0ff]">Null-Phase Beam</span> to force it into the Material Plane.
+  <!-- ==================== BOOT / INITIALIZATION MODAL ==================== -->
+  <div id="boot-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/88 backdrop-blur-md">
+    <div class="hud-panel rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 text-center border-[#33ff66]/70">
+      <div class="space-y-1">
+        <div class="text-[10px] tracking-[0.28em] text-[#00f0ff]">ADEPTUS MECHANICUS // SECTOR UNDERHIVE</div>
+        <h1 class="font-display text-lg sm:text-xl text-[#33ff66] tracking-wider">AUSPEX AR SCANNER</h1>
+        <p class="text-xs text-[#33ff66]/75 leading-relaxed">
+          Locate floor-anchored Warp apparitions in 3D, extract all 5 Warp Translation Anchor ciphers, and resist what whispers in the dark.
         </p>
       </div>
 
-      <div class="bg-black/50 border border-[#33ff66]/30 rounded-xl p-3 text-[11px] text-[#33ff66]/80 space-y-1">
-        <div>• <strong>Move phone</strong> (or drag screen) to sweep 360° around the room.</div>
-        <div>• <strong>Hold Beam</strong> to disrupt a ghost's psychic shroud.</div>
-        <div class="break-words">• 3D Model Status: <strong id="boot-model-status" class="text-[#00f0ff]">CHECKING ./spirit.glb...</strong></div>
-      </div>
-
-      <div class="flex flex-col gap-2.5 pt-1">
-        <!-- Optional 3D .glb Ghost Model Picker right on boot -->
-        <label class="btn-auspex w-full py-2.5 px-3 rounded-xl font-display text-[11px] tracking-wider text-[#00f0ff] border-[#00f0ff]/70 flex items-center justify-center gap-2 cursor-pointer">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-          <span id="boot-glb-label">LOAD DIFFERENT .GLB FILE (OPTIONAL)</span>
+      <!-- 3D Model Diagnostic Status -->
+      <div class="bg-black/60 border border-[#33ff66]/35 rounded-xl p-3 text-left space-y-2">
+        <div class="flex items-center justify-between gap-2 text-[10px]">
+          <span class="text-[#33ff66]/75">3D MODEL STATUS:</span>
+          <span id="boot-model-status" class="text-[#00f0ff] font-bold truncate">INITIALIZING...</span>
+        </div>
+        <label class="btn-auspex block w-full py-2 px-3 rounded-lg text-center text-[11px] text-[#ffb000] border-[#ffb000]/65 cursor-pointer">
+          <span id="boot-glb-label">LOAD LOCAL .GLB GHOST MODEL</span>
           <input id="boot-glb-input" type="file" accept=".glb,.gltf" class="hidden" />
         </label>
+      </div>
 
-        <button id="btn-start-ar" class="btn-auspex w-full py-3 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66] border-[#33ff66]">
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-start-ar" class="btn-auspex w-full py-3 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66]">
           INITIALIZE LIVE AR CAMERA
         </button>
-        <button id="btn-start-sim" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ffb000] border-[#ffb000]/70">
+        <button id="btn-start-sim" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#00f0ff] border-[#00f0ff]/65">
           USE SIMULATED AUSPEX VISOR
         </button>
+      </div>
+
+      <div class="text-[10px] text-[#33ff66]/60">
+        TIP: DRAG SCREEN TO LOOK AROUND • USE WALK PAD OR WASD TO CIRCLE ENTITIES IN 3D
       </div>
     </div>
   </div>
 
-  <!-- ==================== GM / ARBITRATOR MODAL ==================== -->
-  <div id="gm-modal" class="hidden fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm">
-    <div class="hud-panel rounded-2xl w-full max-w-lg max-h-[90dvh] flex flex-col border-[#00f0ff]/60 overflow-hidden">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-[#33ff66]/30 bg-black/50">
-        <div class="font-display text-xs sm:text-sm text-[#00f0ff] tracking-wider">ARBITRATOR / GM CONSOLE</div>
+  <!-- ==================== GM / ARBITRATOR CONTROL MODAL ==================== -->
+  <div id="gm-modal" class="hidden fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm">
+    <div class="hud-panel rounded-2xl w-full max-w-lg max-h-[90dvh] flex flex-col border-[#00f0ff]/70 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-[#00f0ff]/30 bg-black/60">
+        <div>
+          <div class="font-display text-xs sm:text-sm text-[#00f0ff] tracking-wider">ARBITRATOR / GM PANEL</div>
+          <div class="text-[10px] text-[#33ff66]/75">3D MODEL LOADER &amp; SECTOR ENTITIES</div>
+        </div>
         <button id="btn-close-gm" class="btn-auspex px-3 py-1 rounded-lg text-xs text-[#ff2244] border-[#ff2244]/60">
           CLOSE
         </button>
       </div>
 
-      <!-- Body -->
-      <div class="p-4 overflow-y-auto custom-scroll space-y-5 flex-1 text-xs">
+      <div class="p-4 overflow-y-auto custom-scroll space-y-4 flex-1 text-xs">
 
-        <!-- 3D Model (.glb) Loader Section -->
-        <div class="bg-black/45 border border-[#00f0ff]/40 rounded-xl p-3.5 space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
-            <div class="font-display text-xs text-[#00f0ff] tracking-wider">3D GHOST MODEL (.GLB / .GLTF)</div>
-            <span id="gm-glb-status" class="text-[10px] px-2 py-0.5 rounded bg-black/70 border border-[#33ff66]/40 text-[#33ff66]">
-              CHECKING...
-            </span>
+        <!-- 3D Model Loader -->
+        <div class="bg-black/45 border border-[#ffb000]/40 rounded-xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-display text-xs text-[#ffb000] tracking-wider">3D GHOST MODEL (.GLB)</span>
+            <span id="gm-glb-status" class="text-[10px] text-[#00f0ff]">CHECKING...</span>
           </div>
-          <p id="gm-glb-detail" class="text-[11px] text-[#33ff66]/75">
-            Supports Draco-compressed &amp; rigged <code>.glb</code> files. Auto-loads <code>./spirit.glb</code> by default.
-          </p>
-          <div class="flex gap-2">
-            <input id="gm-glb-url" type="url" placeholder="./spirit.glb or https://.../spirit.glb" class="flex-1 bg-black/70 border border-[#00f0ff]/40 rounded-lg px-2.5 py-2 text-[11px] text-[#00f0ff] focus:outline-none focus:border-[#00f0ff]" />
-            <button id="btn-load-glb-url" type="button" class="btn-auspex px-3 py-2 rounded-lg text-[11px] border-[#00f0ff]/70 text-[#00f0ff] shrink-0">
+          <div id="gm-glb-detail" class="text-[10px] text-[#33ff66]/75 break-words"></div>
+
+          <div class="flex gap-1.5">
+            <input id="gm-glb-url" type="text" placeholder="https://.../spirit.glb or ./spirit.glb" class="flex-1 bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+            <button id="btn-load-glb-url" type="button" class="btn-auspex px-3 py-1.5 rounded-lg text-[10px] text-[#00f0ff] border-[#00f0ff]/60 shrink-0">
               LOAD URL
             </button>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <label class="btn-auspex flex-1 py-2 px-3 rounded-lg text-[11px] text-center border-[#00f0ff]/70 text-[#00f0ff] cursor-pointer">
-              CHOOSE .GLB FILE
+
+          <div class="flex gap-2">
+            <label class="btn-auspex flex-1 py-2 rounded-lg text-center text-[11px] text-[#ffb000] border-[#ffb000]/60 cursor-pointer">
+              PICK LOCAL .GLB
               <input id="gm-glb-input" type="file" accept=".glb,.gltf" class="hidden" />
             </label>
-            <button id="btn-clear-glb" type="button" class="btn-auspex px-3 py-2 rounded-lg text-[11px] border-[#ffb000]/60 text-[#ffb000]">
-              USE 2D ICON
+            <button id="btn-clear-glb" type="button" class="btn-auspex px-3 py-2 rounded-lg text-[11px] text-[#ff2244] border-[#ff2244]/60">
+              USE 2D
             </button>
           </div>
         </div>
 
-        <!-- Add New Ghost Form -->
+        <!-- Deploy New Entity -->
         <form id="gm-add-form" class="bg-black/45 border border-[#33ff66]/35 rounded-xl p-3.5 space-y-2.5">
-          <div class="font-display text-xs text-[#33ff66] tracking-wider">DEPLOY NEW ANOMALY</div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input id="gm-name" type="text" required placeholder="Entity Name (e.g. Sump Wraith)" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-xs text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
-            <input id="gm-class" type="text" placeholder="Threat Class (e.g. Class-IV)" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-xs text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+          <div class="font-display text-xs text-[#33ff66] tracking-wider">DEPLOY SECTOR ENTITY</div>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="gm-name" type="text" required placeholder="Entity Name" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+            <input id="gm-class" type="text" placeholder="Class-III Phantasm" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
           </div>
           <div class="grid grid-cols-3 gap-2">
-            <input id="gm-az" type="number" min="0" max="359" placeholder="Azimuth °" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-xs text-[#33ff66]" />
-            <input id="gm-pitch" type="number" min="-45" max="45" placeholder="Pitch °" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-xs text-[#33ff66]" />
-            <input id="gm-dist" type="number" step="0.1" min="1.2" max="8" placeholder="Dist (m)" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-xs text-[#33ff66]" />
+            <input id="gm-az" type="number" placeholder="Azimuth °" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+            <input id="gm-pitch" type="number" placeholder="Pitch (0)" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+            <input id="gm-dist" type="number" step="0.1" placeholder="Dist (2.6m)" class="bg-black/70 border border-[#33ff66]/40 rounded-lg px-2 py-1.5 text-[11px] text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
           </div>
           <button type="submit" class="btn-auspex w-full py-2 rounded-lg font-display text-[11px] text-[#33ff66]">
-            + ANCHOR ENTITY IN SECTOR
+            + SPAWN FLOOR-ANCHORED ENTITY
           </button>
         </form>
 
         <!-- Active Entities List -->
-        <div class="space-y-2">
+        <div class="bg-black/45 border border-[#33ff66]/35 rounded-xl p-3.5 space-y-2">
           <div class="flex items-center justify-between">
-            <div class="font-display text-xs text-[#ffb000] tracking-wider">ACTIVE SECTOR ENTITIES</div>
-            <button id="btn-reset-defaults" type="button" class="text-[10px] underline text-[#ffb000]">Reset Defaults</button>
+            <span class="font-display text-xs text-[#33ff66] tracking-wider">SECTOR ENTITIES</span>
+            <button id="btn-reset-defaults" type="button" class="btn-auspex px-2.5 py-1 rounded-lg text-[10px] text-[#ffb000] border-[#ffb000]/60">
+              RESET 5 DEFAULTS
+            </button>
           </div>
-          <div id="gm-ghost-list" class="space-y-2"></div>
+          <div id="gm-ghost-list" class="space-y-1.5"></div>
         </div>
 
         <!-- Campaign JSON Import / Export -->
@@ -390,22 +401,143 @@
           </div>
         </div>
 
+        <!-- Arbitrator-Only Secret Corruption Ledger -->
+        <div class="bg-[#180308]/80 border border-[#ff2244]/45 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="font-display text-xs text-[#ff2244] tracking-wider">ARBITRATOR EYES ONLY // SECRET PACTS</div>
+            <button id="btn-toggle-ledger" type="button" class="btn-sinister px-2.5 py-1 rounded-lg text-[10px] text-[#ff8899]">
+              REVEAL
+            </button>
+          </div>
+          <div id="gm-corruption-ledger" class="hidden space-y-1.5 text-[11px] text-[#ffccd5]"></div>
+        </div>
+
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== WARP TRANSLATION ANCHOR CODES MODAL ==================== -->
+  <div id="codes-modal" class="hidden fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm">
+    <div class="hud-panel rounded-2xl w-full max-w-md max-h-[88dvh] flex flex-col border-[#ffb000]/70 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-[#ffb000]/30 bg-black/60">
+        <div>
+          <div class="font-display text-xs sm:text-sm text-[#ffb000] tracking-wider">WARP TRANSLATION ANCHOR</div>
+          <div class="text-[10px] text-[#33ff66]/75">UNLOCKED 5-DIGIT DEVICE CIPHERS</div>
+        </div>
+        <button id="btn-close-codes" class="btn-auspex px-3 py-1 rounded-lg text-xs text-[#ff2244] border-[#ff2244]/60">
+          CLOSE
+        </button>
+      </div>
+      <div id="codes-vault-list" class="p-4 overflow-y-auto custom-scroll space-y-2.5 flex-1"></div>
+      <div class="px-4 py-3 border-t border-[#33ff66]/25 bg-black/50 text-[10px] text-[#33ff66]/75 text-center">
+        ENTER THESE 5-DIGIT CODES INTO THE WARP TRANSLATION ANCHORING DEVICE DURING YOUR TABLETOP SESSION.
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SINISTER BARGAIN / CORRUPTION MODAL ==================== -->
+  <div id="bargain-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/92 backdrop-blur-md">
+    <div class="sinister-panel rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 text-[#ffccd5]">
+
+      <!-- Stage 1: Initial Temptation -->
+      <div id="bargain-stage-1" class="space-y-4">
+        <div class="text-center space-y-1.5">
+          <div class="text-[10px] tracking-[0.3em] text-[#ff3355] uppercase">/// PSYCHIC INTRUSION DETECTED ///</div>
+          <h2 id="bargain-entity-title" class="font-display text-base sm:text-lg text-[#ff2244] tracking-widest">THE ENTITY WHISPERS...</h2>
+        </div>
+
+        <div class="bg-black/65 border border-[#ff2244]/40 rounded-xl p-3.5 text-xs sm:text-[13px] italic leading-relaxed text-[#ffe0e6]">
+          "Hold your hand, little hive-rat... Do not sever my anchor. Spare me, and I will still surrender the five digits you seek—and more. Wealth beyond the Guilders' vaults. Strength that bends ceramite. No one else need ever know what you traded in the dark..."
+        </div>
+
+        <div class="flex flex-col gap-2.5 pt-1">
+          <button id="btn-hear-bargain" class="btn-sinister w-full py-3 px-4 rounded-xl font-display text-xs sm:text-sm tracking-widest text-[#ffb000]">
+            HEAR THE BARGAIN
+          </button>
+          <button id="btn-finish-ghost" class="btn-auspex w-full py-3 px-4 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#00f0ff] border-[#00f0ff]/80">
+            FINISH IT OFF // SEVER TETHER
+          </button>
+        </div>
+      </div>
+
+      <!-- Stage 2: 3 Sinister Pact Choices (Filler Text for GM Customization) -->
+      <div id="bargain-stage-2" class="hidden space-y-3.5">
+        <div class="text-center space-y-1">
+          <div class="text-[10px] tracking-[0.28em] text-[#ffb000] uppercase">CHOOSE IN SECRET — NOBODY WILL KNOW</div>
+          <h2 class="font-display text-sm sm:text-base text-[#ff2244] tracking-wider">WHICH BOON DO YOU CLAIM?</h2>
+        </div>
+
+        <div id="bargain-options-container" class="space-y-2.5">
+          <button type="button" data-pact="1" class="btn-sinister w-full text-left p-3 rounded-xl space-y-1">
+            <div class="font-display text-xs text-[#ffb000] tracking-wider">I. PACT OF PHENOMENAL POWER</div>
+            <div class="text-[11px] text-[#ffccd5]/85 leading-snug">
+              [FILLER TEXT — Replace with custom Necromunda power/weapon/stat boon and hidden corruption cost.]
+            </div>
+          </button>
+
+          <button type="button" data-pact="2" class="btn-sinister w-full text-left p-3 rounded-xl space-y-1">
+            <div class="font-display text-xs text-[#ffb000] tracking-wider">II. PACT OF UNDERHIVE RICHES</div>
+            <div class="text-[11px] text-[#ffccd5]/85 leading-snug">
+              [FILLER TEXT — Replace with custom credits, archeotech, or rare trade stash offer.]
+            </div>
+          </button>
+
+          <button type="button" data-pact="3" class="btn-sinister w-full text-left p-3 rounded-xl space-y-1">
+            <div class="font-display text-xs text-[#ffb000] tracking-wider">III. PACT OF UNHOLY FAVOUR</div>
+            <div class="text-[11px] text-[#ffccd5]/85 leading-snug">
+              [FILLER TEXT — Replace with custom dark blessing, survival favour, or gang advantage.]
+            </div>
+          </button>
+        </div>
+
+        <button id="btn-reject-bargain" class="btn-auspex w-full py-2.5 px-3 rounded-xl font-display text-[11px] tracking-wider text-[#00f0ff] border-[#00f0ff]/60">
+          REJECT TEMPTATION &amp; FINISH IT OFF
+        </button>
+      </div>
+
+      <!-- Stage 3: Silent Pact Sealed Confirmation (No visible trace left after closing) -->
+      <div id="bargain-stage-3" class="hidden text-center space-y-3.5">
+        <div class="text-[10px] tracking-[0.3em] text-[#ff3355]">/// SEALED IN SILENCE ///</div>
+        <h2 class="font-display text-base text-[#ffb000] tracking-wider">THE BARGAIN IS STRUCK</h2>
+        <p class="text-xs italic text-[#ffe0e6]/90 leading-relaxed">
+          "It is done. Remember what you chose when the dice fall... To your companions, it will look as though you destroyed me. Take the cipher and walk away."
+        </p>
+        <div class="bg-black/70 border border-[#ffb000]/50 rounded-xl py-2.5 px-4">
+          <div class="text-[10px] text-[#33ff66]/75 tracking-widest">WARP TRANSLATION CIPHER</div>
+          <div id="bargain-sealed-code" class="font-display text-2xl tracking-[0.28em] text-[#ffb000] mt-1">00000</div>
+        </div>
+        <button id="btn-close-sealed" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#33ff66]">
+          RETURN TO AUSPEX (HIDE TRACE)
+        </button>
+      </div>
+
     </div>
   </div>
 
   <!-- ==================== APPLICATION LOGIC ==================== -->
   <script>
     /**
-     * NECROMUNDA AUSPEX AR SCANNER (3D GLB + DRACO + RIGGED MESH EDITION)
+     * NECROMUNDA AUSPEX AR SCANNER
+     * Floor-anchored 3D Walk-Around + 5 Warp Translation Anchor Codes + Sinister Secret Bargain
      */
 
     // ==================== 1. CONFIGURATION & DEFAULT ENTITIES ====================
-    const STORAGE_KEY = 'necromunda_auspex_ghosts_v3';
+    const STORAGE_KEY = 'necromunda_auspex_ghosts_v4';
     const GLB_URL_STORAGE_KEY = 'necromunda_auspex_glb_url_v2';
 
     // Auto-loads spirit.glb from the same folder (e.g. GitHub Pages)
     const DEFAULT_GLB_URL = './spirit.glb';
+
+    // Eye height above floor (y = 0) in meters; ghosts stand on the floor at ~50% human height (~1.05m)
+    const PLAYER_EYE_HEIGHT = 1.55;
+    const GHOST_TARGET_HEIGHT = 1.05;
+    const BARGAIN_TRIGGER_PCT = 85;
+
+    const PACT_LABELS = {
+      1: 'Pact I: Phenomenal Power',
+      2: 'Pact II: Underhive Riches',
+      3: 'Pact III: Unholy Favour'
+    };
 
     const DEFAULT_GHOSTS = [
       {
@@ -413,36 +545,90 @@
         name: 'Hollow Drifter Alpha',
         threatClass: 'Class-III Phantasm',
         azimuth: 15,
-        pitch: 2,
-        distance: 3.2,
+        pitch: 0,
+        distance: 2.6,
+        x: 0.67,
+        z: -2.51,
+        facingAngle: 0.4,
+        code: '74912',
+        codeUnlocked: false,
+        bargainOffered: false,
+        pactChoice: null,
         scanProgress: 0,
         status: 'immaterium',
-        breachTimer: 0,
         phaseOffset: 0.4
       },
       {
         id: 'gh-2',
         name: 'Sump-Wraith Echo',
         threatClass: 'Class-IV Shade',
-        azimuth: 128,
-        pitch: -4,
-        distance: 4.1,
+        azimuth: 88,
+        pitch: 0,
+        distance: 2.9,
+        x: 2.90,
+        z: -0.10,
+        facingAngle: -1.1,
+        code: '30584',
+        codeUnlocked: false,
+        bargainOffered: false,
+        pactChoice: null,
         scanProgress: 0,
         status: 'immaterium',
-        breachTimer: 0,
-        phaseOffset: 2.1
+        phaseOffset: 1.7
       },
       {
         id: 'gh-3',
         name: 'Ash-Waste Specter',
         threatClass: 'Class-II Flicker',
-        azimuth: 245,
-        pitch: 6,
-        distance: 2.8,
+        azimuth: 162,
+        pitch: 0,
+        distance: 2.5,
+        x: 0.77,
+        z: 2.38,
+        facingAngle: 2.6,
+        code: '88219',
+        codeUnlocked: false,
+        bargainOffered: false,
+        pactChoice: null,
         scanProgress: 0,
         status: 'immaterium',
-        breachTimer: 0,
-        phaseOffset: 4.3
+        phaseOffset: 3.1
+      },
+      {
+        id: 'gh-4',
+        name: 'Guilder-Shade Revenant',
+        threatClass: 'Class-IV Whisperer',
+        azimuth: 235,
+        pitch: 0,
+        distance: 3.0,
+        x: -2.46,
+        z: 1.72,
+        facingAngle: 1.2,
+        code: '41607',
+        codeUnlocked: false,
+        bargainOffered: false,
+        pactChoice: null,
+        scanProgress: 0,
+        status: 'immaterium',
+        phaseOffset: 4.5
+      },
+      {
+        id: 'gh-5',
+        name: 'Spire-Null Apparition',
+        threatClass: 'Class-V Maleficarum',
+        azimuth: 310,
+        pitch: 0,
+        distance: 2.7,
+        x: -2.07,
+        z: -1.74,
+        facingAngle: -0.5,
+        code: '95341',
+        codeUnlocked: false,
+        bargainOffered: false,
+        pactChoice: null,
+        scanProgress: 0,
+        status: 'immaterium',
+        phaseOffset: 5.4
       }
     ];
 
@@ -455,20 +641,41 @@
       hudHeading: document.getElementById('hud-heading'),
       hudPitch: document.getElementById('hud-pitch'),
       hudCount: document.getElementById('hud-count'),
+      hudCodesCount: document.getElementById('hud-codes-count'),
       statusDot: document.getElementById('status-dot'),
       targetName: document.getElementById('target-name'),
       targetMeta: document.getElementById('target-meta'),
       scanBar: document.getElementById('scan-bar'),
       btnBeam: document.getElementById('btn-beam'),
+      btnCodes: document.getElementById('btn-codes'),
       btnFilter: document.getElementById('btn-filter'),
       btnAudio: document.getElementById('btn-audio'),
       btnGm: document.getElementById('btn-gm'),
       btnRecenter: document.getElementById('btn-recenter'),
       btnScatter: document.getElementById('btn-scatter'),
-      breachBanner: document.getElementById('breach-banner'),
-      breachName: document.getElementById('breach-name'),
-      breachTimer: document.getElementById('breach-timer'),
-      btnBanish: document.getElementById('btn-banish'),
+      walkFwd: document.getElementById('walk-fwd'),
+      walkBack: document.getElementById('walk-back'),
+      walkLeft: document.getElementById('walk-left'),
+      walkRight: document.getElementById('walk-right'),
+      codeBanner: document.getElementById('code-banner'),
+      codeBannerEntity: document.getElementById('code-banner-entity'),
+      codeBannerDigits: document.getElementById('code-banner-digits'),
+      btnOpenVaultFromBanner: document.getElementById('btn-open-vault-from-banner'),
+      btnDismissCodeBanner: document.getElementById('btn-dismiss-code-banner'),
+      codesModal: document.getElementById('codes-modal'),
+      btnCloseCodes: document.getElementById('btn-close-codes'),
+      codesVaultList: document.getElementById('codes-vault-list'),
+      bargainModal: document.getElementById('bargain-modal'),
+      bargainStage1: document.getElementById('bargain-stage-1'),
+      bargainStage2: document.getElementById('bargain-stage-2'),
+      bargainStage3: document.getElementById('bargain-stage-3'),
+      bargainEntityTitle: document.getElementById('bargain-entity-title'),
+      bargainOptionsContainer: document.getElementById('bargain-options-container'),
+      bargainSealedCode: document.getElementById('bargain-sealed-code'),
+      btnHearBargain: document.getElementById('btn-hear-bargain'),
+      btnFinishGhost: document.getElementById('btn-finish-ghost'),
+      btnRejectBargain: document.getElementById('btn-reject-bargain'),
+      btnCloseSealed: document.getElementById('btn-close-sealed'),
       toastBanner: document.getElementById('toast-banner'),
       toastContent: document.getElementById('toast-content'),
       bootModal: document.getElementById('boot-modal'),
@@ -495,16 +702,22 @@
       btnResetDefaults: document.getElementById('btn-reset-defaults'),
       gmJsonBox: document.getElementById('gm-json-box'),
       btnCopyJson: document.getElementById('btn-copy-json'),
-      btnLoadJson: document.getElementById('btn-load-json')
+      btnLoadJson: document.getElementById('btn-load-json'),
+      btnToggleLedger: document.getElementById('btn-toggle-ledger'),
+      gmCorruptionLedger: document.getElementById('gm-corruption-ledger')
     };
 
     // ==================== 3. GLOBAL APPLICATION STATE ====================
     const state = {
       ghosts: [],
       heading: 0,
-      pitch: 0,
+      pitch: -8,
       targetHeading: 0,
-      targetPitch: 0,
+      targetPitch: -8,
+      playerX: 0,
+      playerZ: 0,
+      walkInput: { fwd: false, back: false, left: false, right: false },
+      lastStepTime: 0,
       gyroEnabled: false,
       gyroOffset: 0,
       isDragging: false,
@@ -512,7 +725,7 @@
       lastPointerY: 0,
       isScanning: false,
       lockedGhostId: null,
-      breachGhostId: null,
+      bargainGhostId: null,
       visorFilter: true,
       audioEnabled: true,
       cameraActive: false,
@@ -539,6 +752,45 @@
       return Math.max(min, Math.min(max, val));
     }
 
+    function generateFiveDigitCode() {
+      return String(Math.floor(10000 + Math.random() * 90000));
+    }
+
+    function ensureGhost3DCoords(g) {
+      if (typeof g.x !== 'number' || typeof g.z !== 'number') {
+        const azRad = ((g.azimuth || 0) * Math.PI) / 180;
+        const dist = g.distance || 2.8;
+        g.x = Number((Math.sin(azRad) * dist).toFixed(2));
+        g.z = Number((-Math.cos(azRad) * dist).toFixed(2));
+      }
+      if (typeof g.facingAngle !== 'number') {
+        g.facingAngle = Math.random() * Math.PI * 2;
+      }
+      if (!g.code || String(g.code).length !== 5) {
+        g.code = generateFiveDigitCode();
+      }
+      if (typeof g.codeUnlocked !== 'boolean') {
+        g.codeUnlocked = g.status === 'banished';
+      }
+      if (typeof g.bargainOffered !== 'boolean') {
+        g.bargainOffered = false;
+      }
+      if (typeof g.pactChoice === 'undefined') {
+        g.pactChoice = null;
+      }
+    }
+
+    function getRelativeGhostMetrics(ghost) {
+      const dx = ghost.x - state.playerX;
+      const dz = ghost.z - state.playerZ;
+      const horizDist = Math.max(0.35, Math.hypot(dx, dz));
+      const worldAz = normalizeAngle((Math.atan2(dx, -dz) * 180) / Math.PI);
+      const centerHeight = GHOST_TARGET_HEIGHT * 0.55;
+      const dy = centerHeight - PLAYER_EYE_HEIGHT;
+      const worldPitch = (Math.atan2(dy, horizDist) * 180) / Math.PI;
+      return { dx, dz, horizDist, worldAz, worldPitch };
+    }
+
     function showToast(msg) {
       if (!dom.toastBanner || !dom.toastContent) return;
       dom.toastContent.textContent = msg;
@@ -556,6 +808,8 @@
         console.warn('Could not persist ghosts:', e);
       }
       renderGmList();
+      renderCodesVault();
+      renderCorruptionLedger();
     }
 
     function loadGhosts() {
@@ -565,6 +819,7 @@
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
             state.ghosts = parsed;
+            state.ghosts.forEach(ensureGhost3DCoords);
             return;
           }
         }
@@ -572,6 +827,7 @@
         console.warn('Failed to read saved ghosts, using defaults.');
       }
       state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+      state.ghosts.forEach(ensureGhost3DCoords);
     }
 
     // ==================== 5. PROCEDURAL TONE.JS AUDIO ENGINE ====================
@@ -579,7 +835,7 @@
       initialized: false,
       pingSynth: null,
       beamSynth: null,
-      alarmSynth: null,
+      sinisterSynth: null,
       beamPlaying: false,
 
       async init() {
@@ -600,11 +856,11 @@
           }).toDestination();
           this.beamSynth.volume.value = -18;
 
-          this.alarmSynth = new Tone.Synth({
-            oscillator: { type: 'square' },
-            envelope: { attack: 0.01, decay: 0.25, sustain: 0.1, release: 0.2 }
+          this.sinisterSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.35, decay: 0.4, sustain: 0.4, release: 1.2 }
           }).toDestination();
-          this.alarmSynth.volume.value = -14;
+          this.sinisterSynth.volume.value = -15;
 
           this.initialized = true;
         } catch (err) {
@@ -632,13 +888,17 @@
         } catch (e) {}
       },
 
-      playBreach() {
-        if (!state.audioEnabled || !this.initialized || !this.alarmSynth) return;
+      playSinisterWhisper() {
+        if (!state.audioEnabled || !this.initialized || !this.sinisterSynth) return;
         try {
-          const now = Tone.now();
-          this.alarmSynth.triggerAttackRelease(440, '8n', now);
-          this.alarmSynth.triggerAttackRelease(620, '8n', now + 0.14);
-          this.alarmSynth.triggerAttackRelease(880, '4n', now + 0.28);
+          this.sinisterSynth.triggerAttackRelease(['D2', 'Ab2', 'Eb3'], '2n');
+        } catch (e) {}
+      },
+
+      playPactSealed() {
+        if (!state.audioEnabled || !this.initialized || !this.sinisterSynth) return;
+        try {
+          this.sinisterSynth.triggerAttackRelease(['C2', 'F#2', 'B2'], '1n');
         } catch (e) {}
       },
 
@@ -647,8 +907,8 @@
         try {
           const now = Tone.now();
           this.pingSynth.triggerAttackRelease(740, '16n', now);
-          this.pingSynth.triggerAttackRelease(520, '16n', now + 0.1);
-          this.pingSynth.triggerAttackRelease(330, '8n', now + 0.2);
+          this.pingSynth.triggerAttackRelease(980, '16n', now + 0.1);
+          this.pingSynth.triggerAttackRelease(1320, '8n', now + 0.2);
         } catch (e) {}
       }
     };
@@ -661,19 +921,22 @@
       loader: null,
       templateModel: null,
       modelName: '',
-      instances: new Map(), // ghostId -> { group, materials }
+      instances: new Map(), // ghostId -> { group, modelNode, ringMat, materials }
       hasModel: false,
 
       init() {
         if (typeof THREE === 'undefined') {
-          this._setStatus('THREE.JS MISSING', '2D FALLBACK ACTIVE', true);
+          this._setStatus('THREE.JS UNAVAILABLE', '2D ONLY', true);
           return;
         }
         try {
           this.scene = new THREE.Scene();
-          const aspect = window.innerWidth / Math.max(1, window.innerHeight);
-          this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 100);
-          this.camera.rotation.order = 'YXZ';
+          this.camera = new THREE.PerspectiveCamera(
+            state.fovVertical,
+            window.innerWidth / Math.max(1, window.innerHeight),
+            0.05,
+            100
+          );
 
           this.renderer = new THREE.WebGLRenderer({
             canvas: dom.threeCanvas,
@@ -682,36 +945,43 @@
           });
           this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
           this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-          this.renderer.outputEncoding = THREE.sRGBEncoding;
+          this.renderer.setClearColor(0x000000, 0);
+          if (typeof THREE.sRGBEncoding !== 'undefined') {
+            this.renderer.outputEncoding = THREE.sRGBEncoding;
+          }
 
-          // Eerie Underhive lighting (Hemisphere + Directional + Cyan Rim)
-          const hemi = new THREE.HemisphereLight(0xaaffdd, 0x0b2218, 1.5);
-          this.scene.add(hemi);
+          // Underhive lighting rig
+          const ambLight = new THREE.AmbientLight(0x88ffd5, 1.35);
+          this.scene.add(ambLight);
 
-          const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
-          dirLight.position.set(3, 6, 4);
-          this.scene.add(dirLight);
+          const hemiLight = new THREE.HemisphereLight(0xaaffdd, 0x091810, 0.85);
+          this.scene.add(hemiLight);
 
-          const rimLight = new THREE.PointLight(0x00f0ff, 1.6, 25);
-          rimLight.position.set(-4, 2, -3);
+          const keyLight = new THREE.DirectionalLight(0xffffff, 1.45);
+          keyLight.position.set(2.5, 5.5, 3.5);
+          this.scene.add(keyLight);
+
+          const rimLight = new THREE.DirectionalLight(0x00f0ff, 0.9);
+          rimLight.position.set(-3, 2, -3);
           this.scene.add(rimLight);
 
-          if (THREE.GLTFLoader) {
+          // Configure GLTFLoader with Draco & Meshopt support
+          if (typeof THREE.GLTFLoader === 'function') {
             this.loader = new THREE.GLTFLoader();
-            // Attach Draco decoder so Draco-compressed .glb models load seamlessly
-            if (THREE.DRACOLoader) {
-              const dracoLoader = new THREE.DRACOLoader();
-              dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-              this.loader.setDRACOLoader(dracoLoader);
+
+            if (typeof THREE.DRACOLoader === 'function') {
+              const draco = new THREE.DRACOLoader();
+              draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+              this.loader.setDRACOLoader(draco);
             }
-            // Attach MeshoptDecoder so Meshopt-compressed .glb models decode properly
-            if (window.MeshoptDecoder && typeof this.loader.setMeshoptDecoder === 'function') {
-              this.loader.setMeshoptDecoder(window.MeshoptDecoder);
+
+            if (typeof MeshoptDecoder !== 'undefined' && typeof this.loader.setMeshoptDecoder === 'function') {
+              this.loader.setMeshoptDecoder(MeshoptDecoder);
             }
           }
         } catch (err) {
-          console.warn('ThreeEngine init error:', err);
-          this._setStatus('WEBGL ERROR', '2D FALLBACK ACTIVE', true);
+          console.error('ThreeEngine init error:', err);
+          this._setStatus('3D ENGINE ERROR', '2D FALLBACK', true, String(err));
         }
       },
 
@@ -720,22 +990,21 @@
         const w = window.innerWidth;
         const h = Math.max(1, window.innerHeight);
         this.camera.aspect = w / h;
-        const vFovRad = 2 * Math.atan(Math.tan((state.fovHorizontal * Math.PI / 180) / 2) / this.camera.aspect);
-        this.camera.fov = clamp(vFovRad * 180 / Math.PI, 40, 85);
-        state.fovVertical = this.camera.fov;
+        this.camera.fov = state.fovVertical;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h, false);
       },
 
-      _setStatus(bootText, gmBadge, isError, detailText) {
+      _setStatus(bootText, gmBadge, isWarn, detailText) {
         if (dom.bootModelStatus) {
           dom.bootModelStatus.textContent = bootText;
-          dom.bootModelStatus.style.color = isError ? '#ffb000' : '#00f0ff';
+          dom.bootModelStatus.style.color = isWarn ? '#ffb000' : '#00f0ff';
         }
         if (dom.gmGlbStatus) {
-          dom.gmGlbStatus.textContent = gmBadge;
+          dom.gmGlbStatus.textContent = gmBadge || bootText;
+          dom.gmGlbStatus.style.color = isWarn ? '#ffb000' : '#00f0ff';
         }
-        if (detailText && dom.gmGlbDetail) {
+        if (dom.gmGlbDetail && typeof detailText === 'string') {
           dom.gmGlbDetail.textContent = detailText;
         }
       },
@@ -745,20 +1014,27 @@
         const rawRoot = gltf.scene;
         rawRoot.updateMatrixWorld(true);
 
-        // Auto-center and normalize scale to ~1.45m tall
+        // Auto-scale by vertical height so the ghost stands ~50% of a human (~1.05m tall)
+        // and anchor its base strictly at y = 0 (the floor)
         const box = new THREE.Box3().setFromObject(rawRoot);
         const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
         box.getSize(size);
-        box.getCenter(center);
 
-        const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-        const targetHeight = 1.45;
-        const scale = targetHeight / maxDim;
+        const heightDim = size.y > 0.01 ? size.y : Math.max(size.x, size.y, size.z, 0.001);
+        const scale = GHOST_TARGET_HEIGHT / heightDim;
 
         const normalizedWrapper = new THREE.Group();
-        rawRoot.position.sub(center);
         rawRoot.scale.multiplyScalar(scale);
+        rawRoot.updateMatrixWorld(true);
+
+        const scaledBox = new THREE.Box3().setFromObject(rawRoot);
+        const scaledCenter = new THREE.Vector3();
+        scaledBox.getCenter(scaledCenter);
+        rawRoot.position.set(
+          rawRoot.position.x - scaledCenter.x,
+          rawRoot.position.y - scaledBox.min.y,
+          rawRoot.position.z - scaledCenter.z
+        );
         normalizedWrapper.add(rawRoot);
 
         this.templateModel = normalizedWrapper;
@@ -770,7 +1046,7 @@
           'READY: ' + this.modelName.toUpperCase(),
           '3D: ' + this.modelName,
           false,
-          'Active 3D model: ' + this.modelName + ' (auto-scaled & synced to Auspex).'
+          'Active 3D model: ' + this.modelName + ' (floor-anchored at ~1.05m).'
         );
         if (dom.bootGlbLabel) {
           dom.bootGlbLabel.textContent = '3D MODEL ACTIVE: ' + this.modelName.toUpperCase();
@@ -778,78 +1054,56 @@
         showToast('3D MODEL LOADED: ' + this.modelName.toUpperCase());
       },
 
-      loadFromFile(file) {
-        if (!file || !this.loader) return;
-        this._setStatus('READING ' + file.name + '...', 'LOADING...', false);
-        showToast('LOADING 3D MODEL...');
-        file.arrayBuffer()
-          .then((buf) => this._parseGlbBuffer(buf, file.name, '', false))
-          .catch((err) => {
-            const msg = (err && err.message) ? err.message : 'Could not read file';
-            this._setStatus('LOAD FAILED (2D FALLBACK)', 'ERROR', true, 'Error: ' + msg);
-            showToast('ERROR: ' + msg);
-          });
-      },
-
       async _parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback) {
-        try {
-          if (!buffer || buffer.byteLength < 12) {
-            throw new Error('File too small (' + (buffer ? buffer.byteLength : 0) + ' bytes).');
+        if (!this.loader) return;
+        if (!buffer || buffer.byteLength < 20) {
+          const msg = 'File too small (' + (buffer ? buffer.byteLength : 0) + ' bytes)';
+          if (isPreviewFallback) {
+            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true, msg);
+          } else {
+            this._setStatus('FAILED: ' + msg, 'INVALID FILE', true, msg);
           }
+          return;
+        }
 
-          // Validate GLB binary header ("glTF" = 0x46546C67)
-          const header = new DataView(buffer, 0, 12);
-          const magic = header.getUint32(0, true);
-          const isGlbExt = /\.glb$/i.test(fileName || '');
+        // Verify glTF binary magic header ('glTF') for .glb files
+        const headerBytes = new Uint8Array(buffer, 0, 4);
+        const magic = String.fromCharCode(headerBytes[0], headerBytes[1], headerBytes[2], headerBytes[3]);
+        if (fileName.toLowerCase().endsWith('.glb') && magic !== 'glTF') {
+          const msg = 'Not a valid binary .glb (header: ' + magic + ')';
+          this._setStatus('FAILED: ' + msg, 'INVALID GLB', true, msg);
+          return;
+        }
 
-          if (magic === 0x46546C67) {
-            const declaredLen = header.getUint32(8, true);
-            if (declaredLen > buffer.byteLength) {
-              throw new Error(
-                'Truncated .glb (' + Math.round(buffer.byteLength / 1024) + 'KB of ' +
-                Math.round(declaredLen / 1024) + 'KB). Re-upload spirit.glb to GitHub.'
-              );
-            }
-          } else if (isGlbExt) {
-            const preview = new TextDecoder('utf-8').decode(new Uint8Array(buffer, 0, Math.min(48, buffer.byteLength))).replace(/\s+/g, ' ').trim();
-            throw new Error(
-              'Not a valid binary .glb (' + buffer.byteLength + ' bytes). Starts with: "' + preview + '"'
-            );
-          }
+        this._setStatus('PARSING ' + fileName.toUpperCase() + '...', 'PARSING...', false);
 
-          // Wait for WASM MeshoptDecoder to finish initializing if present
-          if (window.MeshoptDecoder && window.MeshoptDecoder.ready) {
-            await window.MeshoptDecoder.ready;
-          }
-
-          this._setStatus('PARSING ' + fileName + '...', 'PARSING...', false);
-
+        return new Promise((resolve) => {
           this.loader.parse(
             buffer,
             basePath || '',
             (gltf) => {
               this._applyGltf(gltf, fileName);
+              resolve(true);
             },
             (err) => {
-              console.error('GLB parse error:', err);
-              const errMsg = (err && err.message) ? err.message : 'Unsupported .glb format';
-              if (isPreviewFallback) {
-                this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
-              } else {
-                this._setStatus('FAILED: ' + errMsg, 'PARSE ERROR', true, 'Failed to parse ' + fileName + ': ' + errMsg);
-                showToast('3D PARSE FAILED');
-              }
+              const errMsg = (err && err.message) ? err.message : String(err || 'Parse error');
+              console.warn('GLB parse failed:', err);
+              this._setStatus('FAILED: ' + errMsg, 'PARSE ERROR', true, errMsg);
+              resolve(false);
             }
           );
+        });
+      },
+
+      async loadFromFile(file) {
+        if (!file) return;
+        try {
+          this._setStatus('READING ' + file.name + '...', 'READING...', false);
+          const buffer = await file.arrayBuffer();
+          await this._parseGlbBuffer(buffer, file.name, '', false);
         } catch (err) {
-          console.warn('GLB validation/parse error:', err);
-          const errMsg = (err && err.message) ? err.message : 'Invalid .glb file';
-          if (isPreviewFallback) {
-            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
-          } else {
-            this._setStatus('FAILED: ' + errMsg, 'LOAD ERROR', true, errMsg);
-            showToast('3D LOAD FAILED');
-          }
+          const msg = (err && err.message) ? err.message : 'Could not read file';
+          this._setStatus('FAILED: ' + msg, 'READ ERROR', true, msg);
         }
       },
 
@@ -878,7 +1132,7 @@
           console.warn('Could not fetch .glb URL:', cleanUrl, err);
           const errMsg = (err && err.message) ? err.message : 'File not found';
           if (isPreviewFallback) {
-            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true, 'Waiting for hosted ./spirit.glb or local upload.');
           } else {
             this._setStatus('FAILED: ' + errMsg, 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
             showToast('3D LOAD FAILED');
@@ -886,84 +1140,50 @@
         }
       },
 
-      async loadFromUrl(url, persist, isPreviewFallback) {
-        const cleanUrl = String(url || '').trim();
-        if (!cleanUrl || !this.scene || !this.loader) return;
-
-        const fileName = cleanUrl.split('/').pop().split('?')[0] || 'spirit.glb';
-        const basePath = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
-        this._setStatus('DOWNLOADING ' + fileName + '...', 'LOADING...', false);
-
-        try {
-          const res = await fetch(cleanUrl);
-          if (!res.ok) {
-            throw new Error('HTTP ' + res.status + ' fetching ' + fileName);
-          }
-          const buffer = await res.arrayBuffer();
-          if (dom.gmGlbUrl) dom.gmGlbUrl.value = cleanUrl;
-          if (persist) {
-            try {
-              localStorage.setItem(GLB_URL_STORAGE_KEY, cleanUrl);
-            } catch (e) {}
-          }
-          await this._parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback);
-        } catch (err) {
-          console.warn('Could not fetch .glb URL:', cleanUrl, err);
-          const errMsg = (err && err.message) ? err.message : 'File not found';
-          if (isPreviewFallback) {
-            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
-          } else {
-            this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
-            showToast('3D LOAD FAILED — CHECK GM PANEL');
-          }
-        }
-      },
-
       autoLoadModel() {
         let paramUrl = '';
-        let savedUrl = '';
         try {
           const params = new URLSearchParams(window.location.search);
-          paramUrl = (params.get('model') || '').trim();
+          paramUrl = params.get('model') || '';
         } catch (e) {}
+
+        let savedUrl = '';
         try {
-          savedUrl = (localStorage.getItem(GLB_URL_STORAGE_KEY) || '').trim();
+          savedUrl = localStorage.getItem(GLB_URL_STORAGE_KEY) || '';
         } catch (e) {}
 
-        const targetUrl = paramUrl || savedUrl || DEFAULT_GLB_URL;
-        if (!targetUrl) {
-          this._setStatus('2D SPECTRAL ICON ACTIVE', '2D FALLBACK', false);
-          return;
-        }
+        const isSandboxPreview =
+          window.location.protocol === 'blob:' ||
+          window.location.protocol === 'data:' ||
+          window.location.href === 'about:srcdoc';
 
-        // In blob/sandbox previews, relative './spirit.glb' isn't hosted alongside the HTML
-        const isBlobPreview = window.location.protocol === 'blob:' || window.location.protocol === 'about:';
-        const isRelativeDefault = !paramUrl && !savedUrl && targetUrl.startsWith('./');
-        if (isBlobPreview && isRelativeDefault) {
-          this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', false);
-          return;
+        if (paramUrl) {
+          this.loadFromUrl(paramUrl, true, false);
+        } else if (savedUrl && !(isSandboxPreview && savedUrl.startsWith('./'))) {
+          this.loadFromUrl(savedUrl, false, false);
+        } else if (DEFAULT_GLB_URL) {
+          if (dom.gmGlbUrl) dom.gmGlbUrl.value = DEFAULT_GLB_URL;
+          if (isSandboxPreview && DEFAULT_GLB_URL.startsWith('./')) {
+            this._setStatus('2D ICON MODE (READY FOR GITHUB spirit.glb)', '2D PREVIEW', false, 'Auto-loads ./spirit.glb when hosted on GitHub Pages.');
+          } else {
+            this.loadFromUrl(DEFAULT_GLB_URL, false, false);
+          }
+        } else {
+          this._setStatus('2D ICON MODE', '2D MODE', false);
         }
-
-        if (dom.gmGlbUrl) dom.gmGlbUrl.value = targetUrl;
-        this.loadFromUrl(targetUrl, Boolean(paramUrl), isBlobPreview);
       },
 
       clearModel() {
         this.hasModel = false;
         this.templateModel = null;
         this.modelName = '';
-        this.instances.forEach((entry) => {
-          if (this.scene && entry.group) this.scene.remove(entry.group);
-        });
-        this.instances.clear();
+        this.rebuildInstances();
         try {
           localStorage.removeItem(GLB_URL_STORAGE_KEY);
         } catch (e) {}
-        this._setStatus('2D SPECTRAL ICON ACTIVE', '2D FALLBACK', false);
-        if (dom.bootGlbLabel) {
-          dom.bootGlbLabel.textContent = 'LOAD DIFFERENT .GLB FILE (OPTIONAL)';
-        }
-        showToast('REVERTED TO 2D SPECTRAL ICON');
+        if (dom.bootGlbLabel) dom.bootGlbLabel.textContent = 'LOAD LOCAL .GLB GHOST MODEL';
+        this._setStatus('2D ICON MODE ACTIVE', '2D MODE', false, 'Switched to 2D Auspex vector icons.');
+        showToast('SWITCHED TO 2D ICON MODE');
       },
 
       rebuildInstances() {
@@ -976,7 +1196,9 @@
         if (!this.hasModel || !this.templateModel) return;
 
         state.ghosts.forEach((ghost) => {
-          // Use SkeletonUtils.clone if available so rigged/skinned .glb models render properly
+          ensureGhost3DCoords(ghost);
+          const wrapper = new THREE.Group();
+
           const clone = (THREE.SkeletonUtils && typeof THREE.SkeletonUtils.clone === 'function')
             ? THREE.SkeletonUtils.clone(this.templateModel)
             : this.templateModel.clone(true);
@@ -1004,8 +1226,23 @@
               }
             }
           });
-          this.scene.add(clone);
-          this.instances.set(ghost.id, { group: clone, materials: mats });
+
+          // Grounding floor-anchor ring (lies flat on y = 0.01)
+          const ringGeo = new THREE.RingGeometry(0.28, 0.36, 32);
+          const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x33ff66,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.55
+          });
+          const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+          ringMesh.rotation.x = -Math.PI / 2;
+          ringMesh.position.y = 0.01;
+
+          wrapper.add(ringMesh);
+          wrapper.add(clone);
+          this.scene.add(wrapper);
+          this.instances.set(ghost.id, { group: wrapper, modelNode: clone, ringMat, materials: mats });
         });
       },
 
@@ -1021,6 +1258,8 @@
           this.rebuildInstances();
         }
 
+        // Camera sits at player's real 3D room position & eye height so you can walk all the way around ghosts
+        this.camera.position.set(state.playerX, PLAYER_EYE_HEIGHT, state.playerZ);
         const yawRad = -(state.heading * Math.PI) / 180;
         const pitchRad = (state.pitch * Math.PI) / 180;
         this.camera.rotation.set(pitchRad, yawRad, 0, 'YXZ');
@@ -1028,7 +1267,7 @@
         state.ghosts.forEach((ghost) => {
           const entry = this.instances.get(ghost.id);
           if (!entry) return;
-          const { group, materials } = entry;
+          const { group, modelNode, ringMat, materials } = entry;
 
           if (ghost.status === 'banished') {
             group.visible = false;
@@ -1036,43 +1275,35 @@
           }
           group.visible = true;
 
-          const azRad = (ghost.azimuth * Math.PI) / 180;
-          const elRad = (ghost.pitch * Math.PI) / 180;
-          const dist = ghost.distance;
-
-          const bob = Math.sin(nowSec * 2.1 + (ghost.phaseOffset || 0)) * 0.14;
           const isBeingZapped = state.isScanning && state.lockedGhostId === ghost.id;
-          const jitterX = isBeingZapped ? (Math.random() - 0.5) * 0.12 : 0;
-          const jitterY = isBeingZapped ? (Math.random() - 0.5) * 0.12 : 0;
+          const jitterX = isBeingZapped ? (Math.random() - 0.5) * 0.08 : 0;
+          const jitterZ = isBeingZapped ? (Math.random() - 0.5) * 0.08 : 0;
 
-          const x = Math.sin(azRad) * Math.cos(elRad) * dist + jitterX;
-          const y = Math.sin(elRad) * dist + bob + jitterY;
-          const z = -Math.cos(azRad) * Math.cos(elRad) * dist;
+          // Anchored firmly to floor plane (y = 0) at true 3D world coordinates (ghost.x, 0, ghost.z)
+          group.position.set(ghost.x + jitterX, 0, ghost.z + jitterZ);
 
-          group.position.set(x, y, z);
-          group.lookAt(0, y, 0);
-          if (isBeingZapped) {
-            group.rotation.y += Math.sin(nowSec * 30) * 0.15;
+          // Fixed world orientation (NOT billboarding) so walking around reveals sides & back
+          const idleSway = Math.sin(nowSec * 0.9 + (ghost.phaseOffset || 0)) * 0.08;
+          modelNode.rotation.y = (ghost.facingAngle || 0) + idleSway + (isBeingZapped ? Math.sin(nowSec * 28) * 0.14 : 0);
+          modelNode.position.y = 0.02 + Math.abs(Math.sin(nowSec * 1.6 + (ghost.phaseOffset || 0))) * 0.04;
+
+          if (ringMat) {
+            ringMat.color.setHex(isBeingZapped ? 0x00f0ff : 0x33ff66);
+            ringMat.opacity = isBeingZapped ? 0.85 : 0.45 + Math.sin(nowSec * 2.5) * 0.12;
           }
 
           materials.forEach((mat) => {
-            if (ghost.status === 'materialized') {
-              mat.opacity = 0.96;
-              if (mat.emissive) {
-                mat.emissive.setHex(0xff1133);
-                mat.emissiveIntensity = 0.55 + Math.sin(nowSec * 8) * 0.2;
-              }
-            } else if (isBeingZapped) {
-              mat.opacity = 0.75 + Math.random() * 0.2;
+            if (isBeingZapped) {
+              mat.opacity = 0.78 + Math.random() * 0.18;
               if (mat.emissive) {
                 mat.emissive.setHex(0x00f0ff);
-                mat.emissiveIntensity = 1.1;
+                mat.emissiveIntensity = 1.05;
               }
             } else {
-              mat.opacity = 0.52 + Math.sin(nowSec * 2.5 + (ghost.phaseOffset || 0)) * 0.1;
+              mat.opacity = 0.62 + Math.sin(nowSec * 2.2 + (ghost.phaseOffset || 0)) * 0.08;
               if (mat.emissive) {
                 mat.emissive.setHex(0x22ff88);
-                mat.emissiveIntensity = 0.4;
+                mat.emissiveIntensity = 0.35;
               }
             }
           });
@@ -1099,68 +1330,60 @@
     }
 
     function projectGhostToScreen(ghost, w, h) {
-      const dAz = shortestAngleDiff(ghost.azimuth, state.heading);
-      const dPitch = ghost.pitch - state.pitch;
+      const rel = getRelativeGhostMetrics(ghost);
+      const dAz = shortestAngleDiff(rel.worldAz, state.heading);
+      const dPitch = rel.worldPitch - state.pitch;
 
       const halfH = state.fovHorizontal / 2;
       const halfV = state.fovVertical / 2;
 
-      const onScreen = Math.abs(dAz) <= halfH + 18 && Math.abs(dPitch) <= halfV + 18;
+      const onScreen = Math.abs(dAz) <= halfH + 22 && Math.abs(dPitch) <= halfV + 22;
       const sx = (w / 2) + (dAz / halfH) * (w / 2);
       const sy = (h / 2) - (dPitch / halfV) * (h / 2);
 
-      return { sx, sy, dAz, dPitch, onScreen };
+      return { sx, sy, dAz, dPitch, dist: rel.horizDist, onScreen };
     }
 
     function draw2DFallbackGhost(ctx, x, y, dist, ghost, nowSec, isZapped) {
-      const scale = clamp(120 / Math.max(1.2, dist), 28, 110);
-      const bob = Math.sin(nowSec * 2.4 + (ghost.phaseOffset || 0)) * 8;
-      const jx = isZapped ? (Math.random() - 0.5) * 10 : 0;
-      const jy = isZapped ? (Math.random() - 0.5) * 10 : 0;
-      const cx = x + jx;
-      const cy = y + bob + jy;
-
-      let primary = '#33ff88';
-      let alpha = 0.58 + Math.sin(nowSec * 3 + (ghost.phaseOffset || 0)) * 0.14;
-
-      if (ghost.status === 'materialized') {
-        primary = '#ff2244';
-        alpha = 0.92;
-      } else if (isZapped) {
-        primary = '#00f0ff';
-        alpha = 0.88;
-      }
+      const scale = clamp(1.35 / Math.max(0.8, dist), 0.45, 1.5);
+      const bob = Math.sin(nowSec * 2.4 + (ghost.phaseOffset || 0)) * 6 * scale;
+      const gx = x + (isZapped ? (Math.random() - 0.5) * 10 : 0);
+      const gy = y + bob;
 
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.globalAlpha = alpha;
+      ctx.translate(gx, gy);
+      ctx.scale(scale, scale);
 
-      const grad = ctx.createRadialGradient(0, 0, scale * 0.1, 0, 0, scale * 1.15);
-      grad.addColorStop(0, primary);
-      grad.addColorStop(0.55, primary + '44');
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(0, 0, scale * 1.15, 0, Math.PI * 2);
-      ctx.fill();
+      const primary = isZapped ? '#00f0ff' : '#33ff66';
+      ctx.strokeStyle = primary;
+      ctx.fillStyle = isZapped ? 'rgba(0, 240, 255, 0.24)' : 'rgba(51, 255, 102, 0.16)';
+      ctx.lineWidth = 2;
 
-      ctx.fillStyle = primary;
+      // Spectral shroud silhouette
       ctx.beginPath();
-      ctx.moveTo(0, -scale * 0.72);
-      ctx.bezierCurveTo(scale * 0.5, -scale * 0.65, scale * 0.55, -scale * 0.1, scale * 0.35, scale * 0.65);
-      ctx.lineTo(scale * 0.12, scale * 0.48);
-      ctx.lineTo(0, scale * 0.75);
-      ctx.lineTo(-scale * 0.14, scale * 0.48);
-      ctx.lineTo(-scale * 0.36, scale * 0.65);
-      ctx.bezierCurveTo(-scale * 0.55, -scale * 0.1, -scale * 0.5, -scale * 0.65, 0, -scale * 0.72);
+      ctx.arc(0, -24, 20, Math.PI, 0);
+      ctx.lineTo(24, 34);
+      ctx.lineTo(12, 24);
+      ctx.lineTo(0, 36);
+      ctx.lineTo(-12, 24);
+      ctx.lineTo(-24, 34);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
 
-      ctx.fillStyle = '#020905';
+      // Hollow glowing eyes
+      ctx.fillStyle = isZapped ? '#ffffff' : '#ffb000';
       ctx.beginPath();
-      ctx.arc(-scale * 0.14, -scale * 0.25, scale * 0.08, 0, Math.PI * 2);
-      ctx.arc(scale * 0.14, -scale * 0.25, scale * 0.08, 0, Math.PI * 2);
+      ctx.arc(-7, -24, 3.2, 0, Math.PI * 2);
+      ctx.arc(7, -24, 3.2, 0, Math.PI * 2);
       ctx.fill();
+
+      // Floor anchor ellipse
+      ctx.strokeStyle = primary;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.ellipse(0, 44, 26, 7, 0, 0, Math.PI * 2);
+      ctx.stroke();
 
       ctx.restore();
     }
@@ -1178,56 +1401,45 @@
       ctx.lineTo(targetX, targetY);
       ctx.stroke();
 
-      ctx.strokeStyle = '#d8ffff';
+      ctx.strokeStyle = '#e0ffff';
       ctx.lineWidth = 3;
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 18;
       ctx.beginPath();
       ctx.moveTo(startX, startY);
-      const segments = 12;
+      const segments = 9;
       for (let i = 1; i < segments; i++) {
         const t = i / segments;
-        const px = startX + (targetX - startX) * t + (Math.random() - 0.5) * 18;
-        const py = startY + (targetY - startY) * t + (Math.random() - 0.5) * 18;
-        ctx.lineTo(px, py);
+        const bx = startX + (targetX - startX) * t + (Math.random() - 0.5) * 16;
+        const by = startY + (targetY - startY) * t + (Math.random() - 0.5) * 16;
+        ctx.lineTo(bx, by);
       }
       ctx.lineTo(targetX, targetY);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.strokeStyle = '#00f0ff';
-      ctx.lineWidth = 2;
-      ctx.arc(targetX, targetY, 18 + Math.random() * 16, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
 
     function drawArOverlay(nowSec) {
       const w = window.innerWidth;
-      const h = Math.max(1, window.innerHeight);
+      const h = window.innerHeight;
       arCtx.clearRect(0, 0, w, h);
 
-      if (!state.cameraActive) {
-        arCtx.save();
-        arCtx.strokeStyle = 'rgba(51, 255, 102, 0.08)';
-        arCtx.lineWidth = 1;
-        const step = 48;
-        const offsetX = ((-state.heading * 4) % step + step) % step;
-        const offsetY = ((state.pitch * 4) % step + step) % step;
-        for (let x = offsetX; x < w; x += step) {
-          arCtx.beginPath();
-          arCtx.moveTo(x, 0);
-          arCtx.lineTo(x, h);
-          arCtx.stroke();
-        }
-        for (let y = offsetY; y < h; y += step) {
-          arCtx.beginPath();
-          arCtx.moveTo(0, y);
-          arCtx.lineTo(w, y);
-          arCtx.stroke();
-        }
-        arCtx.restore();
-      }
+      // Center Reticle
+      const cx = w / 2;
+      const cy = h / 2;
+      arCtx.save();
+      arCtx.strokeStyle = state.isScanning ? '#00f0ff' : 'rgba(51, 255, 102, 0.55)';
+      arCtx.lineWidth = 1.4;
+      arCtx.beginPath();
+      arCtx.arc(cx, cy, 22, 0, Math.PI * 2);
+      arCtx.moveTo(cx - 34, cy);
+      arCtx.lineTo(cx - 14, cy);
+      arCtx.moveTo(cx + 14, cy);
+      arCtx.lineTo(cx + 34, cy);
+      arCtx.moveTo(cx, cy - 34);
+      arCtx.lineTo(cx, cy - 14);
+      arCtx.moveTo(cx, cy + 14);
+      arCtx.lineTo(cx, cy + 34);
+      arCtx.stroke();
+      arCtx.restore();
 
       let closestGhost = null;
       let closestAngleDist = Infinity;
@@ -1238,7 +1450,7 @@
 
         const proj = projectGhostToScreen(ghost, w, h);
         const angularDist = Math.hypot(proj.dAz, proj.dPitch);
-        if (angularDist < 16 && angularDist < closestAngleDist) {
+        if (angularDist < 18 && angularDist < closestAngleDist) {
           closestAngleDist = angularDist;
           closestGhost = ghost;
           lockedCoords = { x: proj.sx, y: proj.sy };
@@ -1249,13 +1461,11 @@
         const isZapped = state.isScanning && state.lockedGhostId === ghost.id;
 
         if (!ThreeEngine.hasModel) {
-          draw2DFallbackGhost(arCtx, proj.sx, proj.sy, ghost.distance, ghost, nowSec, isZapped);
+          draw2DFallbackGhost(arCtx, proj.sx, proj.sy, proj.dist, ghost, nowSec, isZapped);
         }
 
-        const boxSize = clamp(88 / Math.max(1.2, ghost.distance), 28, 72);
-        const color = ghost.status === 'materialized'
-          ? '#ff2244'
-          : (isZapped ? '#00f0ff' : '#33ff66');
+        const boxSize = clamp(96 / Math.max(0.9, proj.dist), 32, 92);
+        const color = isZapped ? '#00f0ff' : '#33ff66';
 
         arCtx.save();
         arCtx.strokeStyle = color;
@@ -1283,37 +1493,16 @@
         arCtx.font = '11px "Share Tech Mono", monospace';
         arCtx.textAlign = 'center';
         arCtx.fillText(ghost.name.toUpperCase(), proj.sx, proj.sy - b - 8);
-        arCtx.fillText(ghost.distance.toFixed(1) + 'm', proj.sx, proj.sy + b + 14);
+        arCtx.fillText(proj.dist.toFixed(1) + 'm', proj.sx, proj.sy + b + 14);
         arCtx.restore();
       });
 
       state.lockedGhostId = closestGhost ? closestGhost.id : null;
 
-      const cx = w / 2;
-      const cy = h / 2;
-      const reticleColor = state.isScanning
-        ? '#00f0ff'
-        : (closestGhost ? '#ffb000' : 'rgba(51, 255, 102, 0.55)');
-
-      arCtx.save();
-      arCtx.strokeStyle = reticleColor;
-      arCtx.lineWidth = closestGhost ? 2 : 1.2;
-      arCtx.beginPath();
-      arCtx.arc(cx, cy, closestGhost ? 26 : 32, 0, Math.PI * 2);
-      arCtx.stroke();
-
-      arCtx.beginPath();
-      arCtx.moveTo(cx - 42, cy); arCtx.lineTo(cx - 18, cy);
-      arCtx.moveTo(cx + 18, cy); arCtx.lineTo(cx + 42, cy);
-      arCtx.moveTo(cx, cy - 42); arCtx.lineTo(cx, cy - 18);
-      arCtx.moveTo(cx, cy + 18); arCtx.lineTo(cx, cy + 42);
-      arCtx.stroke();
-      arCtx.restore();
-
-      if (state.isScanning) {
-        const beamX = lockedCoords ? lockedCoords.x : cx;
-        const beamY = lockedCoords ? lockedCoords.y : cy;
-        drawNullPhaseBeam(arCtx, w, h, beamX, beamY);
+      if (state.isScanning && dom.bargainModal.classList.contains('hidden')) {
+        const tx = lockedCoords ? lockedCoords.x : cx;
+        const ty = lockedCoords ? lockedCoords.y : cy;
+        drawNullPhaseBeam(arCtx, w, h, tx, ty);
       }
     }
 
@@ -1321,6 +1510,7 @@
       const size = dom.radarCanvas.width;
       const half = size / 2;
       const r = half - 4;
+
       radarCtx.clearRect(0, 0, size, size);
 
       radarCtx.fillStyle = 'rgba(2, 16, 8, 0.9)';
@@ -1328,55 +1518,171 @@
       radarCtx.arc(half, half, r, 0, Math.PI * 2);
       radarCtx.fill();
 
-      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.28)';
+      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.32)';
       radarCtx.lineWidth = 1;
-      [0.33, 0.66, 1].forEach((frac) => {
+      [0.33, 0.66, 1].forEach((f) => {
         radarCtx.beginPath();
-        radarCtx.arc(half, half, r * frac, 0, Math.PI * 2);
+        radarCtx.arc(half, half, r * f, 0, Math.PI * 2);
         radarCtx.stroke();
       });
 
-      radarCtx.fillStyle = 'rgba(51, 255, 102, 0.14)';
+      // Crosshairs
       radarCtx.beginPath();
-      radarCtx.moveTo(half, half);
-      const coneHalfRad = ((state.fovHorizontal / 2) * Math.PI) / 180;
-      radarCtx.arc(half, half, r, -Math.PI / 2 - coneHalfRad, -Math.PI / 2 + coneHalfRad);
-      radarCtx.closePath();
-      radarCtx.fill();
-
-      state.radarAngle = (state.radarAngle + dt * 2.4) % (Math.PI * 2);
-      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.75)';
-      radarCtx.lineWidth = 1.5;
-      radarCtx.beginPath();
-      radarCtx.moveTo(half, half);
-      radarCtx.lineTo(
-        half + Math.cos(state.radarAngle) * r,
-        half + Math.sin(state.radarAngle) * r
-      );
+      radarCtx.moveTo(half, 4);
+      radarCtx.lineTo(half, size - 4);
+      radarCtx.moveTo(4, half);
+      radarCtx.lineTo(size - 4, half);
       radarCtx.stroke();
 
+      // Sweep arm
+      state.radarAngle = (state.radarAngle + dt * 2.2) % (Math.PI * 2);
+      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.75)';
+      radarCtx.lineWidth = 1.6;
+      radarCtx.beginPath();
+      radarCtx.moveTo(half, half);
+      radarCtx.lineTo(half + Math.cos(state.radarAngle) * r, half + Math.sin(state.radarAngle) * r);
+      radarCtx.stroke();
+
+      // Ghost blips relative to player's 3D coordinates & facing heading
       state.ghosts.forEach((ghost) => {
         if (ghost.status === 'banished') return;
-        const relAz = shortestAngleDiff(ghost.azimuth, state.heading);
+        const rel = getRelativeGhostMetrics(ghost);
+        const relAz = shortestAngleDiff(rel.worldAz, state.heading);
         const rad = ((relAz - 90) * Math.PI) / 180;
-        const normDist = clamp(ghost.distance / 8.0, 0.15, 0.92);
+        const normDist = clamp(rel.horizDist / 6.0, 0.12, 0.92);
         const gx = half + Math.cos(rad) * r * normDist;
         const gy = half + Math.sin(rad) * r * normDist;
 
-        radarCtx.fillStyle = ghost.status === 'materialized'
-          ? '#ff2244'
-          : (state.lockedGhostId === ghost.id ? '#00f0ff' : '#ffb000');
+        radarCtx.fillStyle = state.lockedGhostId === ghost.id ? '#00f0ff' : '#ffb000';
         radarCtx.beginPath();
         radarCtx.arc(gx, gy, 3.6, 0, Math.PI * 2);
         radarCtx.fill();
       });
     }
 
-    // ==================== 8. GAMEPLAY & TELEMETRY LOOP ====================
+    // ==================== 8. GAMEPLAY, BARGAIN & TELEMETRY LOOP ====================
+    function openBargainModal(ghost) {
+      state.isScanning = false;
+      dom.btnBeam.classList.remove('btn-beam-active');
+      AudioEngine.setBeamActive(false);
+      AudioEngine.playSinisterWhisper();
+
+      state.bargainGhostId = ghost.id;
+      ghost.bargainOffered = true;
+      dom.bargainEntityTitle.textContent = ghost.name.toUpperCase() + ' WHISPERS...';
+      dom.bargainStage1.classList.remove('hidden');
+      dom.bargainStage2.classList.add('hidden');
+      dom.bargainStage3.classList.add('hidden');
+      dom.bargainModal.classList.remove('hidden');
+    }
+
+    function completeGhostResolution(ghost, pactChoiceNum) {
+      ghost.status = 'banished';
+      ghost.scanProgress = 100;
+      ghost.codeUnlocked = true;
+      ghost.pactChoice = pactChoiceNum || null;
+      saveGhosts();
+
+      if (pactChoiceNum) {
+        AudioEngine.playPactSealed();
+        dom.bargainSealedCode.textContent = ghost.code;
+        dom.bargainStage1.classList.add('hidden');
+        dom.bargainStage2.classList.add('hidden');
+        dom.bargainStage3.classList.remove('hidden');
+      } else {
+        dom.bargainModal.classList.add('hidden');
+        state.bargainGhostId = null;
+        AudioEngine.playBanish();
+        dom.codeBannerEntity.textContent = ghost.name.toUpperCase() + ' BANISHED';
+        dom.codeBannerDigits.textContent = ghost.code;
+        dom.codeBanner.classList.remove('hidden');
+        showToast('CIPHER UNLOCKED: ' + ghost.code);
+      }
+    }
+
+    function renderCodesVault() {
+      const unlockedCount = state.ghosts.filter((g) => g.codeUnlocked).length;
+      if (dom.hudCodesCount) {
+        dom.hudCodesCount.textContent = unlockedCount + '/' + state.ghosts.length;
+      }
+      if (!dom.codesVaultList) return;
+      dom.codesVaultList.innerHTML = '';
+
+      state.ghosts.forEach((g, idx) => {
+        const card = document.createElement('div');
+        // Unlocked cards look 100% identical whether banished or secretly bargained
+        card.className = 'flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 border ' +
+          (g.codeUnlocked
+            ? 'bg-[#061c12]/90 border-[#ffb000]/60'
+            : 'bg-black/55 border-[#33ff66]/25 opacity-70');
+
+        card.innerHTML =
+          '<div class="min-w-0">' +
+            '<div class="text-[10px] text-[#33ff66]/70">ANCHOR SLOT 0' + (idx + 1) + '</div>' +
+            '<div class="font-display text-xs text-[#33ff66] truncate">' + g.name.toUpperCase() + '</div>' +
+          '</div>' +
+          '<div class="text-right shrink-0">' +
+            '<div class="font-display text-lg tracking-[0.2em] ' + (g.codeUnlocked ? 'text-[#ffb000]' : 'text-[#33ff66]/35') + '">' +
+              (g.codeUnlocked ? g.code : '-----') +
+            '</div>' +
+            '<div class="text-[9px] tracking-wider ' + (g.codeUnlocked ? 'text-[#00f0ff]' : 'text-[#33ff66]/50') + '">' +
+              (g.codeUnlocked ? 'CIPHER ACQUIRED' : 'UNDISCOVERED') +
+            '</div>' +
+          '</div>';
+        dom.codesVaultList.appendChild(card);
+      });
+    }
+
+    function renderCorruptionLedger() {
+      if (!dom.gmCorruptionLedger) return;
+      dom.gmCorruptionLedger.innerHTML = '';
+      const pacts = state.ghosts.filter((g) => g.pactChoice);
+      if (pacts.length === 0) {
+        dom.gmCorruptionLedger.innerHTML = '<div class="text-[#33ff66]/70 italic">No secret bargains struck yet.</div>';
+        return;
+      }
+      pacts.forEach((g) => {
+        const row = document.createElement('div');
+        row.className = 'bg-black/60 border border-[#ff2244]/40 rounded-lg px-2.5 py-1.5';
+        row.innerHTML =
+          '<div class="font-bold text-[#ffb000]">' + g.name + ' (Code: ' + g.code + ')</div>' +
+          '<div class="text-[#ff8899]">SECRETLY ACCEPTED: ' + (PACT_LABELS[g.pactChoice] || ('Pact ' + g.pactChoice)) + '</div>';
+        dom.gmCorruptionLedger.appendChild(row);
+      });
+    }
+
+    function updatePlayerMovement(dt) {
+      const speed = 1.65; // meters/second
+      const yawRad = (state.heading * Math.PI) / 180;
+      const fwdX = Math.sin(yawRad);
+      const fwdZ = -Math.cos(yawRad);
+      const rightX = Math.cos(yawRad);
+      const rightZ = Math.sin(yawRad);
+
+      if (state.walkInput.fwd) {
+        state.playerX += fwdX * speed * dt;
+        state.playerZ += fwdZ * speed * dt;
+      }
+      if (state.walkInput.back) {
+        state.playerX -= fwdX * speed * dt;
+        state.playerZ -= fwdZ * speed * dt;
+      }
+      if (state.walkInput.right) {
+        state.playerX += rightX * speed * dt;
+        state.playerZ += rightZ * speed * dt;
+      }
+      if (state.walkInput.left) {
+        state.playerX -= rightX * speed * dt;
+        state.playerZ -= rightZ * speed * dt;
+      }
+    }
+
     function updateGameplay(dt, nowMs) {
       const hDiff = shortestAngleDiff(state.targetHeading, state.heading);
       state.heading = normalizeAngle(state.heading + hDiff * Math.min(1, dt * 10));
       state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 10);
+
+      updatePlayerMovement(dt);
 
       dom.hudHeading.textContent = String(Math.round(state.heading)).padStart(3, '0') + '°';
       const pRound = Math.round(state.pitch);
@@ -1386,67 +1692,43 @@
       dom.hudCount.textContent = activeGhosts.length + '/' + state.ghosts.length;
 
       const lockedGhost = state.ghosts.find((g) => g.id === state.lockedGhostId && g.status !== 'banished');
-      AudioEngine.setBeamActive(state.isScanning);
+      const modalOpen = !dom.bargainModal.classList.contains('hidden');
+      AudioEngine.setBeamActive(state.isScanning && !modalOpen);
 
-      if (lockedGhost) {
+      if (lockedGhost && !modalOpen) {
+        const rel = getRelativeGhostMetrics(lockedGhost);
         dom.targetName.textContent = lockedGhost.name.toUpperCase();
-        dom.targetMeta.textContent = lockedGhost.threatClass + ' // ' + lockedGhost.distance.toFixed(1) + 'm';
+        dom.targetMeta.textContent = lockedGhost.threatClass + ' // ' + rel.horizDist.toFixed(1) + 'm';
 
         if (state.isScanning && lockedGhost.status === 'immaterium') {
-          lockedGhost.scanProgress = clamp(lockedGhost.scanProgress + dt * 42, 0, 100);
-          if (lockedGhost.scanProgress >= 100) {
-            lockedGhost.status = 'materialized';
-            lockedGhost.breachTimer = 15.0;
-            state.breachGhostId = lockedGhost.id;
-            AudioEngine.playBreach();
-            showToast('MATERIAL PLANE BREACH: ' + lockedGhost.name.toUpperCase());
-            saveGhosts();
+          lockedGhost.scanProgress = clamp(lockedGhost.scanProgress + dt * 36, 0, 100);
+
+          if (lockedGhost.scanProgress >= BARGAIN_TRIGGER_PCT && !lockedGhost.bargainOffered) {
+            lockedGhost.scanProgress = BARGAIN_TRIGGER_PCT;
+            openBargainModal(lockedGhost);
+          } else if (lockedGhost.scanProgress >= 100) {
+            completeGhostResolution(lockedGhost, null);
           }
         } else if (lockedGhost.status === 'immaterium') {
-          lockedGhost.scanProgress = Math.max(0, lockedGhost.scanProgress - dt * 12);
+          lockedGhost.scanProgress = Math.max(0, lockedGhost.scanProgress - dt * 10);
         }
 
         dom.scanBar.style.width = Math.round(lockedGhost.scanProgress) + '%';
       } else {
-        dom.targetName.textContent = activeGhosts.length > 0 ? 'SCANNING SECTOR...' : 'SECTOR CLEAR';
+        dom.targetName.textContent = activeGhosts.length > 0 ? 'SCANNING SECTOR...' : 'ALL 5 CIPHERS ACQUIRED';
         dom.targetMeta.textContent = activeGhosts.length > 0
-          ? 'SWEEP TO ALIGN WITH WARP SIGNATURE'
-          : 'ALL ANOMALIES BANISHED // OPEN GM TO DEPLOY';
+          ? 'WALK OR SWEEP TO LOCATE FLOOR-ANCHORED ENTITIES'
+          : 'OPEN CODES VAULT FOR WARP TRANSLATION DEVICE';
         dom.scanBar.style.width = '0%';
       }
 
-      let activeBreach = null;
-      state.ghosts.forEach((g) => {
-        if (g.status === 'materialized') {
-          g.breachTimer = Math.max(0, g.breachTimer - dt);
-          if (g.breachTimer <= 0) {
-            g.status = 'immaterium';
-            g.scanProgress = 0;
-            showToast(g.name.toUpperCase() + ' PHASED BACK INTO THE WARP');
-          } else if (!activeBreach) {
-            activeBreach = g;
-          }
-        }
-      });
-
-      if (activeBreach) {
-        state.breachGhostId = activeBreach.id;
-        dom.breachBanner.classList.remove('hidden');
-        dom.breachName.textContent = activeBreach.name.toUpperCase() + ' SOLIDIFIED';
-        dom.breachTimer.textContent = activeBreach.breachTimer.toFixed(1) + 's';
-      } else {
-        state.breachGhostId = null;
-        dom.breachBanner.classList.add('hidden');
-      }
-
-      if (lockedGhost && nowMs - state.lastPingTime > 950 && !state.isScanning) {
+      if (lockedGhost && !modalOpen && nowMs - state.lastPingTime > 950 && !state.isScanning) {
         state.lastPingTime = nowMs;
-        AudioEngine.playPing(lockedGhost.status === 'materialized' ? 1120 : 840);
+        AudioEngine.playPing(840);
       }
     }
 
     function animate(nowMs) {
-      requestAnimationFrame(animate);
       const dt = Math.min(0.1, (nowMs - state.lastFrameTime) / 1000);
       state.lastFrameTime = nowMs;
       const nowSec = nowMs / 1000;
@@ -1455,44 +1737,54 @@
       ThreeEngine.render(nowSec);
       drawArOverlay(nowSec);
       drawRadar(dt);
+
+      requestAnimationFrame(animate);
     }
 
-    // ==================== 9. CAMERA & GYROSCOPE INITIALIZATION ====================
-    async function initCameraAndSensors(useCamera) {
+    // ==================== 9. CAMERA & DEVICE SENSORS ====================
+    async function initCameraAndSensors(useLiveCamera) {
       await AudioEngine.init();
       dom.bootModal.classList.add('hidden');
 
-      if (useCamera && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      if (useLiveCamera && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: 'environment' } },
             audio: false
           });
           dom.video.srcObject = stream;
-          dom.video.classList.remove('hidden');
           state.cameraActive = true;
-          showToast('LIVE AR CAMERA ACTIVE');
+          showToast('LIVE AR OPTICS ONLINE');
         } catch (err) {
           console.warn('Camera permission denied or unavailable:', err);
-          state.cameraActive = false;
-          showToast('CAMERA UNAVAILABLE — USING SIMULATED VISOR');
+          showToast('CAMERA UNAVAILABLE — SIMULATED VISOR ACTIVE');
         }
       } else {
-        state.cameraActive = false;
         showToast('SIMULATED AUSPEX VISOR ACTIVE');
       }
 
+      // Orientation Gyroscope
       try {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           const perm = await DeviceOrientationEvent.requestPermission();
-          if (perm === 'granted') {
-            enableGyroListener();
-          }
+          if (perm === 'granted') enableGyroListener();
         } else if (typeof window.DeviceOrientationEvent !== 'undefined') {
           enableGyroListener();
         }
       } catch (err) {
         console.warn('Gyro permission skipped:', err);
+      }
+
+      // Optional physical step-detection so walking forward with phone advances player in 3D room
+      try {
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          const mPerm = await DeviceMotionEvent.requestPermission();
+          if (mPerm === 'granted') enableStepMotionListener();
+        } else if (typeof window.DeviceMotionEvent !== 'undefined') {
+          enableStepMotionListener();
+        }
+      } catch (err) {
+        console.warn('Step motion skipped:', err);
       }
     }
 
@@ -1501,15 +1793,30 @@
       window.addEventListener('deviceorientation', (e) => {
         if (e.alpha === null || e.beta === null) return;
         state.gyroEnabled = true;
-        const compassHeading = (typeof e.webkitCompassHeading === 'number')
+        const compassHeading = typeof e.webkitCompassHeading === 'number'
           ? e.webkitCompassHeading
           : normalizeAngle(360 - e.alpha);
         state.targetHeading = normalizeAngle(compassHeading + state.gyroOffset);
-        state.targetPitch = clamp(e.beta - 75, -55, 55);
+        state.targetPitch = clamp(e.beta - 90, -65, 65);
       });
     }
 
-    // ==================== 10. GM CONSOLE FUNCTIONS ====================
+    function enableStepMotionListener() {
+      window.addEventListener('devicemotion', (e) => {
+        const acc = e.acceleration;
+        if (!acc) return;
+        const mag = Math.hypot(acc.x || 0, acc.y || 0, acc.z || 0);
+        const now = performance.now();
+        if (mag > 2.2 && now - state.lastStepTime > 420) {
+          state.lastStepTime = now;
+          const yawRad = (state.heading * Math.PI) / 180;
+          state.playerX += Math.sin(yawRad) * 0.45;
+          state.playerZ += -Math.cos(yawRad) * 0.45;
+        }
+      });
+    }
+
+    // ==================== 10. GM LIST RENDERING ====================
     function renderGmList() {
       if (!dom.gmGhostList) return;
       dom.gmGhostList.innerHTML = '';
@@ -1517,15 +1824,12 @@
       state.ghosts.forEach((g) => {
         const row = document.createElement('div');
         row.className = 'flex items-center justify-between gap-2 bg-black/55 border border-[#33ff66]/30 rounded-lg px-3 py-2';
-
-        const statusColor = g.status === 'banished'
-          ? 'text-gray-400'
-          : (g.status === 'materialized' ? 'text-[#ff2244]' : 'text-[#33ff66]');
+        const statusColor = g.status === 'banished' ? 'text-gray-400' : 'text-[#33ff66]';
 
         row.innerHTML =
           '<div class="min-w-0">' +
-            '<div class="font-bold truncate ' + statusColor + '">' + g.name + '</div>' +
-            '<div class="text-[10px] text-[#33ff66]/70">AZ ' + Math.round(g.azimuth) + '° | P ' + Math.round(g.pitch) + '° | ' + g.distance.toFixed(1) + 'm | ' + g.status.toUpperCase() + '</div>' +
+            '<div class="font-bold truncate ' + statusColor + '">' + g.name + ' <span class="text-[#ffb000]">[' + g.code + ']</span></div>' +
+            '<div class="text-[10px] text-[#33ff66]/70">X ' + g.x.toFixed(1) + 'm | Z ' + g.z.toFixed(1) + 'm | ' + (g.codeUnlocked ? 'UNLOCKED' : 'ACTIVE') + '</div>' +
           '</div>' +
           '<div class="flex items-center gap-1.5 shrink-0">' +
             '<button type="button" data-action="locate" data-id="' + g.id + '" class="btn-auspex px-2 py-1 rounded text-[10px] text-[#00f0ff] border-[#00f0ff]/60">AIM</button>' +
@@ -1545,37 +1849,73 @@
     function bindEvents() {
       window.addEventListener('resize', resizeCanvases);
 
+      // Boot Screen
       dom.btnStartAr.addEventListener('click', () => initCameraAndSensors(true));
       dom.btnStartSim.addEventListener('click', () => initCameraAndSensors(false));
 
-      const handleFilePick = (e) => {
+      const handleGlbFile = (e) => {
         const file = e.target.files && e.target.files[0];
         if (file) ThreeEngine.loadFromFile(file);
-        e.target.value = '';
       };
-      dom.bootGlbInput.addEventListener('change', handleFilePick);
-      dom.gmGlbInput.addEventListener('change', handleFilePick);
+      dom.bootGlbInput.addEventListener('change', handleGlbFile);
+      dom.gmGlbInput.addEventListener('change', handleGlbFile);
 
       dom.btnLoadGlbUrl.addEventListener('click', () => {
-        const url = dom.gmGlbUrl.value.trim();
-        if (!url) {
-          showToast('ENTER A VALID .GLB URL FIRST');
-          return;
-        }
-        ThreeEngine.loadFromUrl(url, true, false);
+        ThreeEngine.loadFromUrl(dom.gmGlbUrl.value, true, false);
       });
 
-      dom.btnClearGlb.addEventListener('click', () => ThreeEngine.clearModel());
+      dom.btnClearGlb.addEventListener('click', () => {
+        ThreeEngine.clearModel();
+      });
 
+      // Touch & Mouse Drag to Pan View
+      const onPointerDown = (x, y) => {
+        state.isDragging = true;
+        state.lastPointerX = x;
+        state.lastPointerY = y;
+      };
+      const onPointerMove = (x, y) => {
+        if (!state.isDragging) return;
+        const dx = x - state.lastPointerX;
+        const dy = y - state.lastPointerY;
+        state.lastPointerX = x;
+        state.lastPointerY = y;
+
+        if (state.gyroEnabled) {
+          state.gyroOffset = normalizeAngle(state.gyroOffset - dx * 0.25);
+        } else {
+          state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.28);
+          state.targetPitch = clamp(state.targetPitch + dy * 0.22, -65, 65);
+        }
+      };
+      const onPointerUp = () => {
+        state.isDragging = false;
+      };
+
+      dom.arCanvas.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onPointerUp);
+
+      dom.arCanvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (state.isDragging && e.touches.length === 1) {
+          onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+      window.addEventListener('touchend', onPointerUp);
+
+      // Top HUD Buttons
       dom.btnFilter.addEventListener('click', () => {
         state.visorFilter = !state.visorFilter;
-        dom.video.classList.toggle('filter-auspex', state.visorFilter);
-        dom.video.classList.toggle('filter-raw', !state.visorFilter);
-        showToast(state.visorFilter ? 'PHOSPHOR VISOR: ON' : 'PHOSPHOR VISOR: RAW');
+        dom.video.classList.toggle('visor-filtered', state.visorFilter);
+        showToast(state.visorFilter ? 'AUSPEX VISOR FILTER: ON' : 'AUSPEX VISOR FILTER: OFF');
       });
 
-      dom.btnAudio.addEventListener('click', async () => {
-        await AudioEngine.init();
+      dom.btnAudio.addEventListener('click', () => {
         state.audioEnabled = !state.audioEnabled;
         dom.btnAudio.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
         if (!state.audioEnabled) AudioEngine.setBeamActive(false);
@@ -1583,6 +1923,7 @@
 
       dom.btnGm.addEventListener('click', () => {
         renderGmList();
+        renderCorruptionLedger();
         dom.gmModal.classList.remove('hidden');
       });
 
@@ -1590,6 +1931,91 @@
         dom.gmModal.classList.add('hidden');
       });
 
+      // Codes Vault Modal & Banner
+      dom.btnCodes.addEventListener('click', () => {
+        renderCodesVault();
+        dom.codesModal.classList.remove('hidden');
+      });
+      dom.btnCloseCodes.addEventListener('click', () => {
+        dom.codesModal.classList.add('hidden');
+      });
+      dom.btnOpenVaultFromBanner.addEventListener('click', () => {
+        dom.codeBanner.classList.add('hidden');
+        renderCodesVault();
+        dom.codesModal.classList.remove('hidden');
+      });
+      dom.btnDismissCodeBanner.addEventListener('click', () => {
+        dom.codeBanner.classList.add('hidden');
+      });
+
+      // Sinister Bargain Modal Actions
+      dom.btnHearBargain.addEventListener('click', () => {
+        AudioEngine.playSinisterWhisper();
+        dom.bargainStage1.classList.add('hidden');
+        dom.bargainStage2.classList.remove('hidden');
+      });
+
+      const finishBargainGhost = () => {
+        const g = state.ghosts.find((item) => item.id === state.bargainGhostId);
+        if (g) completeGhostResolution(g, null);
+        else dom.bargainModal.classList.add('hidden');
+      };
+      dom.btnFinishGhost.addEventListener('click', finishBargainGhost);
+      dom.btnRejectBargain.addEventListener('click', finishBargainGhost);
+
+      dom.bargainOptionsContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-pact]');
+        if (!btn) return;
+        const pactNum = Number(btn.getAttribute('data-pact'));
+        const g = state.ghosts.find((item) => item.id === state.bargainGhostId);
+        if (g) completeGhostResolution(g, pactNum);
+      });
+
+      dom.btnCloseSealed.addEventListener('click', () => {
+        dom.bargainModal.classList.add('hidden');
+        state.bargainGhostId = null;
+      });
+
+      // Arbitrator Secret Corruption Ledger Toggle
+      dom.btnToggleLedger.addEventListener('click', () => {
+        const isHidden = dom.gmCorruptionLedger.classList.toggle('hidden');
+        dom.btnToggleLedger.textContent = isHidden ? 'REVEAL' : 'HIDE';
+        if (!isHidden) renderCorruptionLedger();
+      });
+
+      // Walk-Around Pad (Touch + Mouse + WASD/Arrow keys)
+      const bindWalkBtn = (el, key) => {
+        if (!el) return;
+        const on = (e) => { if (e) e.preventDefault(); state.walkInput[key] = true; };
+        const off = () => { state.walkInput[key] = false; };
+        el.addEventListener('mousedown', on);
+        el.addEventListener('touchstart', on, { passive: false });
+        window.addEventListener('mouseup', off);
+        window.addEventListener('touchend', off);
+        window.addEventListener('touchcancel', off);
+      };
+      bindWalkBtn(dom.walkFwd, 'fwd');
+      bindWalkBtn(dom.walkBack, 'back');
+      bindWalkBtn(dom.walkLeft, 'left');
+      bindWalkBtn(dom.walkRight, 'right');
+
+      window.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+        const k = e.key.toLowerCase();
+        if (k === 'w' || k === 'arrowup') state.walkInput.fwd = true;
+        if (k === 's' || k === 'arrowdown') state.walkInput.back = true;
+        if (k === 'a' || k === 'arrowleft') state.walkInput.left = true;
+        if (k === 'd' || k === 'arrowright') state.walkInput.right = true;
+      });
+      window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'w' || k === 'arrowup') state.walkInput.fwd = false;
+        if (k === 's' || k === 'arrowdown') state.walkInput.back = false;
+        if (k === 'a' || k === 'arrowleft') state.walkInput.left = false;
+        if (k === 'd' || k === 'arrowright') state.walkInput.right = false;
+      });
+
+      // Null-Phase Beam Hold Button
       const startBeam = (e) => {
         if (e) e.preventDefault();
         AudioEngine.init();
@@ -1607,91 +2033,58 @@
       window.addEventListener('touchend', stopBeam);
       window.addEventListener('touchcancel', stopBeam);
 
-      dom.btnBanish.addEventListener('click', () => {
-        const g = state.ghosts.find((item) => item.id === state.breachGhostId);
-        if (!g) return;
-        g.status = 'banished';
-        g.breachTimer = 0;
-        AudioEngine.playBanish();
-        showToast(g.name.toUpperCase() + ' BANISHED TO THE IMMATERIUM');
-        saveGhosts();
-      });
-
       dom.btnRecenter.addEventListener('click', () => {
         state.targetHeading = 0;
-        state.targetPitch = 0;
+        state.targetPitch = -8;
+        state.playerX = 0;
+        state.playerZ = 0;
         state.gyroOffset = 0;
-        showToast('AUSPEX ORIENTATION ZEROED');
+        showToast('POSITION & ORIENTATION ZEROED');
       });
 
       dom.btnScatter.addEventListener('click', () => {
         state.ghosts.forEach((g) => {
-          g.azimuth = Math.floor(Math.random() * 360);
-          g.pitch = Math.floor(Math.random() * 24) - 12;
-          g.distance = Number((2.0 + Math.random() * 4.0).toFixed(1));
+          const az = Math.floor(Math.random() * 360);
+          const dist = Number((1.8 + Math.random() * 2.2).toFixed(1));
+          const azRad = (az * Math.PI) / 180;
+          g.azimuth = az;
+          g.distance = dist;
+          g.x = Number((state.playerX + Math.sin(azRad) * dist).toFixed(2));
+          g.z = Number((state.playerZ - Math.cos(azRad) * dist).toFixed(2));
+          g.facingAngle = Math.random() * Math.PI * 2;
           g.status = 'immaterium';
           g.scanProgress = 0;
-          g.breachTimer = 0;
+          g.bargainOffered = false;
         });
         saveGhosts();
         ThreeEngine.rebuildInstances();
-        showToast('WARP ANOMALIES SCATTERED AROUND SECTOR');
+        showToast('ENTITIES RE-ANCHORED ON FLOOR AROUND YOU');
       });
 
-      dom.arCanvas.addEventListener('mousedown', (e) => {
-        state.isDragging = true;
-        state.lastPointerX = e.clientX;
-        state.lastPointerY = e.clientY;
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!state.isDragging) return;
-        const dx = e.clientX - state.lastPointerX;
-        const dy = e.clientY - state.lastPointerY;
-        state.lastPointerX = e.clientX;
-        state.lastPointerY = e.clientY;
-        state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.25);
-        state.targetPitch = clamp(state.targetPitch + dy * 0.2, -55, 55);
-      });
-      window.addEventListener('mouseup', () => {
-        state.isDragging = false;
-      });
-
-      dom.arCanvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          state.isDragging = true;
-          state.lastPointerX = e.touches[0].clientX;
-          state.lastPointerY = e.touches[0].clientY;
-        }
-      }, { passive: true });
-
-      dom.arCanvas.addEventListener('touchmove', (e) => {
-        if (!state.isDragging || e.touches.length !== 1) return;
-        const dx = e.touches[0].clientX - state.lastPointerX;
-        const dy = e.touches[0].clientY - state.lastPointerY;
-        state.lastPointerX = e.touches[0].clientX;
-        state.lastPointerY = e.touches[0].clientY;
-        state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.3);
-        state.targetPitch = clamp(state.targetPitch + dy * 0.22, -55, 55);
-      }, { passive: true });
-
-      dom.arCanvas.addEventListener('touchend', () => {
-        state.isDragging = false;
-      });
-
+      // GM Add Ghost Form
       dom.gmAddForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const name = dom.gmName.value.trim();
         if (!name) return;
+        const az = dom.gmAz.value !== '' ? normalizeAngle(Number(dom.gmAz.value)) : Math.round(state.heading);
+        const dist = dom.gmDist.value !== '' ? clamp(Number(dom.gmDist.value), 1.2, 8.0) : 2.6;
+        const azRad = (az * Math.PI) / 180;
         const newGhost = {
           id: 'gh-' + Date.now(),
           name: name,
           threatClass: dom.gmClass.value.trim() || 'Class-III Phantasm',
-          azimuth: dom.gmAz.value !== '' ? normalizeAngle(Number(dom.gmAz.value)) : Math.round(state.heading),
-          pitch: dom.gmPitch.value !== '' ? clamp(Number(dom.gmPitch.value), -45, 45) : Math.round(state.pitch),
-          distance: dom.gmDist.value !== '' ? clamp(Number(dom.gmDist.value), 1.2, 8.0) : 3.2,
+          azimuth: az,
+          pitch: 0,
+          distance: dist,
+          x: Number((state.playerX + Math.sin(azRad) * dist).toFixed(2)),
+          z: Number((state.playerZ - Math.cos(azRad) * dist).toFixed(2)),
+          facingAngle: Math.random() * Math.PI * 2,
+          code: generateFiveDigitCode(),
+          codeUnlocked: false,
+          bargainOffered: false,
+          pactChoice: null,
           scanProgress: 0,
           status: 'immaterium',
-          breachTimer: 0,
           phaseOffset: Math.random() * 6.28
         };
         state.ghosts.push(newGhost);
@@ -1701,6 +2094,7 @@
         showToast('DEPLOYED: ' + newGhost.name.toUpperCase());
       });
 
+      // GM Entity List Actions
       dom.gmGhostList.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-action]');
         if (!btn) return;
@@ -1710,14 +2104,17 @@
         if (idx === -1) return;
 
         if (action === 'locate') {
-          state.targetHeading = state.ghosts[idx].azimuth;
-          state.targetPitch = state.ghosts[idx].pitch;
+          const rel = getRelativeGhostMetrics(state.ghosts[idx]);
+          state.targetHeading = rel.worldAz;
+          state.targetPitch = clamp(rel.worldPitch, -45, 45);
           dom.gmModal.classList.add('hidden');
           showToast('LOCKING ONTO ' + state.ghosts[idx].name.toUpperCase());
         } else if (action === 'revive') {
           state.ghosts[idx].status = 'immaterium';
           state.ghosts[idx].scanProgress = 0;
-          state.ghosts[idx].breachTimer = 0;
+          state.ghosts[idx].bargainOffered = false;
+          state.ghosts[idx].codeUnlocked = false;
+          state.ghosts[idx].pactChoice = null;
           saveGhosts();
         } else if (action === 'delete') {
           state.ghosts.splice(idx, 1);
@@ -1728,18 +2125,19 @@
 
       dom.btnResetDefaults.addEventListener('click', () => {
         state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+        state.ghosts.forEach(ensureGhost3DCoords);
         saveGhosts();
         ThreeEngine.rebuildInstances();
-        showToast('DEFAULT SECTOR ENTITIES RESTORED');
+        showToast('DEFAULT 5 SECTOR ENTITIES RESTORED');
       });
 
       dom.btnCopyJson.addEventListener('click', () => {
+        dom.gmJsonBox.select();
         try {
-          dom.gmJsonBox.select();
           document.execCommand('copy');
           showToast('CAMPAIGN JSON COPIED');
         } catch (err) {
-          showToast('SELECT & COPY TEXT MANUALLY');
+          showToast('SELECT & COPY MANUALLY');
         }
       });
 
@@ -1748,6 +2146,7 @@
           const parsed = JSON.parse(dom.gmJsonBox.value);
           if (!Array.isArray(parsed)) throw new Error('Expected array');
           state.ghosts = parsed;
+          state.ghosts.forEach(ensureGhost3DCoords);
           saveGhosts();
           ThreeEngine.rebuildInstances();
           showToast('CAMPAIGN JSON LOADED');
@@ -1764,6 +2163,8 @@
       resizeCanvases();
       bindEvents();
       renderGmList();
+      renderCodesVault();
+      renderCorruptionLedger();
       ThreeEngine.autoLoadModel();
       requestAnimationFrame(animate);
     };
