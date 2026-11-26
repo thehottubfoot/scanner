@@ -193,8 +193,14 @@
         <div class="flex items-center gap-3 mt-1 text-[10px] sm:text-xs text-[#33ff66]/85">
           <span>HDG <strong id="hud-heading" class="text-[#00f0ff]">000°</strong></span>
           <span>PIT <strong id="hud-pitch" class="text-[#00f0ff]">-08°</strong></span>
-          <span>ENT <strong id="hud-count" class="text-[#ffb000]">5/5</strong></span>
+          <span>ENT <strong id="hud-count" class="text-[#ffb000]">1/5</strong></span>
         </div>
+      </div>
+
+      <!-- Center: 1-Minute Hunt Countdown Timer -->
+      <div id="hunt-timer-panel" class="hidden hud-panel rounded-xl px-3 py-1.5 text-center border-[#33ff66]/65 pointer-events-auto">
+        <div id="hunt-timer-label" class="text-[9px] tracking-[0.2em] text-[#33ff66]/80">SIGNAL WINDOW</div>
+        <div id="hunt-timer-value" class="font-display text-sm sm:text-base tracking-widest text-[#33ff66]">01:00</div>
       </div>
 
       <!-- Right: Controls -->
@@ -208,8 +214,8 @@
         <button id="btn-audio" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#ffb000] border-[#ffb000]/60" title="Toggle Audio">
           SFX: ON
         </button>
-        <button id="btn-gm" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#00f0ff] border-[#00f0ff]/60" title="Open GM Panel">
-          GM
+        <button id="btn-gm" class="btn-auspex rounded-xl px-2.5 py-2 text-[10px] sm:text-xs text-[#00f0ff] border-[#00f0ff]/60" title="Open DM / Arbitrator Panel">
+          DM
         </button>
       </div>
     </div>
@@ -273,7 +279,7 @@
             ZERO
           </button>
           <button id="btn-scatter" class="btn-auspex rounded-xl px-2 py-1.5 text-[10px] text-[#ffb000] border-[#ffb000]/60">
-            SCATTER
+            RE-PING
           </button>
         </div>
       </div>
@@ -287,7 +293,7 @@
         <div class="text-[10px] tracking-[0.28em] text-[#00f0ff]">ADEPTUS MECHANICUS // SECTOR UNDERHIVE</div>
         <h1 class="font-display text-lg sm:text-xl text-[#33ff66] tracking-wider">AUSPEX AR SCANNER</h1>
         <p class="text-xs text-[#33ff66]/75 leading-relaxed">
-          Locate floor-anchored Warp apparitions in 3D, extract all 5 Warp Translation Anchor ciphers, and resist what whispers in the dark.
+          Track 1 floor-anchored Warp wraith at a time within 2–10 ft on your level. You have 60 seconds to locate and lock your Null-Phase Beam before it escapes.
         </p>
       </div>
 
@@ -332,6 +338,17 @@
       </div>
 
       <div class="p-4 overflow-y-auto custom-scroll space-y-4 flex-1 text-xs">
+
+        <!-- DM Quick Controls: Respawn Active Spirit -->
+        <div class="bg-[#051a1f]/80 border border-[#00f0ff]/55 rounded-xl p-3.5 space-y-2">
+          <div class="font-display text-xs text-[#00f0ff] tracking-wider">DM HUNT CONTROLS</div>
+          <div class="text-[10px] text-[#33ff66]/80">
+            Spawns 1 active wraith 2–10 ft away on the same floor level and resets the 60s hunt timer.
+          </div>
+          <button id="btn-dm-respawn" type="button" class="btn-auspex w-full py-2.5 rounded-lg font-display text-xs text-[#ffb000] border-[#ffb000]/75">
+            RESPAWN WRAITH (2–10 FT // 60S)
+          </button>
+        </div>
 
         <!-- 3D Model Loader -->
         <div class="bg-black/45 border border-[#ffb000]/40 rounded-xl p-3.5 space-y-2.5">
@@ -507,10 +524,64 @@
           <div id="bargain-sealed-code" class="font-display text-2xl tracking-[0.28em] text-[#ffb000] mt-1">00000</div>
         </div>
         <button id="btn-close-sealed" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#33ff66]">
-          RETURN TO AUSPEX (HIDE TRACE)
+          EXIT SCANNER (HIDE TRACE)
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ==================== POST-HUNT / EXIT SCANNER MODAL ==================== -->
+  <div id="post-hunt-modal" class="hidden fixed inset-0 z-35 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+    <div class="hud-panel rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 text-center border-[#00f0ff]/75">
+      <div class="space-y-1">
+        <div class="text-[10px] tracking-[0.28em] text-[#00f0ff]">AUSPEX SCANNER // STANDBY</div>
+        <h2 id="post-hunt-title" class="font-display text-base sm:text-lg text-[#33ff66] tracking-wider">SIGNAL CLEARED</h2>
+        <p id="post-hunt-subtitle" class="text-xs text-[#33ff66]/80">
+          Scanner disengaged. Choose your next action.
+        </p>
+      </div>
+
+      <div id="post-hunt-code-box" class="bg-black/70 border border-[#ffb000]/60 rounded-xl py-3 px-4">
+        <div class="text-[10px] text-[#33ff66]/75 tracking-widest">WARP TRANSLATION CIPHER EXTRACTED</div>
+        <div id="post-hunt-code-digits" class="font-display text-3xl tracking-[0.28em] text-[#ffb000] mt-1">00000</div>
+      </div>
+
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-post-search-again" class="btn-auspex w-full py-3 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66]">
+          SEARCH AGAIN (NEXT SIGNAL)
+        </button>
+        <button id="btn-post-view-codes" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ffb000] border-[#ffb000]/70">
+          VIEW CODES VAULT
+        </button>
+        <button id="btn-post-exit-app" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ff2244] border-[#ff2244]/65">
+          EXIT APP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== WRAITH ESCAPED / CORRUPTING INFLUENCE MODAL ==================== -->
+  <div id="escape-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/94 backdrop-blur-md">
+    <div class="sinister-panel rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 text-center text-[#ffccd5]">
+      <div class="space-y-1.5">
+        <div class="text-[10px] tracking-[0.3em] text-[#ff3355] uppercase">/// SIGNAL LOST // 00:00 ///</div>
+        <h2 class="font-display text-base sm:text-lg text-[#ff2244] tracking-widest">THE WRAITH HAS ESCAPED</h2>
+        <div id="escape-entity-name" class="text-xs text-[#ffb000] tracking-wider">UNKNOWN ENTITY</div>
+      </div>
+
+      <div class="bg-black/70 border border-[#ff2244]/45 rounded-xl p-3.5 text-xs sm:text-[13px] italic leading-relaxed text-[#ffe0e6]">
+        A cold static floods your visor and burrows behind your eyes. You failed to anchor the spirit in time—its whispers linger in the room, and you feel yourself <strong class="text-[#ff3355] not-italic">falling under the influence of the spirit</strong>.
+      </div>
+
+      <div class="flex flex-col gap-2.5 pt-1">
+        <button id="btn-escape-search-again" class="btn-auspex w-full py-3 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#ffb000] border-[#ffb000]/75">
+          SEARCH AGAIN (RESPAWN SIGNAL)
+        </button>
+        <button id="btn-escape-exit-app" class="btn-auspex w-full py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ff2244] border-[#ff2244]/65">
+          EXIT APP
+        </button>
+      </div>
     </div>
   </div>
 
@@ -532,6 +603,12 @@
     const PLAYER_EYE_HEIGHT = 1.55;
     const GHOST_TARGET_HEIGHT = 1.05;
     const BARGAIN_TRIGGER_PCT = 85;
+
+    // 1-minute hunt window & 2–10 ft same-level basement spawn bounds (in meters)
+    const HUNT_DURATION_SEC = 60;
+    const MIN_SPAWN_METERS = 0.61; // ~2.0 ft
+    const MAX_SPAWN_METERS = 3.05; // ~10.0 ft
+    const METERS_TO_FEET = 3.28084;
 
     const PACT_LABELS = {
       1: 'Pact I: Phenomenal Power',
@@ -642,6 +719,9 @@
       hudPitch: document.getElementById('hud-pitch'),
       hudCount: document.getElementById('hud-count'),
       hudCodesCount: document.getElementById('hud-codes-count'),
+      huntTimerPanel: document.getElementById('hunt-timer-panel'),
+      huntTimerLabel: document.getElementById('hunt-timer-label'),
+      huntTimerValue: document.getElementById('hunt-timer-value'),
       statusDot: document.getElementById('status-dot'),
       targetName: document.getElementById('target-name'),
       targetMeta: document.getElementById('target-meta'),
@@ -676,6 +756,18 @@
       btnFinishGhost: document.getElementById('btn-finish-ghost'),
       btnRejectBargain: document.getElementById('btn-reject-bargain'),
       btnCloseSealed: document.getElementById('btn-close-sealed'),
+      postHuntModal: document.getElementById('post-hunt-modal'),
+      postHuntTitle: document.getElementById('post-hunt-title'),
+      postHuntSubtitle: document.getElementById('post-hunt-subtitle'),
+      postHuntCodeBox: document.getElementById('post-hunt-code-box'),
+      postHuntCodeDigits: document.getElementById('post-hunt-code-digits'),
+      btnPostSearchAgain: document.getElementById('btn-post-search-again'),
+      btnPostViewCodes: document.getElementById('btn-post-view-codes'),
+      btnPostExitApp: document.getElementById('btn-post-exit-app'),
+      escapeModal: document.getElementById('escape-modal'),
+      escapeEntityName: document.getElementById('escape-entity-name'),
+      btnEscapeSearchAgain: document.getElementById('btn-escape-search-again'),
+      btnEscapeExitApp: document.getElementById('btn-escape-exit-app'),
       toastBanner: document.getElementById('toast-banner'),
       toastContent: document.getElementById('toast-content'),
       bootModal: document.getElementById('boot-modal'),
@@ -686,6 +778,7 @@
       bootGlbLabel: document.getElementById('boot-glb-label'),
       gmModal: document.getElementById('gm-modal'),
       btnCloseGm: document.getElementById('btn-close-gm'),
+      btnDmRespawn: document.getElementById('btn-dm-respawn'),
       gmGlbStatus: document.getElementById('gm-glb-status'),
       gmGlbDetail: document.getElementById('gm-glb-detail'),
       gmGlbUrl: document.getElementById('gm-glb-url'),
@@ -710,6 +803,9 @@
     // ==================== 3. GLOBAL APPLICATION STATE ====================
     const state = {
       ghosts: [],
+      activeGhostId: null,
+      huntActive: false,
+      huntTimer: HUNT_DURATION_SEC,
       heading: 0,
       pitch: -8,
       targetHeading: 0,
@@ -754,6 +850,118 @@
 
     function generateFiveDigitCode() {
       return String(Math.floor(10000 + Math.random() * 90000));
+    }
+
+    function formatTimer(sec) {
+      const s = Math.max(0, Math.ceil(sec));
+      const mins = Math.floor(s / 60);
+      const rem = s % 60;
+      return String(mins).padStart(2, '0') + ':' + String(rem).padStart(2, '0');
+    }
+
+    function getActiveGhost() {
+      if (!state.activeGhostId) return null;
+      return state.ghosts.find((g) => g.id === state.activeGhostId && g.status !== 'banished') || null;
+    }
+
+    function placeGhostInRoomRange(ghost) {
+      const az = Math.floor(Math.random() * 360);
+      const distMeters = Number((MIN_SPAWN_METERS + Math.random() * (MAX_SPAWN_METERS - MIN_SPAWN_METERS)).toFixed(2));
+      const azRad = (az * Math.PI) / 180;
+      ghost.azimuth = az;
+      ghost.pitch = 0; // Always on the exact same floor level
+      ghost.distance = distMeters;
+      ghost.x = Number((state.playerX + Math.sin(azRad) * distMeters).toFixed(2));
+      ghost.z = Number((state.playerZ - Math.cos(azRad) * distMeters).toFixed(2));
+      ghost.facingAngle = Math.random() * Math.PI * 2;
+      ghost.status = 'immaterium';
+      ghost.scanProgress = 0;
+      ghost.bargainOffered = false;
+    }
+
+    function spawnSingleWraith(specificGhostId, forceRevive) {
+      let target = null;
+      if (specificGhostId) {
+        target = state.ghosts.find((g) => g.id === specificGhostId) || null;
+      }
+      if (!target) {
+        target = state.ghosts.find((g) => g.status !== 'banished') || null;
+      }
+      if (!target && forceRevive && state.ghosts.length > 0) {
+        target = state.ghosts[0];
+      }
+
+      if (!target) {
+        state.activeGhostId = null;
+        state.huntActive = false;
+        dom.huntTimerPanel.classList.add('hidden');
+        showToast('ALL 5 SECTOR CIPHERS ACQUIRED');
+        renderCodesVault();
+        dom.codesModal.classList.remove('hidden');
+        return false;
+      }
+
+      placeGhostInRoomRange(target);
+      state.activeGhostId = target.id;
+      state.huntTimer = HUNT_DURATION_SEC;
+      state.huntActive = true;
+      state.isScanning = false;
+      state.lockedGhostId = null;
+      dom.btnBeam.classList.remove('btn-beam-active');
+
+      dom.escapeModal.classList.add('hidden');
+      dom.postHuntModal.classList.add('hidden');
+      dom.codeBanner.classList.add('hidden');
+      dom.bargainModal.classList.add('hidden');
+      dom.huntTimerPanel.classList.remove('hidden');
+
+      saveGhosts();
+      ThreeEngine.rebuildInstances();
+
+      const distFt = (target.distance * METERS_TO_FEET).toFixed(1);
+      showToast('SIGNAL DETECTED ~' + distFt + ' FT // 60S WINDOW');
+      return true;
+    }
+
+    function triggerWraithEscape(ghost) {
+      state.huntActive = false;
+      state.isScanning = false;
+      state.lockedGhostId = null;
+      dom.btnBeam.classList.remove('btn-beam-active');
+      dom.huntTimerPanel.classList.add('hidden');
+      AudioEngine.setBeamActive(false);
+      AudioEngine.playSinisterWhisper();
+
+      dom.escapeEntityName.textContent = ghost ? ghost.name.toUpperCase() : 'WARP ENTITY';
+      dom.escapeModal.classList.remove('hidden');
+    }
+
+    function exitAppToStandby() {
+      state.huntActive = false;
+      state.isScanning = false;
+      state.lockedGhostId = null;
+      state.bargainGhostId = null;
+      dom.btnBeam.classList.remove('btn-beam-active');
+      dom.huntTimerPanel.classList.add('hidden');
+      AudioEngine.setBeamActive(false);
+
+      // Stop live camera stream if active
+      if (dom.video && dom.video.srcObject) {
+        try {
+          dom.video.srcObject.getTracks().forEach((t) => t.stop());
+        } catch (e) {}
+        dom.video.srcObject = null;
+      }
+      state.cameraActive = false;
+
+      dom.postHuntModal.classList.add('hidden');
+      dom.escapeModal.classList.add('hidden');
+      dom.bargainModal.classList.add('hidden');
+      dom.gmModal.classList.add('hidden');
+      dom.codesModal.classList.add('hidden');
+      dom.codeBanner.classList.add('hidden');
+      dom.bootModal.classList.remove('hidden');
+      showToast('AUSPEX POWERED DOWN // STANDBY');
     }
 
     function ensureGhost3DCoords(g) {
@@ -1269,27 +1477,33 @@
           if (!entry) return;
           const { group, modelNode, ringMat, materials } = entry;
 
-          if (ghost.status === 'banished') {
+          // Only render the single active wraith during an active hunt
+          if (!state.huntActive || ghost.id !== state.activeGhostId || ghost.status === 'banished') {
             group.visible = false;
             return;
           }
           group.visible = true;
 
           const isBeingZapped = state.isScanning && state.lockedGhostId === ghost.id;
+          const phase = ghost.phaseOffset || 0;
           const jitterX = isBeingZapped ? (Math.random() - 0.5) * 0.08 : 0;
           const jitterZ = isBeingZapped ? (Math.random() - 0.5) * 0.08 : 0;
 
           // Anchored firmly to floor plane (y = 0) at true 3D world coordinates (ghost.x, 0, ghost.z)
           group.position.set(ghost.x + jitterX, 0, ghost.z + jitterZ);
 
-          // Fixed world orientation (NOT billboarding) so walking around reveals sides & back
-          const idleSway = Math.sin(nowSec * 0.9 + (ghost.phaseOffset || 0)) * 0.08;
-          modelNode.rotation.y = (ghost.facingAngle || 0) + idleSway + (isBeingZapped ? Math.sin(nowSec * 28) * 0.14 : 0);
-          modelNode.position.y = 0.02 + Math.abs(Math.sin(nowSec * 1.6 + (ghost.phaseOffset || 0))) * 0.04;
+          // Animated pulsing scale & gentle spectral rotation/sway (NOT billboarding)
+          const pulse = 1.0 + Math.sin(nowSec * 3.1 + phase) * 0.055 + (isBeingZapped ? (Math.random() - 0.5) * 0.06 : 0);
+          modelNode.scale.set(pulse, pulse, pulse);
+
+          const rotDrift = Math.sin(nowSec * 0.95 + phase) * 0.45;
+          modelNode.rotation.y = (ghost.facingAngle || 0) + rotDrift + (isBeingZapped ? Math.sin(nowSec * 28) * 0.16 : 0);
+          modelNode.rotation.z = Math.sin(nowSec * 1.4 + phase) * 0.06;
+          modelNode.position.y = 0.02 + Math.abs(Math.sin(nowSec * 1.9 + phase)) * 0.05;
 
           if (ringMat) {
             ringMat.color.setHex(isBeingZapped ? 0x00f0ff : 0x33ff66);
-            ringMat.opacity = isBeingZapped ? 0.85 : 0.45 + Math.sin(nowSec * 2.5) * 0.12;
+            ringMat.opacity = isBeingZapped ? 0.85 : 0.42 + Math.sin(nowSec * 3.1 + phase) * 0.18;
           }
 
           materials.forEach((mat) => {
@@ -1300,10 +1514,11 @@
                 mat.emissiveIntensity = 1.05;
               }
             } else {
-              mat.opacity = 0.62 + Math.sin(nowSec * 2.2 + (ghost.phaseOffset || 0)) * 0.08;
+              const glowWave = 0.5 + 0.5 * Math.sin(nowSec * 3.1 + phase);
+              mat.opacity = 0.56 + glowWave * 0.22;
               if (mat.emissive) {
                 mat.emissive.setHex(0x22ff88);
-                mat.emissiveIntensity = 0.35;
+                mat.emissiveIntensity = 0.25 + glowWave * 0.45;
               }
             }
           });
@@ -1345,13 +1560,17 @@
     }
 
     function draw2DFallbackGhost(ctx, x, y, dist, ghost, nowSec, isZapped) {
-      const scale = clamp(1.35 / Math.max(0.8, dist), 0.45, 1.5);
-      const bob = Math.sin(nowSec * 2.4 + (ghost.phaseOffset || 0)) * 6 * scale;
+      const phase = ghost.phaseOffset || 0;
+      const pulse = 1.0 + Math.sin(nowSec * 3.1 + phase) * 0.07;
+      const scale = clamp(1.35 / Math.max(0.8, dist), 0.45, 1.5) * pulse;
+      const bob = Math.sin(nowSec * 2.4 + phase) * 6 * scale;
+      const tilt = Math.sin(nowSec * 1.3 + phase) * 0.08;
       const gx = x + (isZapped ? (Math.random() - 0.5) * 10 : 0);
       const gy = y + bob;
 
       ctx.save();
       ctx.translate(gx, gy);
+      ctx.rotate(tilt);
       ctx.scale(scale, scale);
 
       const primary = isZapped ? '#00f0ff' : '#33ff66';
@@ -1445,9 +1664,10 @@
       let closestAngleDist = Infinity;
       let lockedCoords = null;
 
-      state.ghosts.forEach((ghost) => {
-        if (ghost.status === 'banished') return;
+      const activeGhost = state.huntActive ? getActiveGhost() : null;
+      const visibleList = activeGhost ? [activeGhost] : [];
 
+      visibleList.forEach((ghost) => {
         const proj = projectGhostToScreen(ghost, w, h);
         const angularDist = Math.hypot(proj.dAz, proj.dPitch);
         if (angularDist < 18 && angularDist < closestAngleDist) {
@@ -1493,13 +1713,13 @@
         arCtx.font = '11px "Share Tech Mono", monospace';
         arCtx.textAlign = 'center';
         arCtx.fillText(ghost.name.toUpperCase(), proj.sx, proj.sy - b - 8);
-        arCtx.fillText(proj.dist.toFixed(1) + 'm', proj.sx, proj.sy + b + 14);
+        arCtx.fillText((proj.dist * METERS_TO_FEET).toFixed(1) + ' ft', proj.sx, proj.sy + b + 14);
         arCtx.restore();
       });
 
       state.lockedGhostId = closestGhost ? closestGhost.id : null;
 
-      if (state.isScanning && dom.bargainModal.classList.contains('hidden')) {
+      if (state.isScanning && state.huntActive && dom.bargainModal.classList.contains('hidden')) {
         const tx = lockedCoords ? lockedCoords.x : cx;
         const ty = lockedCoords ? lockedCoords.y : cy;
         drawNullPhaseBeam(arCtx, w, h, tx, ty);
@@ -1543,21 +1763,21 @@
       radarCtx.lineTo(half + Math.cos(state.radarAngle) * r, half + Math.sin(state.radarAngle) * r);
       radarCtx.stroke();
 
-      // Ghost blips relative to player's 3D coordinates & facing heading
-      state.ghosts.forEach((ghost) => {
-        if (ghost.status === 'banished') return;
-        const rel = getRelativeGhostMetrics(ghost);
+      // Ghost blip for the single active wraith relative to player's 3D coordinates & heading
+      const activeGhost = state.huntActive ? getActiveGhost() : null;
+      if (activeGhost) {
+        const rel = getRelativeGhostMetrics(activeGhost);
         const relAz = shortestAngleDiff(rel.worldAz, state.heading);
         const rad = ((relAz - 90) * Math.PI) / 180;
-        const normDist = clamp(rel.horizDist / 6.0, 0.12, 0.92);
+        const normDist = clamp(rel.horizDist / 4.0, 0.14, 0.92);
         const gx = half + Math.cos(rad) * r * normDist;
         const gy = half + Math.sin(rad) * r * normDist;
 
-        radarCtx.fillStyle = state.lockedGhostId === ghost.id ? '#00f0ff' : '#ffb000';
+        radarCtx.fillStyle = state.lockedGhostId === activeGhost.id ? '#00f0ff' : '#ffb000';
         radarCtx.beginPath();
-        radarCtx.arc(gx, gy, 3.6, 0, Math.PI * 2);
+        radarCtx.arc(gx, gy, 4.0, 0, Math.PI * 2);
         radarCtx.fill();
-      });
+      }
     }
 
     // ==================== 8. GAMEPLAY, BARGAIN & TELEMETRY LOOP ====================
@@ -1576,11 +1796,39 @@
       dom.bargainModal.classList.remove('hidden');
     }
 
+    function showPostHuntModal(ghost, hideCode) {
+      const remaining = state.ghosts.filter((g) => g.status !== 'banished').length;
+      dom.postHuntTitle.textContent = remaining > 0 ? 'SIGNAL CLEARED' : 'ALL 5 CIPHERS EXTRACTED';
+      dom.postHuntSubtitle.textContent = remaining > 0
+        ? (remaining + ' Warp signature' + (remaining === 1 ? '' : 's') + ' remaining in this sector.')
+        : 'All 5 Warp Translation Anchor codes are stored in your vault.';
+
+      if (ghost && !hideCode) {
+        dom.postHuntCodeBox.classList.remove('hidden');
+        dom.postHuntCodeDigits.textContent = ghost.code;
+      } else {
+        dom.postHuntCodeBox.classList.add('hidden');
+      }
+
+      dom.btnPostSearchAgain.textContent = remaining > 0
+        ? 'SEARCH AGAIN (NEXT SIGNAL)'
+        : 'SEARCH AGAIN (RESPAWN SIGNAL)';
+      dom.postHuntModal.classList.remove('hidden');
+    }
+
     function completeGhostResolution(ghost, pactChoiceNum) {
       ghost.status = 'banished';
       ghost.scanProgress = 100;
       ghost.codeUnlocked = true;
       ghost.pactChoice = pactChoiceNum || null;
+
+      state.huntActive = false;
+      state.isScanning = false;
+      state.lockedGhostId = null;
+      dom.btnBeam.classList.remove('btn-beam-active');
+      dom.huntTimerPanel.classList.add('hidden');
+      AudioEngine.setBeamActive(false);
+
       saveGhosts();
 
       if (pactChoiceNum) {
@@ -1593,10 +1841,7 @@
         dom.bargainModal.classList.add('hidden');
         state.bargainGhostId = null;
         AudioEngine.playBanish();
-        dom.codeBannerEntity.textContent = ghost.name.toUpperCase() + ' BANISHED';
-        dom.codeBannerDigits.textContent = ghost.code;
-        dom.codeBanner.classList.remove('hidden');
-        showToast('CIPHER UNLOCKED: ' + ghost.code);
+        showPostHuntModal(ghost, false);
       }
     }
 
@@ -1629,51 +1874,45 @@
               (g.codeUnlocked ? 'CIPHER ACQUIRED' : 'UNDISCOVERED') +
             '</div>' +
           '</div>';
+
         dom.codesVaultList.appendChild(card);
       });
     }
 
     function renderCorruptionLedger() {
       if (!dom.gmCorruptionLedger) return;
-      dom.gmCorruptionLedger.innerHTML = '';
-      const pacts = state.ghosts.filter((g) => g.pactChoice);
+      const pacts = state.ghosts.filter((g) => g.pactChoice !== null && g.pactChoice !== undefined);
       if (pacts.length === 0) {
-        dom.gmCorruptionLedger.innerHTML = '<div class="text-[#33ff66]/70 italic">No secret bargains struck yet.</div>';
+        dom.gmCorruptionLedger.innerHTML = '<div class="text-[#ff8899]/70 italic">No secret bargains recorded yet.</div>';
         return;
       }
-      pacts.forEach((g) => {
-        const row = document.createElement('div');
-        row.className = 'bg-black/60 border border-[#ff2244]/40 rounded-lg px-2.5 py-1.5';
-        row.innerHTML =
-          '<div class="font-bold text-[#ffb000]">' + g.name + ' (Code: ' + g.code + ')</div>' +
-          '<div class="text-[#ff8899]">SECRETLY ACCEPTED: ' + (PACT_LABELS[g.pactChoice] || ('Pact ' + g.pactChoice)) + '</div>';
-        dom.gmCorruptionLedger.appendChild(row);
-      });
+      dom.gmCorruptionLedger.innerHTML = pacts.map((g) =>
+        '<div class="bg-black/60 border border-[#ff2244]/40 rounded-lg px-2.5 py-1.5">' +
+          '<div class="font-bold text-[#ffb000]">' + g.name + ' [' + g.code + ']</div>' +
+          '<div class="text-[#ffccd5]">' + (PACT_LABELS[g.pactChoice] || ('Pact #' + g.pactChoice)) + '</div>' +
+        '</div>'
+      ).join('');
     }
 
     function updatePlayerMovement(dt) {
-      const speed = 1.65; // meters/second
+      const moveSpeed = 2.1; // meters per second
       const yawRad = (state.heading * Math.PI) / 180;
       const fwdX = Math.sin(yawRad);
       const fwdZ = -Math.cos(yawRad);
       const rightX = Math.cos(yawRad);
       const rightZ = Math.sin(yawRad);
 
-      if (state.walkInput.fwd) {
-        state.playerX += fwdX * speed * dt;
-        state.playerZ += fwdZ * speed * dt;
-      }
-      if (state.walkInput.back) {
-        state.playerX -= fwdX * speed * dt;
-        state.playerZ -= fwdZ * speed * dt;
-      }
-      if (state.walkInput.right) {
-        state.playerX += rightX * speed * dt;
-        state.playerZ += rightZ * speed * dt;
-      }
-      if (state.walkInput.left) {
-        state.playerX -= rightX * speed * dt;
-        state.playerZ -= rightZ * speed * dt;
+      let mx = 0;
+      let mz = 0;
+      if (state.walkInput.fwd) { mx += fwdX; mz += fwdZ; }
+      if (state.walkInput.back) { mx -= fwdX; mz -= fwdZ; }
+      if (state.walkInput.right) { mx += rightX; mz += rightZ; }
+      if (state.walkInput.left) { mx -= rightX; mz -= rightZ; }
+
+      const mag = Math.hypot(mx, mz);
+      if (mag > 0.001) {
+        state.playerX += (mx / mag) * moveSpeed * dt;
+        state.playerZ += (mz / mag) * moveSpeed * dt;
       }
     }
 
@@ -1688,17 +1927,57 @@
       const pRound = Math.round(state.pitch);
       dom.hudPitch.textContent = (pRound >= 0 ? '+' : '') + pRound + '°';
 
-      const activeGhosts = state.ghosts.filter((g) => g.status !== 'banished');
-      dom.hudCount.textContent = activeGhosts.length + '/' + state.ghosts.length;
+      const remainingCount = state.ghosts.filter((g) => g.status !== 'banished').length;
+      dom.hudCount.textContent = (state.huntActive ? '1' : '0') + '/' + remainingCount;
 
-      const lockedGhost = state.ghosts.find((g) => g.id === state.lockedGhostId && g.status !== 'banished');
-      const modalOpen = !dom.bargainModal.classList.contains('hidden');
-      AudioEngine.setBeamActive(state.isScanning && !modalOpen);
+      const modalOpen =
+        !dom.bootModal.classList.contains('hidden') ||
+        !dom.bargainModal.classList.contains('hidden') ||
+        !dom.gmModal.classList.contains('hidden') ||
+        !dom.codesModal.classList.contains('hidden') ||
+        !dom.postHuntModal.classList.contains('hidden') ||
+        !dom.escapeModal.classList.contains('hidden');
+
+      const activeGhost = state.huntActive ? getActiveGhost() : null;
+      const lockedGhost = (activeGhost && state.lockedGhostId === activeGhost.id) ? activeGhost : null;
+      const beamingTarget = Boolean(state.isScanning && lockedGhost && !modalOpen);
+
+      AudioEngine.setBeamActive(state.isScanning && state.huntActive && !modalOpen);
+
+      // 60-second hunt countdown — pauses while beaming the wraith or while a modal is open
+      if (state.huntActive && activeGhost) {
+        dom.huntTimerPanel.classList.remove('hidden');
+        if (!beamingTarget && !modalOpen) {
+          state.huntTimer = Math.max(0, state.huntTimer - dt);
+        }
+
+        dom.huntTimerValue.textContent = formatTimer(state.huntTimer);
+        if (beamingTarget) {
+          dom.huntTimerLabel.textContent = 'BEAM LOCKED // PAUSED';
+          dom.huntTimerValue.style.color = '#00f0ff';
+        } else if (state.huntTimer <= 10) {
+          dom.huntTimerLabel.textContent = 'CRITICAL // ESCAPING';
+          dom.huntTimerValue.style.color = '#ff2244';
+        } else if (state.huntTimer <= 20) {
+          dom.huntTimerLabel.textContent = 'SIGNAL FADING';
+          dom.huntTimerValue.style.color = '#ffb000';
+        } else {
+          dom.huntTimerLabel.textContent = 'SIGNAL WINDOW';
+          dom.huntTimerValue.style.color = '#33ff66';
+        }
+
+        if (state.huntTimer <= 0) {
+          triggerWraithEscape(activeGhost);
+          return;
+        }
+      } else {
+        dom.huntTimerPanel.classList.add('hidden');
+      }
 
       if (lockedGhost && !modalOpen) {
         const rel = getRelativeGhostMetrics(lockedGhost);
         dom.targetName.textContent = lockedGhost.name.toUpperCase();
-        dom.targetMeta.textContent = lockedGhost.threatClass + ' // ' + rel.horizDist.toFixed(1) + 'm';
+        dom.targetMeta.textContent = lockedGhost.threatClass + ' // ' + (rel.horizDist * METERS_TO_FEET).toFixed(1) + ' ft';
 
         if (state.isScanning && lockedGhost.status === 'immaterium') {
           lockedGhost.scanProgress = clamp(lockedGhost.scanProgress + dt * 36, 0, 100);
@@ -1715,10 +1994,10 @@
 
         dom.scanBar.style.width = Math.round(lockedGhost.scanProgress) + '%';
       } else {
-        dom.targetName.textContent = activeGhosts.length > 0 ? 'SCANNING SECTOR...' : 'ALL 5 CIPHERS ACQUIRED';
-        dom.targetMeta.textContent = activeGhosts.length > 0
-          ? 'WALK OR SWEEP TO LOCATE FLOOR-ANCHORED ENTITIES'
-          : 'OPEN CODES VAULT FOR WARP TRANSLATION DEVICE';
+        dom.targetName.textContent = activeGhost ? 'SCANNING ROOM...' : 'SCANNER STANDBY';
+        dom.targetMeta.textContent = activeGhost
+          ? 'SWEEP & WALK TO LOCATE WRAITH (2–10 FT)'
+          : 'ALL ACTIVE SIGNALS CLEARED';
         dom.scanBar.style.width = '0%';
       }
 
@@ -1786,6 +2065,9 @@
       } catch (err) {
         console.warn('Step motion skipped:', err);
       }
+
+      // Spawn 1 active wraith 2–10 ft away on the same floor level and start 60s hunt timer
+      spawnSingleWraith(null, true);
     }
 
     function enableGyroListener() {
@@ -1931,6 +2213,11 @@
         dom.gmModal.classList.add('hidden');
       });
 
+      dom.btnDmRespawn.addEventListener('click', () => {
+        dom.gmModal.classList.add('hidden');
+        spawnSingleWraith(state.activeGhostId, true);
+      });
+
       // Codes Vault Modal & Banner
       dom.btnCodes.addEventListener('click', () => {
         renderCodesVault();
@@ -1973,8 +2260,26 @@
 
       dom.btnCloseSealed.addEventListener('click', () => {
         dom.bargainModal.classList.add('hidden');
+        const g = state.ghosts.find((item) => item.id === state.bargainGhostId);
         state.bargainGhostId = null;
+        showPostHuntModal(g, false);
       });
+
+      // Post-Hunt Standby Modal Actions
+      dom.btnPostSearchAgain.addEventListener('click', () => {
+        spawnSingleWraith(null, true);
+      });
+      dom.btnPostViewCodes.addEventListener('click', () => {
+        renderCodesVault();
+        dom.codesModal.classList.remove('hidden');
+      });
+      dom.btnPostExitApp.addEventListener('click', exitAppToStandby);
+
+      // Escape / Falling Under Influence Modal Actions
+      dom.btnEscapeSearchAgain.addEventListener('click', () => {
+        spawnSingleWraith(state.activeGhostId, true);
+      });
+      dom.btnEscapeExitApp.addEventListener('click', exitAppToStandby);
 
       // Arbitrator Secret Corruption Ledger Toggle
       dom.btnToggleLedger.addEventListener('click', () => {
@@ -2043,22 +2348,7 @@
       });
 
       dom.btnScatter.addEventListener('click', () => {
-        state.ghosts.forEach((g) => {
-          const az = Math.floor(Math.random() * 360);
-          const dist = Number((1.8 + Math.random() * 2.2).toFixed(1));
-          const azRad = (az * Math.PI) / 180;
-          g.azimuth = az;
-          g.distance = dist;
-          g.x = Number((state.playerX + Math.sin(azRad) * dist).toFixed(2));
-          g.z = Number((state.playerZ - Math.cos(azRad) * dist).toFixed(2));
-          g.facingAngle = Math.random() * Math.PI * 2;
-          g.status = 'immaterium';
-          g.scanProgress = 0;
-          g.bargainOffered = false;
-        });
-        saveGhosts();
-        ThreeEngine.rebuildInstances();
-        showToast('ENTITIES RE-ANCHORED ON FLOOR AROUND YOU');
+        spawnSingleWraith(state.activeGhostId, true);
       });
 
       // GM Add Ghost Form
@@ -2067,7 +2357,7 @@
         const name = dom.gmName.value.trim();
         if (!name) return;
         const az = dom.gmAz.value !== '' ? normalizeAngle(Number(dom.gmAz.value)) : Math.round(state.heading);
-        const dist = dom.gmDist.value !== '' ? clamp(Number(dom.gmDist.value), 1.2, 8.0) : 2.6;
+        const dist = dom.gmDist.value !== '' ? clamp(Number(dom.gmDist.value), MIN_SPAWN_METERS, MAX_SPAWN_METERS) : 2.0;
         const azRad = (az * Math.PI) / 180;
         const newGhost = {
           id: 'gh-' + Date.now(),
@@ -2110,14 +2400,17 @@
           dom.gmModal.classList.add('hidden');
           showToast('LOCKING ONTO ' + state.ghosts[idx].name.toUpperCase());
         } else if (action === 'revive') {
-          state.ghosts[idx].status = 'immaterium';
-          state.ghosts[idx].scanProgress = 0;
-          state.ghosts[idx].bargainOffered = false;
           state.ghosts[idx].codeUnlocked = false;
           state.ghosts[idx].pactChoice = null;
-          saveGhosts();
+          dom.gmModal.classList.add('hidden');
+          spawnSingleWraith(state.ghosts[idx].id, true);
         } else if (action === 'delete') {
+          const removedId = state.ghosts[idx].id;
           state.ghosts.splice(idx, 1);
+          if (state.activeGhostId === removedId) {
+            state.activeGhostId = null;
+            state.huntActive = false;
+          }
           saveGhosts();
           ThreeEngine.rebuildInstances();
         }
@@ -2127,7 +2420,7 @@
         state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
         state.ghosts.forEach(ensureGhost3DCoords);
         saveGhosts();
-        ThreeEngine.rebuildInstances();
+        spawnSingleWraith(state.ghosts[0].id, true);
         showToast('DEFAULT 5 SECTOR ENTITIES RESTORED');
       });
 
