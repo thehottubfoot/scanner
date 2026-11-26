@@ -11,9 +11,11 @@
   <!-- Tone.js for procedural Auspex sonar pings, warp static, and beam audio -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
-  <!-- Classic Three.js r128 + GLTFLoader (No importmap or ES module syntax required) -->
+  <!-- Classic Three.js r128 + GLTFLoader + DRACOLoader + SkeletonUtils -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 
   <!-- Grimdark tactical monospace & display fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -209,7 +211,7 @@
       </div>
     </div>
 
-    <!-- CENTER: Material Plane Breach Alert Banner (Shown when a ghost is materialized) -->
+    <!-- CENTER: Material Plane Breach Alert Banner -->
     <div id="breach-banner" class="hidden self-center hud-panel breach-alert rounded-xl px-4 py-2.5 border-[#ff2244] bg-[#24040a]/90 text-center max-w-sm pointer-events-auto">
       <div class="font-display text-xs sm:text-sm text-[#ff2244] tracking-widest">MATERIAL PLANE BREACH!</div>
       <div id="breach-name" class="text-xs text-white mt-0.5 font-bold">ENTITY SOLIDIFIED</div>
@@ -218,13 +220,6 @@
         <button id="btn-banish" class="btn-auspex px-2.5 py-1 rounded-lg border-[#ff2244] text-[#ff2244] text-[10px] font-display">
           BANISH
         </button>
-      </div>
-    </div>
-
-    <!-- TOAST BANNER -->
-    <div id="toast-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
-      <div id="toast-content" class="hud-panel rounded-xl px-4 py-2 text-xs text-[#00f0ff] border-[#00f0ff]/70 tracking-wider text-center whitespace-nowrap">
-        SYSTEM READY
       </div>
     </div>
 
@@ -265,6 +260,13 @@
     </div>
   </div>
 
+  <!-- TOAST BANNER (Above modals so status is always visible) -->
+  <div id="toast-banner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none max-w-[92vw]">
+    <div id="toast-content" class="hud-panel rounded-xl px-4 py-2 text-xs text-[#00f0ff] border-[#00f0ff]/70 tracking-wider text-center">
+      SYSTEM READY
+    </div>
+  </div>
+
   <!-- ==================== BOOT / STARTUP MODAL ==================== -->
   <div id="boot-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
     <div class="hud-panel rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 border-[#33ff66]/70">
@@ -279,8 +281,8 @@
 
       <div class="bg-black/50 border border-[#33ff66]/30 rounded-xl p-3 text-[11px] text-[#33ff66]/80 space-y-1">
         <div>• <strong>Move phone</strong> (or drag screen) to sweep 360° around the room.</div>
-        <div>• <strong>Hold Beam</strong> (or hold on a ghost) to disrupt its psychic shroud.</div>
-        <div>• Auto-loads <strong>./spirit.glb</strong> if hosted together, or pick a local <strong>.GLB</strong> below.</div>
+        <div>• <strong>Hold Beam</strong> to disrupt a ghost's psychic shroud.</div>
+        <div>• 3D Model Status: <strong id="boot-model-status" class="text-[#00f0ff]">CHECKING ./spirit.glb...</strong></div>
       </div>
 
       <div class="flex flex-col gap-2.5 pt-1">
@@ -291,7 +293,7 @@
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
             <line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
-          <span id="boot-glb-label">LOAD 3D .GLB GHOST MODEL (OPTIONAL)</span>
+          <span id="boot-glb-label">LOAD DIFFERENT .GLB FILE (OPTIONAL)</span>
           <input id="boot-glb-input" type="file" accept=".glb,.gltf" class="hidden" />
         </label>
 
@@ -324,14 +326,14 @@
           <div class="flex items-center justify-between gap-2">
             <div class="font-display text-xs text-[#00f0ff] tracking-wider">3D GHOST MODEL (.GLB / .GLTF)</div>
             <span id="gm-glb-status" class="text-[10px] px-2 py-0.5 rounded bg-black/70 border border-[#33ff66]/40 text-[#33ff66]">
-              2D FALLBACK ACTIVE
+              CHECKING...
             </span>
           </div>
-          <p class="text-[11px] text-[#33ff66]/75">
-            Select a <code>.glb</code> file from this device or paste a direct HTTPS link below to auto-load it on any phone.
+          <p id="gm-glb-detail" class="text-[11px] text-[#33ff66]/75">
+            Supports Draco-compressed &amp; rigged <code>.glb</code> files. Auto-loads <code>./spirit.glb</code> by default.
           </p>
           <div class="flex gap-2">
-            <input id="gm-glb-url" type="url" placeholder="https://.../spirit.glb" class="flex-1 bg-black/70 border border-[#00f0ff]/40 rounded-lg px-2.5 py-2 text-[11px] text-[#00f0ff] focus:outline-none focus:border-[#00f0ff]" />
+            <input id="gm-glb-url" type="url" placeholder="./spirit.glb or https://.../spirit.glb" class="flex-1 bg-black/70 border border-[#00f0ff]/40 rounded-lg px-2.5 py-2 text-[11px] text-[#00f0ff] focus:outline-none focus:border-[#00f0ff]" />
             <button id="btn-load-glb-url" type="button" class="btn-auspex px-3 py-2 rounded-lg text-[11px] border-[#00f0ff]/70 text-[#00f0ff] shrink-0">
               LOAD URL
             </button>
@@ -394,16 +396,14 @@
   <!-- ==================== APPLICATION LOGIC ==================== -->
   <script>
     /**
-     * NECROMUNDA AUSPEX AR SCANNER (3D GLB + STABILIZED EDITION)
-     * Uses classic Three.js r128 + THREE.GLTFLoader (zero ES module / importmap issues).
+     * NECROMUNDA AUSPEX AR SCANNER (3D GLB + DRACO + RIGGED MESH EDITION)
      */
 
     // ==================== 1. CONFIGURATION & DEFAULT ENTITIES ====================
     const STORAGE_KEY = 'necromunda_auspex_ghosts_v3';
-    const GLB_URL_STORAGE_KEY = 'necromunda_auspex_glb_url_v1';
+    const GLB_URL_STORAGE_KEY = 'necromunda_auspex_glb_url_v2';
 
     // Auto-loads spirit.glb from the same folder (e.g. GitHub Pages)
-    // Can also be overridden with ?model=https://your-site.com/file.glb
     const DEFAULT_GLB_URL = './spirit.glb';
 
     const DEFAULT_GHOSTS = [
@@ -415,7 +415,7 @@
         pitch: 2,
         distance: 3.2,
         scanProgress: 0,
-        status: 'immaterium', // immaterium | materialized | banished
+        status: 'immaterium',
         breachTimer: 0,
         phaseOffset: 0.4
       },
@@ -471,6 +471,7 @@
       toastBanner: document.getElementById('toast-banner'),
       toastContent: document.getElementById('toast-content'),
       bootModal: document.getElementById('boot-modal'),
+      bootModelStatus: document.getElementById('boot-model-status'),
       btnStartAr: document.getElementById('btn-start-ar'),
       btnStartSim: document.getElementById('btn-start-sim'),
       bootGlbInput: document.getElementById('boot-glb-input'),
@@ -478,6 +479,7 @@
       gmModal: document.getElementById('gm-modal'),
       btnCloseGm: document.getElementById('btn-close-gm'),
       gmGlbStatus: document.getElementById('gm-glb-status'),
+      gmGlbDetail: document.getElementById('gm-glb-detail'),
       gmGlbUrl: document.getElementById('gm-glb-url'),
       btnLoadGlbUrl: document.getElementById('btn-load-glb-url'),
       gmGlbInput: document.getElementById('gm-glb-input'),
@@ -498,8 +500,8 @@
     // ==================== 3. GLOBAL APPLICATION STATE ====================
     const state = {
       ghosts: [],
-      heading: 0,         // Current smoothed camera yaw (degrees 0-360)
-      pitch: 0,           // Current smoothed camera pitch (degrees -60 to +60)
+      heading: 0,
+      pitch: 0,
       targetHeading: 0,
       targetPitch: 0,
       gyroEnabled: false,
@@ -517,8 +519,8 @@
       lastFrameTime: performance.now(),
       lastPingTime: 0,
       toastTimeout: null,
-      fovHorizontal: 68,  // Degrees
-      fovVertical: 54     // Dynamically adjusted by aspect ratio
+      fovHorizontal: 68,
+      fovVertical: 54
     };
 
     // ==================== 4. UTILITY FUNCTIONS ====================
@@ -529,8 +531,7 @@
     }
 
     function shortestAngleDiff(target, current) {
-      let diff = ((target - current + 540) % 360) - 180;
-      return diff;
+      return ((target - current + 540) % 360) - 180;
     }
 
     function clamp(val, min, max) {
@@ -544,7 +545,7 @@
       if (state.toastTimeout) clearTimeout(state.toastTimeout);
       state.toastTimeout = setTimeout(() => {
         dom.toastBanner.classList.add('hidden');
-      }, 2800);
+      }, 3200);
     }
 
     function saveGhosts() {
@@ -664,7 +665,7 @@
 
       init() {
         if (typeof THREE === 'undefined') {
-          console.warn('Three.js not available, using 2D fallback.');
+          this._setStatus('THREE.JS MISSING', '2D FALLBACK ACTIVE', true);
           return;
         }
         try {
@@ -680,24 +681,32 @@
           });
           this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
           this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+          this.renderer.outputEncoding = THREE.sRGBEncoding;
 
-          // Eerie Underhive lighting
-          const ambient = new THREE.AmbientLight(0x99ffd6, 1.35);
-          this.scene.add(ambient);
+          // Eerie Underhive lighting (Hemisphere + Directional + Cyan Rim)
+          const hemi = new THREE.HemisphereLight(0xaaffdd, 0x0b2218, 1.5);
+          this.scene.add(hemi);
 
-          const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+          const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
           dirLight.position.set(3, 6, 4);
           this.scene.add(dirLight);
 
-          const rimLight = new THREE.PointLight(0x00f0ff, 1.4, 25);
+          const rimLight = new THREE.PointLight(0x00f0ff, 1.6, 25);
           rimLight.position.set(-4, 2, -3);
           this.scene.add(rimLight);
 
           if (THREE.GLTFLoader) {
             this.loader = new THREE.GLTFLoader();
+            // Attach Draco decoder so compressed .glb models load seamlessly
+            if (THREE.DRACOLoader) {
+              const dracoLoader = new THREE.DRACOLoader();
+              dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/');
+              this.loader.setDRACOLoader(dracoLoader);
+            }
           }
         } catch (err) {
           console.warn('ThreeEngine init error:', err);
+          this._setStatus('WEBGL ERROR', '2D FALLBACK ACTIVE', true);
         }
       },
 
@@ -706,7 +715,6 @@
         const w = window.innerWidth;
         const h = Math.max(1, window.innerHeight);
         this.camera.aspect = w / h;
-        // Match vertical FOV roughly with 2D projection
         const vFovRad = 2 * Math.atan(Math.tan((state.fovHorizontal * Math.PI / 180) / 2) / this.camera.aspect);
         this.camera.fov = clamp(vFovRad * 180 / Math.PI, 40, 85);
         state.fovVertical = this.camera.fov;
@@ -714,11 +722,25 @@
         this.renderer.setSize(w, h, false);
       },
 
+      _setStatus(bootText, gmBadge, isError, detailText) {
+        if (dom.bootModelStatus) {
+          dom.bootModelStatus.textContent = bootText;
+          dom.bootModelStatus.style.color = isError ? '#ffb000' : '#00f0ff';
+        }
+        if (dom.gmGlbStatus) {
+          dom.gmGlbStatus.textContent = gmBadge;
+        }
+        if (detailText && dom.gmGlbDetail) {
+          dom.gmGlbDetail.textContent = detailText;
+        }
+      },
+
       _applyGltf(gltf, fileName) {
         if (!gltf || !gltf.scene) return;
         const rawRoot = gltf.scene;
+        rawRoot.updateMatrixWorld(true);
 
-        // Auto-center and normalize scale to ~1.35m tall
+        // Auto-center and normalize scale to ~1.45m tall
         const box = new THREE.Box3().setFromObject(rawRoot);
         const size = new THREE.Vector3();
         const center = new THREE.Vector3();
@@ -726,7 +748,7 @@
         box.getCenter(center);
 
         const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-        const targetHeight = 1.35;
+        const targetHeight = 1.45;
         const scale = targetHeight / maxDim;
 
         const normalizedWrapper = new THREE.Group();
@@ -735,17 +757,26 @@
         normalizedWrapper.add(rawRoot);
 
         this.templateModel = normalizedWrapper;
-        this.modelName = fileName || 'custom.glb';
+        this.modelName = fileName || 'spirit.glb';
         this.hasModel = true;
 
         this.rebuildInstances();
-        this._updateModelUi();
+        this._setStatus(
+          'READY: ' + this.modelName.toUpperCase(),
+          '3D: ' + this.modelName,
+          false,
+          'Active 3D model: ' + this.modelName + ' (auto-scaled & synced to Auspex).'
+        );
+        if (dom.bootGlbLabel) {
+          dom.bootGlbLabel.textContent = '3D MODEL ACTIVE: ' + this.modelName.toUpperCase();
+        }
         showToast('3D MODEL LOADED: ' + this.modelName.toUpperCase());
       },
 
       loadFromFile(file) {
         if (!file || !this.loader) return;
         const blobUrl = URL.createObjectURL(file);
+        this._setStatus('PARSING ' + file.name + '...', 'LOADING...', false);
         showToast('LOADING 3D MODEL...');
         this.loader.load(
           blobUrl,
@@ -757,19 +788,19 @@
           (err) => {
             console.error('GLB file load error:', err);
             URL.revokeObjectURL(blobUrl);
-            showToast('ERROR: INVALID .GLB / .GLTF FILE');
+            const msg = (err && err.message) ? err.message : 'Invalid or unsupported .glb';
+            this._setStatus('LOAD FAILED (2D FALLBACK)', 'ERROR', true, 'Error: ' + msg);
+            showToast('ERROR: ' + msg);
           }
         );
       },
 
-      loadFromUrl(url, persist, silentOnFail) {
+      loadFromUrl(url, persist, isPreviewFallback) {
         const cleanUrl = String(url || '').trim();
         if (!cleanUrl || !this.scene || !this.loader) return;
 
-        const fileName = cleanUrl.split('/').pop().split('?')[0] || 'remote-model.glb';
-        if (!silentOnFail) {
-          showToast('AUTO-LOADING 3D MODEL...');
-        }
+        const fileName = cleanUrl.split('/').pop().split('?')[0] || 'spirit.glb';
+        this._setStatus('DOWNLOADING ' + fileName + '...', 'LOADING...', false);
 
         this.loader.load(
           cleanUrl,
@@ -782,11 +813,20 @@
               } catch (e) {}
             }
           },
-          undefined,
+          (xhr) => {
+            if (xhr && xhr.total > 0) {
+              const pct = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
+              this._setStatus('DOWNLOADING ' + fileName + ' (' + pct + '%)', pct + '%', false);
+            }
+          },
           (err) => {
             console.warn('Could not load .glb URL:', cleanUrl, err);
-            if (!silentOnFail) {
-              showToast('ERROR: COULD NOT LOAD .GLB URL');
+            const errMsg = (err && err.message) ? err.message : 'File not found or unsupported format';
+            if (isPreviewFallback) {
+              this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+            } else {
+              this._setStatus('FAILED: ' + errMsg.slice(0, 48), 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
+              showToast('3D LOAD FAILED — CHECK GM PANEL');
             }
           }
         );
@@ -798,10 +838,10 @@
           const paramUrl = params.get('model');
           const savedUrl = localStorage.getItem(GLB_URL_STORAGE_KEY);
           const targetUrl = paramUrl || savedUrl || DEFAULT_GLB_URL;
+          const isSandboxedPreview = window.location.protocol === 'about:' || window.location.protocol === 'blob:' || window.location.protocol === 'data:';
           if (targetUrl) {
             if (dom.gmGlbUrl) dom.gmGlbUrl.value = targetUrl;
-            const isDefaultFallback = !paramUrl && !savedUrl;
-            this.loadFromUrl(targetUrl, Boolean(paramUrl), isDefaultFallback);
+            this.loadFromUrl(targetUrl, Boolean(paramUrl), isSandboxedPreview);
           }
         } catch (err) {
           console.warn('Auto-load check skipped:', err);
@@ -819,19 +859,11 @@
         try {
           localStorage.removeItem(GLB_URL_STORAGE_KEY);
         } catch (e) {}
-        this._updateModelUi();
-        showToast('REVERTED TO 2D SPECTRAL ICON');
-      },
-
-      _updateModelUi() {
-        if (dom.gmGlbStatus) {
-          dom.gmGlbStatus.textContent = this.hasModel ? ('3D: ' + this.modelName) : '2D FALLBACK ACTIVE';
-        }
+        this._setStatus('2D SPECTRAL ICON ACTIVE', '2D FALLBACK', false);
         if (dom.bootGlbLabel) {
-          dom.bootGlbLabel.textContent = this.hasModel
-            ? ('LOADED: ' + this.modelName.toUpperCase())
-            : 'LOAD 3D .GLB GHOST MODEL (OPTIONAL)';
+          dom.bootGlbLabel.textContent = 'LOAD DIFFERENT .GLB FILE (OPTIONAL)';
         }
+        showToast('REVERTED TO 2D SPECTRAL ICON');
       },
 
       rebuildInstances() {
@@ -844,16 +876,31 @@
         if (!this.hasModel || !this.templateModel) return;
 
         state.ghosts.forEach((ghost) => {
-          const clone = this.templateModel.clone(true);
+          // Use SkeletonUtils.clone if available so rigged/skinned .glb models render properly
+          const clone = (THREE.SkeletonUtils && typeof THREE.SkeletonUtils.clone === 'function')
+            ? THREE.SkeletonUtils.clone(this.templateModel)
+            : this.templateModel.clone(true);
+
           const mats = [];
           clone.traverse((child) => {
-            if (child.isMesh && child.material) {
-              if (Array.isArray(child.material)) {
-                child.material = child.material.map((m) => m.clone());
-                child.material.forEach((m) => mats.push(m));
-              } else {
-                child.material = child.material.clone();
-                mats.push(child.material);
+            if (child.isMesh) {
+              child.frustumCulled = false;
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material = child.material.map((m) => {
+                    const mc = m.clone();
+                    mc.transparent = true;
+                    mc.side = THREE.DoubleSide;
+                    mats.push(mc);
+                    return mc;
+                  });
+                } else {
+                  const mc = child.material.clone();
+                  mc.transparent = true;
+                  mc.side = THREE.DoubleSide;
+                  child.material = mc;
+                  mats.push(mc);
+                }
               }
             }
           });
@@ -870,12 +917,10 @@
           return;
         }
 
-        // Sync instances if ghost list changed
         if (this.instances.size !== state.ghosts.length) {
           this.rebuildInstances();
         }
 
-        // Sync Three.js camera rotation with smoothed Auspex heading & pitch
         const yawRad = -(state.heading * Math.PI) / 180;
         const pitchRad = (state.pitch * Math.PI) / 180;
         this.camera.rotation.set(pitchRad, yawRad, 0, 'YXZ');
@@ -891,7 +936,6 @@
           }
           group.visible = true;
 
-          // Place ghost in world coordinates matching azimuth, pitch, and distance
           const azRad = (ghost.azimuth * Math.PI) / 180;
           const elRad = (ghost.pitch * Math.PI) / 180;
           const dist = ghost.distance;
@@ -911,9 +955,7 @@
             group.rotation.y += Math.sin(nowSec * 30) * 0.15;
           }
 
-          // Update spectral vs materialized material appearance
           materials.forEach((mat) => {
-            mat.transparent = true;
             if (ghost.status === 'materialized') {
               mat.opacity = 0.96;
               if (mat.emissive) {
@@ -921,16 +963,16 @@
                 mat.emissiveIntensity = 0.55 + Math.sin(nowSec * 8) * 0.2;
               }
             } else if (isBeingZapped) {
-              mat.opacity = 0.72 + Math.random() * 0.2;
+              mat.opacity = 0.75 + Math.random() * 0.2;
               if (mat.emissive) {
                 mat.emissive.setHex(0x00f0ff);
                 mat.emissiveIntensity = 1.1;
               }
             } else {
-              mat.opacity = 0.44 + Math.sin(nowSec * 2.5 + (ghost.phaseOffset || 0)) * 0.1;
+              mat.opacity = 0.52 + Math.sin(nowSec * 2.5 + (ghost.phaseOffset || 0)) * 0.1;
               if (mat.emissive) {
                 mat.emissive.setHex(0x22ff88);
-                mat.emissiveIntensity = 0.35;
+                mat.emissiveIntensity = 0.4;
               }
             }
           });
@@ -993,7 +1035,6 @@
       ctx.translate(cx, cy);
       ctx.globalAlpha = alpha;
 
-      // Outer spectral aura
       const grad = ctx.createRadialGradient(0, 0, scale * 0.1, 0, 0, scale * 1.15);
       grad.addColorStop(0, primary);
       grad.addColorStop(0.55, primary + '44');
@@ -1003,7 +1044,6 @@
       ctx.arc(0, 0, scale * 1.15, 0, Math.PI * 2);
       ctx.fill();
 
-      // Hooded Hollow Drifter silhouette
       ctx.fillStyle = primary;
       ctx.beginPath();
       ctx.moveTo(0, -scale * 0.72);
@@ -1016,7 +1056,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Glowing hollow eyes
       ctx.fillStyle = '#020905';
       ctx.beginPath();
       ctx.arc(-scale * 0.14, -scale * 0.25, scale * 0.08, 0, Math.PI * 2);
@@ -1031,7 +1070,6 @@
       const startY = h - 76;
 
       ctx.save();
-      // Wide outer glow
       ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
       ctx.lineWidth = 14;
       ctx.lineCap = 'round';
@@ -1040,7 +1078,6 @@
       ctx.lineTo(targetX, targetY);
       ctx.stroke();
 
-      // Jagged electric lightning core
       ctx.strokeStyle = '#d8ffff';
       ctx.lineWidth = 3;
       ctx.shadowColor = '#00f0ff';
@@ -1057,7 +1094,6 @@
       ctx.lineTo(targetX, targetY);
       ctx.stroke();
 
-      // Impact ring
       ctx.beginPath();
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2;
@@ -1071,7 +1107,6 @@
       const h = Math.max(1, window.innerHeight);
       arCtx.clearRect(0, 0, w, h);
 
-      // Subtle simulated Underhive grid when camera is off
       if (!state.cameraActive) {
         arCtx.save();
         arCtx.strokeStyle = 'rgba(51, 255, 102, 0.08)';
@@ -1094,7 +1129,6 @@
         arCtx.restore();
       }
 
-      // Draw each active ghost's 2D icon (if no 3D model) + tactical lock bracket
       let closestGhost = null;
       let closestAngleDist = Infinity;
       let lockedCoords = null;
@@ -1118,7 +1152,6 @@
           draw2DFallbackGhost(arCtx, proj.sx, proj.sy, ghost.distance, ghost, nowSec, isZapped);
         }
 
-        // Tactical targeting diamond & label
         const boxSize = clamp(88 / Math.max(1.2, ghost.distance), 28, 72);
         const color = ghost.status === 'materialized'
           ? '#ff2244'
@@ -1129,29 +1162,23 @@
         arCtx.lineWidth = isZapped ? 2.2 : 1.3;
         arCtx.globalAlpha = 0.85;
 
-        // Corner brackets
         const b = boxSize;
         const c = 10;
         arCtx.beginPath();
-        // Top-left
         arCtx.moveTo(proj.sx - b, proj.sy - b + c);
         arCtx.lineTo(proj.sx - b, proj.sy - b);
         arCtx.lineTo(proj.sx - b + c, proj.sy - b);
-        // Top-right
         arCtx.moveTo(proj.sx + b - c, proj.sy - b);
         arCtx.lineTo(proj.sx + b, proj.sy - b);
         arCtx.lineTo(proj.sx + b, proj.sy - b + c);
-        // Bottom-right
         arCtx.moveTo(proj.sx + b, proj.sy + b - c);
         arCtx.lineTo(proj.sx + b, proj.sy + b);
         arCtx.lineTo(proj.sx + b - c, proj.sy + b);
-        // Bottom-left
         arCtx.moveTo(proj.sx - b + c, proj.sy + b);
         arCtx.lineTo(proj.sx - b, proj.sy + b);
         arCtx.lineTo(proj.sx - b, proj.sy + b - c);
         arCtx.stroke();
 
-        // Label
         arCtx.fillStyle = color;
         arCtx.font = '11px "Share Tech Mono", monospace';
         arCtx.textAlign = 'center';
@@ -1162,7 +1189,6 @@
 
       state.lockedGhostId = closestGhost ? closestGhost.id : null;
 
-      // Center Auspex Reticle
       const cx = w / 2;
       const cy = h / 2;
       const reticleColor = state.isScanning
@@ -1176,7 +1202,6 @@
       arCtx.arc(cx, cy, closestGhost ? 26 : 32, 0, Math.PI * 2);
       arCtx.stroke();
 
-      // Crosshair ticks
       arCtx.beginPath();
       arCtx.moveTo(cx - 42, cy); arCtx.lineTo(cx - 18, cy);
       arCtx.moveTo(cx + 18, cy); arCtx.lineTo(cx + 42, cy);
@@ -1185,7 +1210,6 @@
       arCtx.stroke();
       arCtx.restore();
 
-      // Draw Null-Phase Beam when active
       if (state.isScanning) {
         const beamX = lockedCoords ? lockedCoords.x : cx;
         const beamY = lockedCoords ? lockedCoords.y : cy;
@@ -1199,13 +1223,11 @@
       const r = half - 4;
       radarCtx.clearRect(0, 0, size, size);
 
-      // Background disc
       radarCtx.fillStyle = 'rgba(2, 16, 8, 0.9)';
       radarCtx.beginPath();
       radarCtx.arc(half, half, r, 0, Math.PI * 2);
       radarCtx.fill();
 
-      // Concentric range rings
       radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.28)';
       radarCtx.lineWidth = 1;
       [0.33, 0.66, 1].forEach((frac) => {
@@ -1214,7 +1236,6 @@
         radarCtx.stroke();
       });
 
-      // Player FOV cone (pointing straight up)
       radarCtx.fillStyle = 'rgba(51, 255, 102, 0.14)';
       radarCtx.beginPath();
       radarCtx.moveTo(half, half);
@@ -1223,7 +1244,6 @@
       radarCtx.closePath();
       radarCtx.fill();
 
-      // Sweeping sonar line
       state.radarAngle = (state.radarAngle + dt * 2.4) % (Math.PI * 2);
       radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.75)';
       radarCtx.lineWidth = 1.5;
@@ -1235,7 +1255,6 @@
       );
       radarCtx.stroke();
 
-      // Plot active ghosts relative to current heading
       state.ghosts.forEach((ghost) => {
         if (ghost.status === 'banished') return;
         const relAz = shortestAngleDiff(ghost.azimuth, state.heading);
@@ -1255,12 +1274,10 @@
 
     // ==================== 8. GAMEPLAY & TELEMETRY LOOP ====================
     function updateGameplay(dt, nowMs) {
-      // Smooth heading & pitch interpolation
       const hDiff = shortestAngleDiff(state.targetHeading, state.heading);
       state.heading = normalizeAngle(state.heading + hDiff * Math.min(1, dt * 10));
       state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 10);
 
-      // Update HUD telemetry
       dom.hudHeading.textContent = String(Math.round(state.heading)).padStart(3, '0') + '°';
       const pRound = Math.round(state.pitch);
       dom.hudPitch.textContent = (pRound >= 0 ? '+' : '') + pRound + '°';
@@ -1268,7 +1285,6 @@
       const activeGhosts = state.ghosts.filter((g) => g.status !== 'banished');
       dom.hudCount.textContent = activeGhosts.length + '/' + state.ghosts.length;
 
-      // Update Null-Phase Beam scanning progress
       const lockedGhost = state.ghosts.find((g) => g.id === state.lockedGhostId && g.status !== 'banished');
       AudioEngine.setBeamActive(state.isScanning);
 
@@ -1299,7 +1315,6 @@
         dom.scanBar.style.width = '0%';
       }
 
-      // Update Materialized breach timers
       let activeBreach = null;
       state.ghosts.forEach((g) => {
         if (g.status === 'materialized') {
@@ -1324,7 +1339,6 @@
         dom.breachBanner.classList.add('hidden');
       }
 
-      // Periodic sonar ping when an entity is near center
       if (lockedGhost && nowMs - state.lastPingTime > 950 && !state.isScanning) {
         state.lastPingTime = nowMs;
         AudioEngine.playPing(lockedGhost.status === 'materialized' ? 1120 : 840);
@@ -1368,7 +1382,6 @@
         showToast('SIMULATED AUSPEX VISOR ACTIVE');
       }
 
-      // Request iOS 13+ DeviceOrientation permission if needed
       try {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           const perm = await DeviceOrientationEvent.requestPermission();
@@ -1432,11 +1445,9 @@
     function bindEvents() {
       window.addEventListener('resize', resizeCanvases);
 
-      // Boot buttons
       dom.btnStartAr.addEventListener('click', () => initCameraAndSensors(true));
       dom.btnStartSim.addEventListener('click', () => initCameraAndSensors(false));
 
-      // Boot & GM .glb file pickers
       const handleFilePick = (e) => {
         const file = e.target.files && e.target.files[0];
         if (file) ThreeEngine.loadFromFile(file);
@@ -1456,7 +1467,6 @@
 
       dom.btnClearGlb.addEventListener('click', () => ThreeEngine.clearModel());
 
-      // Top HUD buttons
       dom.btnFilter.addEventListener('click', () => {
         state.visorFilter = !state.visorFilter;
         dom.video.classList.toggle('filter-auspex', state.visorFilter);
@@ -1480,7 +1490,6 @@
         dom.gmModal.classList.add('hidden');
       });
 
-      // Null-Phase Beam hold controls (mouse + touch)
       const startBeam = (e) => {
         if (e) e.preventDefault();
         AudioEngine.init();
@@ -1498,7 +1507,6 @@
       window.addEventListener('touchend', stopBeam);
       window.addEventListener('touchcancel', stopBeam);
 
-      // Banish materialized ghost
       dom.btnBanish.addEventListener('click', () => {
         const g = state.ghosts.find((item) => item.id === state.breachGhostId);
         if (!g) return;
@@ -1509,7 +1517,6 @@
         saveGhosts();
       });
 
-      // Recenter & Scatter
       dom.btnRecenter.addEventListener('click', () => {
         state.targetHeading = 0;
         state.targetPitch = 0;
@@ -1531,7 +1538,6 @@
         showToast('WARP ANOMALIES SCATTERED AROUND SECTOR');
       });
 
-      // Drag-to-look on AR canvas (works on desktop & mobile without gyro)
       dom.arCanvas.addEventListener('mousedown', (e) => {
         state.isDragging = true;
         state.lastPointerX = e.clientX;
@@ -1572,7 +1578,6 @@
         state.isDragging = false;
       });
 
-      // GM Add Anomaly form
       dom.gmAddForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const name = dom.gmName.value.trim();
@@ -1596,7 +1601,6 @@
         showToast('DEPLOYED: ' + newGhost.name.toUpperCase());
       });
 
-      // GM Ghost List actions
       dom.gmGhostList.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-action]');
         if (!btn) return;
