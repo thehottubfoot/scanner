@@ -180,6 +180,22 @@
       50% { box-shadow: 0 0 34px rgba(0, 240, 255, 0.85); }
     }
 
+    .btn-scan-primary.firing {
+      background: linear-gradient(180deg, rgba(255, 51, 68, 0.45) 0%, rgba(140, 0, 40, 0.85) 100%);
+      border-color: #ff4b6e;
+      color: #ffffff;
+      box-shadow: 0 0 34px rgba(255, 75, 110, 0.85), inset 0 0 18px rgba(0, 240, 255, 0.5);
+    }
+
+    @keyframes combatPulse {
+      0%, 100% { box-shadow: 0 0 12px rgba(255, 51, 68, 0.55); border-color: rgba(255, 51, 68, 0.9); }
+      50% { box-shadow: 0 0 26px rgba(255, 176, 0, 0.85); border-color: rgba(255, 176, 0, 1); }
+    }
+
+    .combat-banner-active {
+      animation: combatPulse 1s infinite ease-in-out;
+    }
+
     /* Reticle animations */
     @keyframes spinSlow {
       from { transform: rotate(0deg); }
@@ -291,6 +307,18 @@
           <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#ffb000] -translate-x-1/2 shadow-[0_0_6px_#ffb000]"></div>
         </div>
       </div>
+
+      <!-- LIVE COMBAT WINDOW BANNER (Shown when an entity is forced into the Material Plane) -->
+      <div id="combat-window-banner" class="hidden interactive max-w-md w-full mx-auto hud-panel combat-banner-active rounded-lg px-3 py-2 bg-[#22040a]/90 border-2 border-[#ff3344] flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="text-[9px] font-display tracking-widest text-[#ffb000]">MATERIAL PLANE BREACH // FIGHT NOW</div>
+          <div id="combat-banner-name" class="text-xs font-display text-white truncate">ENTITY MATERIALIZED</div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <div id="combat-banner-timer" class="font-display text-base text-[#ff4b6e] glow-crimson">01:00</div>
+          <button id="btn-open-combat-modal" class="btn-auspex px-2 py-1 rounded text-[10px] border-[#ff4b6e] text-[#ff4b6e]">DOSSIER</button>
+        </div>
+      </div>
     </div>
 
     <!-- CENTER RETICLE: Dynamic Targeting Crosshair & Scan Progress Ring -->
@@ -329,7 +357,7 @@
             SWEEPING SECTOR...
           </div>
           <div id="target-sub-info" class="text-[10px] text-[#33ff66]/70 mt-0.5">
-            PAN ROOM TO LOCATE STATIONARY ECHOES
+            PAN ROOM TO LOCATE WARP ENTITIES
           </div>
         </div>
       </div>
@@ -351,12 +379,12 @@
         <button id="btn-scan"
                 class="btn-scan-primary w-full py-3 sm:py-3.5 px-4 rounded-xl font-display text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 cursor-pointer">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
           <span id="btn-scan-text">NO TARGET LOCK</span>
         </button>
         <div id="hint-bar" class="text-[10px] text-[#33ff66]/75 text-center bg-black/50 px-2.5 py-0.5 rounded-full border border-[#33ff66]/20">
-          Tap a ghost or press Scan once locked
+          Tap a ghost or press Fire Beam to force it into reality
         </div>
       </div>
 
@@ -388,70 +416,67 @@
         <div class="flex items-center justify-between border-b border-[#33ff66]/30 pb-3">
           <div>
             <div class="text-[10px] tracking-widest text-[#ffb000]">HIVE PRIMUS // UNDERHIVE TELEMETRY</div>
-            <h1 class="font-display text-xl sm:text-2xl text-[#33ff66] glow-green mt-0.5">AUSPEX PSY-SCANNER</h1>
+            <h1 class="font-display text-xl sm:text-2xl text-[#33ff66] glow-green mt-0.5">AUSPEX NULL-DISRUPTOR</h1>
           </div>
-          <!-- Imperial Skull / Auspex Emblem SVG -->
-          <svg class="w-11 h-11 text-[#33ff66] opacity-90 shrink-0" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="32" cy="32" r="28" stroke-dasharray="4 4" opacity="0.5"/>
-            <path d="M22 28c0-6 4.5-11 10-11s10 5 10 11c0 4-2 7-4 8.5V42H26v-5.5C24 35 22 32 22 28z" fill="rgba(51,255,102,0.12)"/>
-            <circle cx="28" cy="28" r="2.5" fill="currentColor"/>
-            <circle cx="36" cy="28" r="2.5" fill="currentColor"/>
-            <path d="M32 32l-1.5 3h3L32 32z" fill="currentColor"/>
-            <line x1="28" y1="42" x2="28" y2="46"/>
-            <line x1="32" y1="42" x2="32" y2="46"/>
-            <line x1="36" y1="42" x2="36" y2="46"/>
+          <!-- Hollow Drifter Entity Emblem SVG -->
+          <svg class="w-12 h-12 shrink-0" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#091718" stroke="#98ffd5" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#3c7a69" stroke-width="1.5" stroke-dasharray="2 4"/>
+            <path d="M50 15 L55 28 C60 22 61 17 61 12 C64 20 63 29 59 34 C68 30 74 23 76 16 C77 28 70 39 62 43 C73 45 81 54 80 65 C75 56 68 53 62 55 C67 63 70 73 76 80 C66 78 60 70 57 62 C57 73 59 81 62 87 C55 83 52 75 50 67 C48 75 45 83 38 87 C41 81 43 73 43 62 C40 70 34 78 24 80 C30 73 33 63 38 55 C32 53 25 56 20 65 C19 54 27 45 38 43 C30 39 23 28 24 16 C26 23 32 30 41 34 C37 29 36 20 39 12 C39 17 40 22 45 28 Z" fill="#98ffd5" stroke="#183a32" stroke-width="1.5"/>
+            <ellipse cx="50" cy="36" rx="2.6" ry="5.5" fill="#091718"/>
+            <ellipse cx="50" cy="36" rx="1.6" ry="3.8" fill="#ff4b6e"/>
+            <path d="M35 42 L46 46 L44 52 L36 51 Z" fill="#091718"/>
+            <path d="M65 42 L54 46 L56 52 L64 51 Z" fill="#091718"/>
+            <circle cx="41.5" cy="47.5" r="2.6" fill="#ff4b6e"/>
+            <circle cx="58.5" cy="47.5" r="2.6" fill="#ff4b6e"/>
+            <path d="M40 58 L44 62 L47 59 L50 63 L53 59 L56 62 L60 58 L57 66 L53 63 L50 67 L47 63 L43 66 Z" fill="#091718"/>
           </svg>
         </div>
 
         <p class="text-xs sm:text-sm text-[#33ff66]/85 leading-relaxed">
-          Stationary Warp-echoes are anchored around this sector. Sweep the room with your Auspex to locate each spectral signature, then tap to decode its campaign intel.
+          Warp-entities are lurking in the Immaterium around this room. Locate each ghost, blast it with your <strong class="text-[#00f0ff]">Null-Phase Beam</strong> to tear it into the Material Plane, and fight it before it escapes!
         </p>
 
         <div class="bg-black/50 border border-[#33ff66]/25 rounded-lg p-3 text-[11px] space-y-1.5 text-[#33ff66]/80">
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">01.</span>
-            <span>Follow the <strong class="text-[#ffb000]">Radar blips</strong> &amp; compass ticks to find anchored ghosts.</span>
+            <span>Follow the <strong class="text-[#ffb000]">Radar blips</strong> &amp; compass ticks to locate a ghost.</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">02.</span>
-            <span>Bring a ghost into the wide reticle (or aim toward it).</span>
+            <span>Tap <strong class="text-[#00f0ff]">FIRE NULL-BEAM</strong> (or tap the ghost) to zap it into the Material Plane.</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">03.</span>
-            <span>Tap <strong class="text-[#00f0ff]">TAP TO PSY-SCAN</strong> or tap directly on the ghost to decode it.</span>
+            <span>When materialized, you have a <strong class="text-[#ff4b6e]">short combat window</strong> to fight it before it retreats to the Immaterium!</span>
           </div>
         </div>
 
         <div class="flex flex-col gap-2.5 pt-1">
-          <button id="btn-start-ar" class="btn-auspex w-full py-3 px-4 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66] flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-            </svg>
-            <span>INITIALIZE LIVE AR CAMERA</span>
-          </button>
-
-          <button id="btn-start-sim" class="btn-auspex w-full py-2.5 px-4 rounded-xl font-display text-xs tracking-wider border-[#ffb000]/70 text-[#ffb000] flex items-center justify-center gap-2">
-            <span>LAUNCH SIMULATED AUSPEX VISOR</span>
-          </button>
-        </div>
-
-        <div class="text-[10px] text-center text-[#33ff66]/55">
-          +++ THOUGHT FOR THE DAY: THE WARP REMEMBERS ALL DEBTS +++
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL 2: SCANNED INTEL DOSSIER ==================== -->
+  <!-- ==================== MODAL 2: MATERIALIZATION & COMBAT WINDOW DOSSIER ==================== -->
   <div id="modal-intel" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
-    <div class="hud-panel rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col overflow-hidden border-2 border-[#00f0ff]/80 shadow-[0_0_40px_rgba(0,240,255,0.25)]">
+    <div class="hud-panel rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col overflow-hidden border-2 border-[#ff4b6e]/90 shadow-[0_0_45px_rgba(255,75,110,0.35)]">
       <div class="hazard-border h-2 w-full shrink-0"></div>
 
       <!-- Header -->
-      <div class="p-4 border-b border-[#00f0ff]/30 flex items-start justify-between gap-3 bg-[#001820]/70 shrink-0">
-        <div>
-          <div id="intel-class" class="text-[10px] tracking-widest text-[#00f0ff] uppercase">CLASSIFICATION // WARP ANOMALY</div>
-          <h2 id="intel-title" class="font-display text-lg sm:text-xl text-white mt-0.5">ENTITY NAME</h2>
+      <div class="p-4 border-b border-[#ff4b6e]/35 flex items-start justify-between gap-3 bg-[#1d050c]/85 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <svg class="w-11 h-11 shrink-0" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#091718" stroke="#ff4b6e" stroke-width="3"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#ff4b6e" stroke-width="1.5" stroke-dasharray="2 4" opacity="0.6"/>
+            <path d="M50 15 L55 28 C60 22 61 17 61 12 C64 20 63 29 59 34 C68 30 74 23 76 16 C77 28 70 39 62 43 C73 45 81 54 80 65 C75 56 68 53 62 55 C67 63 70 73 76 80 C66 78 60 70 57 62 C57 73 59 81 62 87 C55 83 52 75 50 67 C48 75 45 83 38 87 C41 81 43 73 43 62 C40 70 34 78 24 80 C30 73 33 63 38 55 C32 53 25 56 20 65 C19 54 27 45 38 43 C30 39 23 28 24 16 C26 23 32 30 41 34 C37 29 36 20 39 12 C39 17 40 22 45 28 Z" fill="#98ffd5" stroke="#183a32" stroke-width="1.5"/>
+            <ellipse cx="50" cy="36" rx="2.6" ry="5.5" fill="#091718"/>
+            <ellipse cx="50" cy="36" rx="1.6" ry="3.8" fill="#ff4b6e"/>
+            <path d="M35 42 L46 46 L44 52 L36 51 Z" fill="#091718"/>
+            <path d="M65 42 L54 46 L56 52 L64 51 Z" fill="#091718"/>
+            <circle cx="41.5" cy="47.5" r="2.6" fill="#ff4b6e"/>
+            <circle cx="58.5" cy="47.5" r="2.6" fill="#ff4b6e"/>
+            <path d="M40 58 L44 62 L47 59 L50 63 L53 59 L56 62 L60 58 L57 66 L53 63 L50 67 L47 63 L43 66 Z" fill="#091718"/>
+          </svg>
+          <div class="min-w-0">
+            <div id="intel-class" class="text-[10px] tracking-widest text-[#ffb000] uppercase">MATERIAL PLANE BREACH</div>
+            <h2 id="intel-title" class="font-display text-lg sm:text-xl text-white mt-0.5 truncate">ENTITY NAME</h2>
+          </div>
         </div>
         <span id="intel-threat" class="text-[10px] font-display px-2 py-1 rounded border border-[#ff3344] text-[#ff3344] bg-[#ff3344]/15 shrink-0">
           THREAT: HIGH
@@ -460,6 +485,26 @@
 
       <!-- Body -->
       <div class="p-4 sm:p-5 overflow-y-auto custom-scroll space-y-4 text-xs sm:text-sm">
+
+        <!-- URGENT COMBAT WINDOW ALERT & LIVE COUNTDOWN -->
+        <div id="intel-combat-alert" class="bg-[#2a060e] border-2 border-[#ff4b6e] rounded-xl p-3.5 space-y-2 shadow-[0_0_20px_rgba(255,75,110,0.25)]">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-display text-xs text-[#ffb000] tracking-wider">ENTITY FORCED INTO MATERIAL PLANE!</div>
+              <div class="text-[11px] text-[#ffd4dc] mt-0.5">
+                Engage immediately! Short window before it retreats back into the Immaterium.
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-[9px] text-[#ffb000] tracking-widest">RETREAT IN</div>
+              <div id="intel-combat-timer" class="font-display text-2xl text-[#ff4b6e] glow-crimson leading-none">01:00</div>
+            </div>
+          </div>
+          <div class="w-full h-2 bg-black/70 rounded-full overflow-hidden border border-[#ff4b6e]/40">
+            <div id="intel-combat-bar" class="h-full bg-gradient-to-r from-[#ff3344] to-[#ffb000] transition-all duration-100" style="width: 100%;"></div>
+          </div>
+        </div>
+
         <!-- Spectral Signature Telemetry Bar -->
         <div class="grid grid-cols-3 gap-2 text-center bg-black/50 p-2.5 rounded-lg border border-[#33ff66]/25">
           <div>
@@ -471,8 +516,8 @@
             <div id="intel-sector" class="font-display text-[#ffb000] text-xs">SUMP-09</div>
           </div>
           <div>
-            <div class="text-[9px] text-[#33ff66]/60">INTEGRITY</div>
-            <div class="font-display text-[#33ff66] text-xs">DECODED</div>
+            <div class="text-[9px] text-[#33ff66]/60">PHASE STATE</div>
+            <div id="intel-phase-state" class="font-display text-[#ff4b6e] text-xs">MATERIALIZED</div>
           </div>
         </div>
 
@@ -494,9 +539,12 @@
       </div>
 
       <!-- Footer -->
-      <div class="p-3.5 border-t border-[#33ff66]/25 bg-black/60 flex justify-end gap-2 shrink-0">
-        <button id="btn-close-intel" class="btn-auspex px-5 py-2.5 rounded-xl font-display text-xs tracking-wider text-[#00f0ff] border-[#00f0ff]/70">
-          LOG TO DATASLATE &amp; RESUME
+      <div class="p-3.5 border-t border-[#33ff66]/25 bg-black/60 flex flex-wrap justify-end gap-2 shrink-0">
+        <button id="btn-close-intel" class="btn-auspex px-4 py-2.5 rounded-xl font-display text-xs tracking-wider text-[#ffb000] border-[#ffb000]/70">
+          RETURN TO VISOR
+        </button>
+        <button id="btn-banish-entity" class="btn-auspex px-4 py-2.5 rounded-xl font-display text-xs tracking-wider text-[#33ff66] border-[#33ff66]/80">
+          CONFIRM KILL / LOG INTEL
         </button>
       </div>
     </div>
@@ -746,8 +794,15 @@
       lockedGhost: null,
       scanningGhost: null,
       isScanning: false,
-      scanProgress: 0, // 0..100
+      scanProgress: 0, // 0..100 (Null-Phase Materialization Charge)
       lastPingTime: 0,
+      lastZapSoundTime: 0,
+
+      // Material Plane Combat Window State
+      combatWindowDuration: 60, // seconds before entity retreats to Immaterium
+      materializedGhost: null,
+      combatTimerRemaining: 0,
+      activeModalGhost: null,
 
       // Field of view (degrees)
       fovX: 74,
@@ -763,6 +818,8 @@
       scanOsc: null,
       scanGain: null,
       chimeSynth: null,
+      zapSynth: null,
+      boomSynth: null,
 
       async init() {
         if (state.audioInitialized || typeof Tone === 'undefined') return;
@@ -775,8 +832,21 @@
           this.pingSynth.volume.value = -16;
 
           this.scanGain = new Tone.Gain(0).toDestination();
-          this.scanOsc = new Tone.Oscillator(220, 'sawtooth').connect(this.scanGain);
+          this.scanOsc = new Tone.Oscillator(160, 'sawtooth').connect(this.scanGain);
           this.scanOsc.start();
+
+          this.zapSynth = new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.002, decay: 0.06, sustain: 0, release: 0.04 }
+          }).toDestination();
+          this.zapSynth.volume.value = -18;
+
+          this.boomSynth = new Tone.MembraneSynth({
+            pitchDecay: 0.08,
+            octaves: 5,
+            envelope: { attack: 0.005, decay: 0.55, sustain: 0.02, release: 0.5 }
+          }).toDestination();
+          this.boomSynth.volume.value = -8;
 
           this.chimeSynth = new Tone.PolySynth(Tone.Synth, {
             oscillator: { type: 'triangle' },
@@ -802,11 +872,40 @@
         if (!state.audioInitialized || !this.scanGain || !this.scanOsc) return;
         try {
           if (active && state.soundEnabled) {
-            this.scanOsc.frequency.rampTo(180 + progress * 6.5, 0.06);
-            this.scanGain.gain.rampTo(0.06, 0.05);
+            const wobble = Math.sin(state.time * 48) * 35;
+            this.scanOsc.frequency.rampTo(150 + progress * 6.2 + wobble, 0.04);
+            this.scanGain.gain.rampTo(0.08, 0.04);
           } else {
             this.scanGain.gain.rampTo(0, 0.08);
           }
+        } catch (e) {}
+      },
+
+      playZapCrack() {
+        if (!state.soundEnabled || !state.audioInitialized || !this.zapSynth) return;
+        try {
+          this.zapSynth.triggerAttackRelease('32n');
+        } catch (e) {}
+      },
+
+      playMaterializeBoom() {
+        if (!state.soundEnabled || !state.audioInitialized) return;
+        try {
+          const now = Tone.now();
+          if (this.boomSynth) this.boomSynth.triggerAttackRelease('C2', '4n', now);
+          if (this.chimeSynth) {
+            this.chimeSynth.triggerAttackRelease(['D4', 'F4', 'A4'], '8n', now + 0.05);
+            this.chimeSynth.triggerAttackRelease(['F4', 'A4', 'D5'], '4n', now + 0.22);
+          }
+        } catch (e) {}
+      },
+
+      playRetreatAlert() {
+        if (!state.soundEnabled || !state.audioInitialized || !this.chimeSynth) return;
+        try {
+          const now = Tone.now();
+          this.chimeSynth.triggerAttackRelease(['G4', 'Bb4'], '8n', now);
+          this.chimeSynth.triggerAttackRelease(['D4', 'F4'], '4n', now + 0.2);
         } catch (e) {}
       },
 
@@ -830,6 +929,10 @@
       hudPitch: document.getElementById('hud-pitch'),
       hudSignalLabel: document.getElementById('hud-signal-label'),
       compassStrip: document.getElementById('compass-strip'),
+
+      combatBanner: document.getElementById('combat-window-banner'),
+      combatBannerName: document.getElementById('combat-banner-name'),
+      combatBannerTimer: document.getElementById('combat-banner-timer'),
 
       reticleBrackets: document.getElementById('reticle-brackets'),
       reticleDot: document.getElementById('reticle-dot'),
@@ -860,10 +963,15 @@
       intelClass: document.getElementById('intel-class'),
       intelTitle: document.getElementById('intel-title'),
       intelThreat: document.getElementById('intel-threat'),
+      intelCombatAlert: document.getElementById('intel-combat-alert'),
+      intelCombatTimer: document.getElementById('intel-combat-timer'),
+      intelCombatBar: document.getElementById('intel-combat-bar'),
+      intelPhaseState: document.getElementById('intel-phase-state'),
       intelFreq: document.getElementById('intel-freq'),
       intelSector: document.getElementById('intel-sector'),
       intelLore: document.getElementById('intel-lore'),
       intelReward: document.getElementById('intel-reward'),
+      btnBanishEntity: document.getElementById('btn-banish-entity'),
 
       gmAddForm: document.getElementById('gm-add-form'),
       gmGhostList: document.getElementById('gm-ghost-list'),
@@ -1120,72 +1228,381 @@
 
     function triggerGhostScan(ghost) {
       if (!ghost) {
-        showToast('CENTER A GHOST IN VIEW TO SCAN');
+        showToast('CENTER A GHOST IN VIEW TO FIRE BEAM');
         return;
       }
-      if (ghost.scanned) {
+      if (ghost.scanned || state.materializedGhost === ghost) {
         openIntelModal(ghost);
+        return;
+      }
+      if (state.isScanning && state.scanningGhost === ghost) {
         return;
       }
       state.scanningGhost = ghost;
       state.isScanning = true;
-      showToast('PSY-SCAN ENGAGED — HOLDING LOCK...');
+      showToast('NULL-PHASE BEAM FIRING — FORCING MATERIALIZATION!');
     }
 
     // ==================== 8. PROCEDURAL GRAPHICS RENDERER ====================
 
     /**
-     * Draws a dark atmospheric 3D-projected wireframe underhive room
-     * when the live camera is off.
+     * Draws the Hollow Drifter medallion icon (matching hollow_drifter_head_1024.png)
+     * with reactive zap recoil, eye-flare, and electrical discharge arcs.
      */
-    function drawSimulatedUnderhive(w, h) {
-      const grad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.75);
-      grad.addColorStop(0, '#071c10');
-      grad.addColorStop(1, '#020704');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+    function drawHollowDrifterMedallion(r, isZapped, isMaterialized, isDefeated) {
+      const t = state.time;
+      const flash = isZapped && Math.sin(t * 52) > 0.15;
 
-      const horizonY = h / 2 + (state.pitch / state.fovY) * h;
+      // Outer circular medallion background
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = isMaterialized ? '#1d070e' : '#091718';
+      ctx.fill();
 
+      // Double outer ring
+      ctx.lineWidth = Math.max(2, r * 0.055);
+      ctx.strokeStyle = flash ? '#ffffff' : (isMaterialized ? '#ff4b6e' : '#98ffd5');
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.94, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(1.2, r * 0.025);
+      ctx.strokeStyle = '#040c0d';
+      ctx.stroke();
+
+      // 48 inner radial Auspex ticks around the medallion rim
       ctx.save();
-      ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
-      ctx.lineWidth = 1;
-
-      for (let deg = 0; deg < 360; deg += 15) {
-        const rel = angleDiff(state.heading, deg);
-        if (Math.abs(rel) > state.fovX * 0.75) continue;
-        const x = w / 2 + (rel / (state.fovX / 2)) * (w / 2);
-
+      ctx.strokeStyle = isMaterialized ? 'rgba(255, 75, 110, 0.55)' : 'rgba(110, 220, 185, 0.48)';
+      ctx.lineWidth = Math.max(1, r * 0.022);
+      for (let i = 0; i < 48; i++) {
+        const ang = (i / 48) * Math.PI * 2;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
+        ctx.moveTo(Math.cos(ang) * r * 0.84, Math.sin(ang) * r * 0.84);
+        ctx.lineTo(Math.cos(ang) * r * 0.89, Math.sin(ang) * r * 0.89);
         ctx.stroke();
+      }
+      ctx.restore();
 
-        if (deg % 45 === 0) {
-          ctx.strokeStyle = 'rgba(51, 255, 102, 0.24)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x, horizonY - 120);
-          ctx.lineTo(x, horizonY + 120);
-          ctx.stroke();
-          ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
-          ctx.lineWidth = 1;
+      // Normalize coordinate space to 100x100 centered at (0,0) -> (-50..50)
+      ctx.save();
+      const s = r / 50;
+      ctx.scale(s, s);
+      ctx.translate(-50, -50);
 
-          ctx.fillStyle = 'rgba(51, 255, 102, 0.22)';
-          ctx.font = '11px "Share Tech Mono", monospace';
-          ctx.fillText(`SEC-${String(deg).padStart(3, '0')}`, x + 6, horizonY - 10);
-        }
+      // Subtle breathing / recoil distortion when zapped
+      if (isZapped) {
+        const squash = 1 + Math.sin(t * 45) * 0.06;
+        ctx.translate(50, 50);
+        ctx.scale(squash, 2 - squash);
+        ctx.translate(-50, -50);
       }
 
-      const lines = [-20, -10, 0, 10, 20];
-      lines.forEach((p) => {
-        const y = h / 2 - ((p - state.pitch) / (state.fovY / 2)) * (h / 2);
-        ctx.strokeStyle = p === 0 ? 'rgba(51, 255, 102, 0.32)' : 'rgba(51, 255, 102, 0.11)';
+      // Main Hollow Drifter horned + tentacled head silhouette
+      ctx.beginPath();
+      // Central crown spike
+      ctx.moveTo(50, 12);
+      ctx.lineTo(54.5, 25.5);
+      // Right inner curved horn
+      ctx.quadraticCurveTo(60, 21, 61, 10.5);
+      ctx.quadraticCurveTo(64.5, 19, 61.5, 31);
+      // Right large outer sweeping horn
+      ctx.quadraticCurveTo(72, 27, 77.5, 15.5);
+      ctx.quadraticCurveTo(78, 32, 65, 41);
+      // Right upper tendril arm
+      ctx.quadraticCurveTo(77, 45, 79.5, 62.5);
+      ctx.quadraticCurveTo(72, 53.5, 63, 55.5);
+      // Right lower tendril
+      ctx.quadraticCurveTo(69, 65, 75.5, 77);
+      ctx.quadraticCurveTo(65, 74, 59, 62);
+      // Right-center tentacle
+      ctx.quadraticCurveTo(61, 74, 62, 84);
+      ctx.quadraticCurveTo(55, 78, 53, 68);
+      // Center sinuous tail tentacle
+      ctx.quadraticCurveTo(51, 79, 49.5, 88.5);
+      ctx.quadraticCurveTo(45, 80, 46, 67);
+      // Left-center tentacle
+      ctx.quadraticCurveTo(41, 76, 36.5, 83);
+      ctx.quadraticCurveTo(38, 73, 41, 62);
+      // Left lower tendril
+      ctx.quadraticCurveTo(35, 74, 24.5, 77);
+      ctx.quadraticCurveTo(31, 65, 37, 55.5);
+      // Left upper tendril arm
+      ctx.quadraticCurveTo(28, 53.5, 20.5, 62.5);
+      ctx.quadraticCurveTo(23, 45, 35, 41);
+      // Left large outer sweeping horn
+      ctx.quadraticCurveTo(22, 32, 22.5, 15.5);
+      ctx.quadraticCurveTo(28, 27, 38.5, 31);
+      // Left inner curved horn
+      ctx.quadraticCurveTo(35.5, 19, 39, 10.5);
+      ctx.quadraticCurveTo(40, 21, 45.5, 25.5);
+      ctx.closePath();
+
+      ctx.fillStyle = flash ? '#ffffff' : (isDefeated ? '#58c99d' : '#98ffd5');
+      ctx.strokeStyle = '#183a32';
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.fill();
+      ctx.stroke();
+
+      // Forehead vertical 3rd eye
+      ctx.fillStyle = '#091718';
+      ctx.beginPath();
+      ctx.moveTo(50, 29.5);
+      ctx.quadraticCurveTo(53.6, 35.5, 50, 41.5);
+      ctx.quadraticCurveTo(46.4, 35.5, 50, 29.5);
+      ctx.fill();
+
+      ctx.fillStyle = isZapped ? '#00f0ff' : '#ff4b6e';
+      ctx.beginPath();
+      ctx.ellipse(50, 35.5, isZapped ? 2.1 : 1.5, isZapped ? 4.4 : 3.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Left & right angular eye sockets
+      ctx.fillStyle = '#091718';
+      ctx.beginPath();
+      ctx.moveTo(33.5, 41.5);
+      ctx.lineTo(46.5, 46.5);
+      ctx.lineTo(44.5, 52.5);
+      ctx.quadraticCurveTo(37, 53, 34, 46.5);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(66.5, 41.5);
+      ctx.lineTo(53.5, 46.5);
+      ctx.lineTo(55.5, 52.5);
+      ctx.quadraticCurveTo(63, 53, 66, 46.5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Glowing irises (flare brightly when zapped or materialized)
+      const eyeR = isZapped ? 3.5 : (isMaterialized ? 3.1 : 2.6);
+      ctx.fillStyle = flash ? '#00f0ff' : '#ff4b6e';
+      ctx.shadowColor = flash ? '#00f0ff' : '#ff4b6e';
+      ctx.shadowBlur = isZapped || isMaterialized ? 10 : 4;
+      ctx.beginPath();
+      ctx.arc(41.5, 48, eyeR, 0, Math.PI * 2);
+      ctx.arc(58.5, 48, eyeR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Nasal slits
+      ctx.fillStyle = '#091718';
+      ctx.beginPath();
+      ctx.moveTo(47.8, 51.5);
+      ctx.lineTo(48.8, 55.2);
+      ctx.lineTo(46.6, 54.6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(52.2, 51.5);
+      ctx.lineTo(53.4, 54.6);
+      ctx.lineTo(51.2, 55.2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Jagged toothed maw (opens wider in psychic shriek when zapped!)
+      const mouthOpen = isZapped ? 3.2 : 0;
+      ctx.fillStyle = '#091718';
+      ctx.beginPath();
+      ctx.moveTo(39, 57.5);
+      ctx.lineTo(43.5, 61);
+      ctx.lineTo(46.5, 58.2);
+      ctx.lineTo(50, 62);
+      ctx.lineTo(53.5, 58.2);
+      ctx.lineTo(56.5, 61);
+      ctx.lineTo(61, 57.5);
+      ctx.lineTo(57.8, 66.5 + mouthOpen);
+      ctx.lineTo(53.5, 63 + mouthOpen * 0.6);
+      ctx.lineTo(50, 67.5 + mouthOpen);
+      ctx.lineTo(46.5, 63 + mouthOpen * 0.6);
+      ctx.lineTo(42.2, 66.5 + mouthOpen);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    /**
+     * Draws twin crackling Null-Phase Disruptor Beams from the visor bottom into the target
+     */
+    function drawNullBeam(w, h, tx, ty, progress) {
+      const t = state.time;
+      const emitters = [
+        { x: w * 0.22, y: h + 10 },
+        { x: w * 0.78, y: h + 10 }
+      ];
+
+      ctx.save();
+      emitters.forEach((em, idx) => {
+        // Outer plasma glow beam
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.32)';
+        ctx.lineWidth = 14 + (progress / 100) * 10;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+        ctx.moveTo(em.x, em.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // Jagged electric lightning core
+        const segments = 12;
+        ctx.strokeStyle = idx === 0 ? '#00f0ff' : '#ff4b6e';
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.moveTo(em.x, em.y);
+        for (let i = 1; i < segments; i++) {
+          const f = i / segments;
+          const bx = em.x + (tx - em.x) * f + (Math.random() - 0.5) * 26;
+          const by = em.y + (ty - em.y) * f + (Math.random() - 0.5) * 26;
+          ctx.lineTo(bx, by);
+        }
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // Bright white inner filament
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(em.x, em.y);
+        for (let i = 1; i < segments; i++) {
+          const f = i / segments;
+          const bx = em.x + (tx - em.x) * f + (Math.random() - 0.5) * 11;
+          const by = em.y + (ty - em.y) * f + (Math.random() - 0.5) * 11;
+          ctx.lineTo(bx, by);
+        }
+        ctx.lineTo(tx, ty);
         ctx.stroke();
       });
+
+      // Impact energy burst & flying sparks at ghost center
+      const flareR = 24 + Math.sin(t * 42) * 8 + (progress / 100) * 22;
+      const burst = ctx.createRadialGradient(tx, ty, 2, tx, ty, flareR * 1.8);
+      burst.addColorStop(0, 'rgba(255, 255, 255, 0.92)');
+      burst.addColorStop(0.35, 'rgba(0, 240, 255, 0.65)');
+      burst.addColorStop(0.7, 'rgba(255, 75, 110, 0.35)');
+      burst.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = burst;
+      ctx.beginPath();
+      ctx.arc(tx, ty, flareR * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sparks spraying outward
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 10; i++) {
+        const ang = (i / 10) * Math.PI * 2 + t * 9;
+        const dist = 18 + ((t * 140 + i * 29) % 58);
+        ctx.fillRect(tx + Math.cos(ang) * dist, ty + Math.sin(ang) * dist, 3, 3);
+      }
+      ctx.restore();
+    }
+
+    /**
+     * Procedurally draws a stationary, grounded Hollow Drifter spectral entity at (x, y)
+     */
+    function drawSpectralGhost(ghost, x, y, scale, isLocked) {
+      const style = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
+      const t = state.time;
+      const isZapped = state.isScanning && state.scanningGhost === ghost;
+      const isMaterialized = state.materializedGhost === ghost;
+
+      // Stationary when untouched; reacts with sharp electric recoil when hit by the beam!
+      const shakeAmp = isZapped ? 7.5 + (state.scanProgress / 100) * 8 : 0;
+      const cx = x + (isZapped ? (Math.random() - 0.5) * shakeAmp * 2 : 0);
+      const cy = y + (isZapped ? (Math.random() - 0.5) * shakeAmp * 2 : 0);
+      const r = 52 * scale;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Grounded holographic anchor ring below the ghost
+      ctx.save();
+      ctx.strokeStyle = isMaterialized ? '#ff4b6e' : style.primary;
+      ctx.globalAlpha = ghost.scanned ? 0.28 : 0.65;
+      ctx.lineWidth = isMaterialized ? 2.2 : 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, r * 1.24, r * 0.92, r * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.ellipse(0, r * 1.24, r * 0.52, r * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Soft outer spectral aura glow (turns crimson when forced into Material Plane)
+      const auraColor = isMaterialized ? '#ff4b6e' : (isZapped ? '#00f0ff' : '#98ffd5');
+      const aura = ctx.createRadialGradient(0, 0, r * 0.25, 0, 0, r * 1.75);
+      aura.addColorStop(0, auraColor + (isMaterialized ? '75' : '50'));
+      aura.addColorStop(0.6, style.secondary + '22');
+      aura.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.75, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Steady rotating psychic containment ring
+      ctx.save();
+      ctx.rotate(t * (isZapped ? 3.8 : (isLocked ? 1.1 : 0.4)));
+      ctx.strokeStyle = isMaterialized ? '#ff4b6e' : (isZapped ? '#00f0ff' : '#98ffd5');
+      ctx.globalAlpha = ghost.scanned ? 0.35 : 0.82;
+      ctx.lineWidth = isZapped || isMaterialized ? 2.6 : 1.4;
+      ctx.setLineDash([10, 6]);
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.18, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw the Hollow Drifter Icon (translucent in psychic plane, solid when materialized!)
+      ctx.globalAlpha = isMaterialized
+        ? 1.0
+        : (ghost.scanned ? 0.45 : (isZapped ? 0.96 : 0.78 + Math.sin(t * 2.5) * 0.05));
+      drawHollowDrifterMedallion(r, isZapped, isMaterialized, ghost.scanned);
+
+      // Crackling arcs wrapping the ghost while getting zapped
+      if (isZapped) {
+        ctx.save();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.95;
+        for (let a = 0; a < 3; a++) {
+          const startAng = Math.random() * Math.PI * 2;
+          ctx.beginPath();
+          for (let step = 0; step <= 4; step++) {
+            const ang = startAng + step * 0.55;
+            const rad = r * (0.85 + Math.random() * 0.35);
+            const px = Math.cos(ang) * rad;
+            const py = Math.sin(ang) * rad;
+            if (step === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Label & status readout above ghost
+      ctx.globalAlpha = 0.96;
+      ctx.font = 'bold 11px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      const distText = `${Number(ghost.distance || 2.5).toFixed(1)}m`;
+      let tag;
+      if (ghost.scanned) {
+        ctx.fillStyle = '#33ff66';
+        tag = `[BANISHED] ${ghost.name.toUpperCase()}`;
+      } else if (isMaterialized) {
+        ctx.fillStyle = '#ff4b6e';
+        tag = `[MATERIALIZED • FIGHT! ${formatTimer(state.combatTimerRemaining)}]`;
+      } else if (isZapped) {
+        ctx.fillStyle = '#00f0ff';
+        tag = `[DISRUPTING PHASE... ${Math.round(state.scanProgress)}%]`;
+      } else {
+        ctx.fillStyle = '#98ffd5';
+        tag = `[IMMATERIUM ECHO • ${distText}]`;
+      }
+      ctx.fillText(tag, 0, -r * 1.32);
 
       ctx.restore();
     }
@@ -1577,17 +1994,25 @@
       if (state.isScanning && state.scanningGhost) {
         const g = state.scanningGhost;
         const scanDist = Math.hypot(angleDiff(state.heading, g.azimuth), g.pitch - state.pitch);
-        if (scanDist > 38) {
+        if (scanDist > 40) {
           state.isScanning = false;
           state.scanningGhost = null;
           state.scanProgress = 0;
           AudioEngine.updateScanBeam(false);
-          showToast('SIGNAL LOST — KEEP TARGET IN VIEW');
+          showToast('BEAM LOST — KEEP ENTITY IN VIEW');
         } else {
-          state.scanProgress = Math.min(100, state.scanProgress + dt * 68); // ~1.45s smooth scan
+          // Draw crackling Null-Phase Beam from visor into the ghost
+          if (typeof g._screenX === 'number' && typeof g._screenY === 'number') {
+            drawNullBeam(w, h, g._screenX, g._screenY, state.scanProgress);
+          }
+          state.scanProgress = Math.min(100, state.scanProgress + dt * 44); // ~2.25s intense zap
           AudioEngine.updateScanBeam(true, state.scanProgress);
+          if (state.time - state.lastZapSoundTime > 0.14) {
+            state.lastZapSoundTime = state.time;
+            AudioEngine.playZapCrack();
+          }
           if (state.scanProgress >= 100) {
-            completeScan(g);
+            materializeGhost(g);
           }
         }
       } else {
@@ -1595,32 +2020,52 @@
         AudioEngine.updateScanBeam(false);
       }
 
+      // Tick down active Material Plane combat window before entity retreats to Immaterium
+      if (state.materializedGhost) {
+        state.combatTimerRemaining = Math.max(0, state.combatTimerRemaining - dt);
+        updateCombatTimerUI();
+        if (state.combatTimerRemaining <= 0) {
+          handleEntityRetreat();
+        }
+      }
+
       // Update Signal Strength & Reticle HUD
       const activeTarget = state.scanningGhost || bestLock;
 
+      dom.btnScan.classList.toggle('firing', state.isScanning);
+
       if (activeTarget) {
         const isAlreadyScanned = activeTarget.scanned;
-        const lockColor = isAlreadyScanned ? '#33ff66' : '#00f0ff';
+        const isMat = state.materializedGhost === activeTarget;
+        const lockColor = isMat ? '#ff4b6e' : (isAlreadyScanned ? '#33ff66' : '#00f0ff');
 
-        dom.hudSignalLabel.textContent = state.isScanning ? 'SIGNAL: DECODING...' : 'SIGNAL: TARGET LOCKED';
-        dom.hudSignalLabel.className = 'text-[#00f0ff] font-bold';
+        dom.hudSignalLabel.textContent = state.isScanning
+          ? 'SIGNAL: FIRING NULL-BEAM!'
+          : (isMat ? 'ALERT: ENTITY MATERIALIZED' : 'SIGNAL: TARGET LOCKED');
+        dom.hudSignalLabel.className = isMat ? 'text-[#ff4b6e] font-bold' : 'text-[#00f0ff] font-bold';
 
         dom.reticleBrackets.setAttribute('stroke', lockColor);
         dom.reticleDot.setAttribute('fill', lockColor);
 
-        dom.targetNameBadge.textContent = isAlreadyScanned
-          ? `LOGGED: ${activeTarget.name.toUpperCase()}`
-          : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'WARP ENTITY LOCKED');
+        dom.targetNameBadge.textContent = isMat
+          ? `MATERIALIZED: ${formatTimer(state.combatTimerRemaining)}`
+          : (isAlreadyScanned
+            ? `BANISHED: ${activeTarget.name.toUpperCase()}`
+            : (state.isScanning ? `FORCING REALITY... ${Math.round(state.scanProgress)}%` : 'IMMATERIUM ENTITY LOCKED'));
         dom.targetNameBadge.style.borderColor = lockColor;
         dom.targetNameBadge.style.color = lockColor;
-        dom.targetSubInfo.textContent = isAlreadyScanned
-          ? 'TAP SCAN TO REVIEW DATASLATE'
-          : `DIST ${Number(activeTarget.distance || 2.5).toFixed(1)}m // TAP TO DECODE`;
+        dom.targetSubInfo.textContent = isMat
+          ? 'SHORT WINDOW — FIGHT BEFORE IT RETREATS!'
+          : (isAlreadyScanned
+            ? 'TAP TO REVIEW DATASLATE'
+            : `DIST ${Number(activeTarget.distance || 2.5).toFixed(1)}m // FIRE BEAM TO MATERIALIZE`);
 
         dom.btnScan.classList.add('locked');
-        dom.btnScanText.textContent = isAlreadyScanned
-          ? 'VIEW DECODED INTEL'
-          : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'TAP TO PSY-SCAN');
+        dom.btnScanText.textContent = isMat
+          ? 'OPEN COMBAT WINDOW'
+          : (isAlreadyScanned
+            ? 'VIEW BANISHED INTEL'
+            : (state.isScanning ? `ZAPPING... ${Math.round(state.scanProgress)}%` : 'FIRE NULL-BEAM'));
       } else {
         dom.hudSignalLabel.textContent = nearestUnscannedDist < 42 ? 'SIGNAL: STRONG ECHO' : 'SIGNAL: NOMINAL';
         dom.hudSignalLabel.className = nearestUnscannedDist < 42 ? 'text-[#ffb000]' : 'text-[#33ff66]/80';
@@ -1646,36 +2091,98 @@
       requestAnimationFrame(animate);
     }
 
-    // ==================== 10. SCAN COMPLETION & MODALS ====================
-    function completeScan(ghost) {
+    // ==================== 10. MATERIALIZATION, COMBAT WINDOW & MODALS ====================
+    function formatTimer(seconds) {
+      const s = Math.ceil(Math.max(0, seconds));
+      const mins = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+    }
+
+    function materializeGhost(ghost) {
       state.isScanning = false;
       state.scanningGhost = null;
       state.scanProgress = 0;
       AudioEngine.updateScanBeam(false);
-      AudioEngine.playDecodedChime();
+      AudioEngine.playMaterializeBoom();
 
+      state.materializedGhost = ghost;
+      state.combatTimerRemaining = state.combatWindowDuration;
+
+      dom.combatBannerName.textContent = ghost.name.toUpperCase();
+      dom.combatBanner.classList.remove('hidden');
+      updateCombatTimerUI();
+      openIntelModal(ghost);
+    }
+
+    function updateCombatTimerUI() {
+      const formatted = formatTimer(state.combatTimerRemaining);
+      const pct = (state.combatTimerRemaining / state.combatWindowDuration) * 100;
+      dom.combatBannerTimer.textContent = formatted;
+      dom.intelCombatTimer.textContent = formatted;
+      dom.intelCombatBar.style.width = `${pct.toFixed(1)}%`;
+    }
+
+    function handleEntityRetreat() {
+      const retreated = state.materializedGhost;
+      state.materializedGhost = null;
+      state.combatTimerRemaining = 0;
+      dom.combatBanner.classList.add('hidden');
+      AudioEngine.playRetreatAlert();
+
+      if (retreated && state.activeModalGhost === retreated) {
+        closeIntelModal();
+      }
+      showToast(`${retreated ? retreated.name.toUpperCase() : 'ENTITY'} RETREATED TO THE IMMATERIUM!`);
+    }
+
+    function confirmEntityBanished() {
+      const ghost = state.activeModalGhost || state.materializedGhost;
+      if (!ghost) {
+        closeIntelModal();
+        return;
+      }
       if (!ghost.scanned) {
         ghost.scanned = true;
         saveGhosts();
       }
-      openIntelModal(ghost);
+      if (state.materializedGhost === ghost) {
+        state.materializedGhost = null;
+        state.combatTimerRemaining = 0;
+        dom.combatBanner.classList.add('hidden');
+      }
+      AudioEngine.playDecodedChime();
+      closeIntelModal();
+      showToast(`${ghost.name.toUpperCase()} BANISHED & LOGGED!`);
     }
 
     function openIntelModal(ghost) {
+      state.activeModalGhost = ghost;
       const arch = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
-      dom.intelClass.textContent = `CLASSIFICATION // ${arch.label}`;
+      const isMat = state.materializedGhost === ghost;
+
+      dom.intelClass.textContent = isMat
+        ? `MATERIAL PLANE BREACH // ${arch.label}`
+        : `BANISHED RECORD // ${arch.label}`;
       dom.intelTitle.textContent = ghost.name;
       dom.intelThreat.textContent = `THREAT: ${ghost.threat}`;
       dom.intelFreq.textContent = ghost.freq || '77.4 kHz';
       dom.intelSector.textContent = ghost.sector || 'UNDERHIVE';
+      dom.intelPhaseState.textContent = isMat ? 'MATERIALIZED' : 'BANISHED';
+      dom.intelPhaseState.className = isMat ? 'font-display text-[#ff4b6e] text-xs' : 'font-display text-[#33ff66] text-xs';
       dom.intelLore.textContent = ghost.lore;
       dom.intelReward.textContent = ghost.reward;
+
+      dom.intelCombatAlert.classList.toggle('hidden', !isMat);
+      dom.btnBanishEntity.classList.toggle('hidden', ghost.scanned && !isMat);
+      if (isMat) updateCombatTimerUI();
 
       dom.modalIntel.classList.remove('hidden');
       dom.modalIntel.classList.add('flex');
     }
 
     function closeIntelModal() {
+      state.activeModalGhost = null;
       dom.modalIntel.classList.add('hidden');
       dom.modalIntel.classList.remove('flex');
     }
@@ -1847,6 +2354,10 @@
 
       // Modals
       document.getElementById('btn-close-intel').addEventListener('click', closeIntelModal);
+      dom.btnBanishEntity.addEventListener('click', confirmEntityBanished);
+      document.getElementById('btn-open-combat-modal').addEventListener('click', () => {
+        if (state.materializedGhost) openIntelModal(state.materializedGhost);
+      });
       document.getElementById('btn-archive').addEventListener('click', openArchiveModal);
       document.getElementById('btn-close-archive').addEventListener('click', closeArchiveModal);
       document.getElementById('btn-rescatter').addEventListener('click', () => {
