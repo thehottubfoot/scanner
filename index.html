@@ -1,2101 +1,1876 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- Enable fullscreen standalone mode when added to iOS/Android Home Screen -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Underhive Auspex">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#14110f">
-    <title>UNDERHIVE BIO-SCANNER v4.1 // MALSTRAIN PROTOCOL</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js for grimdark synth/scanner SFX without external assets -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <!-- Google Fonts: Chakra Petch / Orbitron / Share Tech Mono for heavy stencil & CRT cogitator look -->
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --phosphor-green: #58e678;
-            --phosphor-amber: #f59e0b;
-            --malstrain-crimson: #ef4444;
-            --rust-dark: #231610;
-            --iron-dark: #18191b;
-            --iron-mid: #282a2e;
-            --safe-top: env(safe-area-inset-top, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 10px);
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AUSPEX MK.IV // Necromunda Warp-Entity Scanner</title>
 
-        html, body {
-            height: 100dvh;
-            width: 100vw;
-            margin: 0;
-            padding: 0;
-            background-color: #0d0c0b;
-            color: var(--phosphor-green);
-            font-family: 'Share Tech Mono', monospace;
-            overflow: hidden;
-            overscroll-behavior: none;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-        }
+  <!-- Tailwind CSS for responsive layout and utility styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-        .font-stencil {
-            font-family: 'Chakra Petch', sans-serif;
-            letter-spacing: 0.04em;
-        }
+  <!-- Tone.js for procedural Auspex sonar pings, warp static, and scan audio -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
-        .font-display {
-            font-family: 'Orbitron', sans-serif;
-        }
+  <!-- Grimdark tactical monospace font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 
-        /* Rusted Underhive Iron Chassis Texture */
-        .underhive-chassis {
-            background-color: #191817;
-            background-image:
-                radial-gradient(circle at 12% 18%, rgba(120, 48, 18, 0.35) 0%, transparent 32%),
-                radial-gradient(circle at 88% 76%, rgba(110, 42, 16, 0.38) 0%, transparent 35%),
-                radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.75) 100%),
-                repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px);
-            box-shadow: inset 0 0 24px rgba(0,0,0,0.95);
-        }
+  <style>
+    :root {
+      --phosphor: #33ff66;
+      --phosphor-dim: rgba(51, 255, 102, 0.25);
+      --amber: #ffb000;
+      --crimson: #ff3344;
+      --cyan: #00f0ff;
+      --bg-dark: #040906;
+    }
 
-        /* Beveled Steel Frame with Rust Patina */
-        .metal-plate {
-            background: linear-gradient(180deg, #323130 0%, #201f1e 48%, #151413 100%);
-            border: 2px solid #463b33;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 225, 195, 0.14),
-                inset 0 -2px 4px rgba(0, 0, 0, 0.85),
-                0 4px 10px rgba(0, 0, 0, 0.8);
-            position: relative;
-        }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
 
-        .metal-plate-rusted {
-            background:
-                radial-gradient(circle at 15% 20%, rgba(138, 56, 22, 0.42), transparent 45%),
-                radial-gradient(circle at 85% 80%, rgba(120, 45, 15, 0.48), transparent 50%),
-                linear-gradient(180deg, #2d2a28 0%, #1b1918 100%);
-            border: 2px solid #4e3b2e;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 210, 170, 0.12),
-                inset 0 -2px 5px rgba(0, 0, 0, 0.9),
-                0 4px 12px rgba(0, 0, 0, 0.85);
-        }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      color: var(--phosphor);
+      font-family: 'Share Tech Mono', monospace;
+    }
 
-        /* Recessed CRT Screen Bezel */
-        .crt-well {
-            background: #070b08;
-            border: 2px solid #3c342e;
-            box-shadow:
-                inset 0 0 18px rgba(0, 0, 0, 0.98),
-                inset 0 2px 6px rgba(0, 0, 0, 0.9),
-                0 1px 0 rgba(255, 255, 255, 0.08);
-        }
+    .font-display {
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+    }
 
-        /* Corner Rivets */
-        .rivet {
-            width: 7px;
-            height: 7px;
-            border-radius: 9999px;
-            background: radial-gradient(circle at 30% 30%, #8b827a, #3a342f 65%, #171412 100%);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.9), inset 0 0.5px 0.5px rgba(255,255,255,0.3);
-            position: absolute;
-            pointer-events: none;
-            z-index: 25;
-        }
+    /* Fullscreen camera video feed */
+    #camera-feed {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      transition: filter 0.3s ease;
+    }
 
-        /* Diagonal Cooling Vents */
-        .vent-slits {
-            background: repeating-linear-gradient(
-                -45deg,
-                #0a0908,
-                #0a0908 4px,
-                #2a2623 4px,
-                #2a2623 8px
-            );
-            border: 1px solid #3d352e;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.9);
-        }
+    /* Optional night-vision / auspex green tint over live camera */
+    .filter-auspex {
+      filter: contrast(1.25) brightness(0.75) sepia(1) hue-rotate(75deg) saturate(2.4);
+    }
 
-        /* Weathered Hazard Warning Stripe */
-        .hazard-stripe {
-            background: repeating-linear-gradient(
-                -45deg,
-                #b88214,
-                #b88214 10px,
-                #161412 10px,
-                #161412 20px
-            );
-            box-shadow: inset 0 0 12px rgba(0,0,0,0.75);
-        }
+    .filter-raw {
+      filter: contrast(1.08) brightness(0.85);
+    }
 
-        /* CRT Scanline & Chromatic Aberration Overlay */
-        .crt-scanlines {
-            background: linear-gradient(
-                rgba(18, 16, 16, 0) 50%,
-                rgba(0, 0, 0, 0.36) 50%
-            ), linear-gradient(
-                90deg,
-                rgba(255, 0, 0, 0.04),
-                rgba(0, 255, 0, 0.02),
-                rgba(0, 0, 255, 0.04)
-            );
-            background-size: 100% 3px, 6px 100%;
-            pointer-events: none;
-        }
+    /* AR overlay canvas for ghosts, particles, and simulated 3D grid */
+    #ar-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 2;
+      touch-action: none;
+      cursor: grab;
+    }
 
-        /* Phosphor Glows */
-        .glow-green {
-            text-shadow: 0 0 8px rgba(88, 230, 120, 0.65), 0 0 2px rgba(88, 230, 120, 0.9);
-        }
-        .glow-amber {
-            text-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 0 0 2px rgba(245, 158, 11, 0.9);
-        }
-        .glow-red {
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 3px rgba(239, 68, 68, 1);
-        }
+    #ar-canvas:active {
+      cursor: grabbing;
+    }
 
-        /* Heavy Industrial Switch Buttons */
-        .hw-btn {
-            background:
-                radial-gradient(circle at 20% 25%, rgba(130, 52, 20, 0.32), transparent 55%),
-                linear-gradient(180deg, #3a3734 0%, #24211f 52%, #171514 100%);
-            border: 2px solid #52453b;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 235, 210, 0.18),
-                inset 0 -3px 6px rgba(0, 0, 0, 0.9),
-                0 4px 8px rgba(0, 0, 0, 0.85);
-            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
-        }
-        .hw-btn:active:not(:disabled) {
-            transform: translateY(2px) scale(0.98);
-            box-shadow:
-                inset 0 2px 6px rgba(0, 0, 0, 0.95),
-                0 1px 2px rgba(0, 0, 0, 0.9);
-        }
-        .hw-btn-amber {
-            background:
-                radial-gradient(circle at 80% 20%, rgba(145, 85, 18, 0.35), transparent 60%),
-                linear-gradient(180deg, #4b3d28 0%, #2e2518 52%, #1d170f 100%);
-            border: 2px solid #6b5638;
-        }
+    /* CRT Scanlines & Vignette Overlay */
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%),
+        radial-gradient(circle at center, transparent 55%, rgba(0, 8, 4, 0.82) 100%);
+      background-size: 100% 4px, 100% 100%;
+    }
 
-        /* Segmented LED Bar Cells */
-        .led-segment {
-            flex: 1;
-            height: 100%;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.06);
-            transition: background-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .led-segment.active-green {
-            background: #58e678;
-            box-shadow: 0 0 6px rgba(88, 230, 120, 0.85);
-        }
-        .led-segment.active-amber {
-            background: #f59e0b;
-            box-shadow: 0 0 6px rgba(245, 158, 11, 0.85);
-        }
-        .led-segment.active-red {
-            background: #ef4444;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.95);
-        }
+    /* Tactical HUD container */
+    #hud-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
 
-        /* Alarm Pulse Animation */
-        @keyframes alarmBorderPulse {
-            0%, 100% { box-shadow: inset 0 0 18px rgba(239, 68, 68, 0.35), 0 0 18px rgba(239, 68, 68, 0.4); }
-            50% { box-shadow: inset 0 0 34px rgba(239, 68, 68, 0.75), 0 0 28px rgba(239, 68, 68, 0.8); }
-        }
-        .alarm-active {
-            animation: alarmBorderPulse 0.85s infinite;
-        }
+    .interactive {
+      pointer-events: auto;
+    }
 
-        .safe-top-pad {
-            padding-top: calc(0.45rem + var(--safe-top));
-        }
-        .safe-bottom-pad {
-            padding-bottom: calc(0.5rem + var(--safe-bottom));
-        }
+    /* Grimdark Imperial Hazard Stripes */
+    .hazard-border {
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 176, 0, 0.85),
+        rgba(255, 176, 0, 0.85) 8px,
+        rgba(15, 15, 15, 0.95) 8px,
+        rgba(15, 15, 15, 0.95) 16px
+      );
+    }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #12100e; }
-        ::-webkit-scrollbar-thumb { background: #58e678; }
-    </style>
+    /* Phosphor glow text & panels */
+    .glow-green {
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.65);
+    }
+
+    .glow-amber {
+      text-shadow: 0 0 8px rgba(255, 176, 0, 0.7);
+    }
+
+    .glow-crimson {
+      text-shadow: 0 0 10px rgba(255, 51, 68, 0.8);
+    }
+
+    .hud-panel {
+      background: rgba(4, 14, 8, 0.78);
+      border: 1px solid rgba(51, 255, 102, 0.4);
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(51, 255, 102, 0.08);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Tactile Game Buttons */
+    .btn-auspex {
+      background: linear-gradient(180deg, rgba(20, 58, 34, 0.92) 0%, rgba(7, 24, 14, 0.96) 100%);
+      border: 1px solid rgba(51, 255, 102, 0.65);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(51, 255, 102, 0.35);
+      transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-auspex:hover {
+      border-color: #66ff8f;
+      box-shadow: 0 0 18px rgba(51, 255, 102, 0.35), inset 0 1px 0 rgba(51, 255, 102, 0.5);
+    }
+
+    .btn-auspex:active {
+      transform: scale(0.96);
+    }
+
+    .btn-scan-primary {
+      background: linear-gradient(180deg, rgba(255, 176, 0, 0.25) 0%, rgba(120, 55, 0, 0.55) 100%);
+      border: 2px solid var(--amber);
+      color: var(--amber);
+      box-shadow: 0 0 20px rgba(255, 176, 0, 0.25), inset 0 0 12px rgba(255, 176, 0, 0.2);
+      transition: all 0.18s ease;
+    }
+
+    .btn-scan-primary.locked {
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.28) 0%, rgba(0, 95, 115, 0.68) 100%);
+      border-color: var(--cyan);
+      color: #e0fbff;
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.5), inset 0 0 16px rgba(0, 240, 255, 0.35);
+      animation: pulseLock 1.1s infinite ease-in-out;
+    }
+
+    .btn-scan-primary:active {
+      transform: scale(0.95);
+    }
+
+    @keyframes pulseLock {
+      0%, 100% { box-shadow: 0 0 18px rgba(0, 240, 255, 0.45); }
+      50% { box-shadow: 0 0 34px rgba(0, 240, 255, 0.85); }
+    }
+
+    /* Reticle animations */
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes spinReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    .spin-slow {
+      animation: spinSlow 18s linear infinite;
+    }
+
+    .spin-reverse {
+      animation: spinReverse 12s linear infinite;
+    }
+
+    /* Radar sweep */
+    @keyframes radarSweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .radar-sweep {
+      animation: radarSweep 3.2s linear infinite;
+      transform-origin: center center;
+    }
+
+    /* Custom scrollbar for dataslate modals */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.4);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(51, 255, 102, 0.4);
+      border-radius: 9999px;
+    }
+
+    /* Allow text selection inside form inputs & code boxes */
+    input, textarea, select {
+      user-select: text;
+    }
+  </style>
 </head>
-<body class="h-[100dvh] w-screen flex flex-col justify-between underhive-chassis overflow-hidden">
+<body class="select-none">
 
-    <!-- MAIN UNDERHIVE COGITATOR CHASSIS -->
-    <div id="chassis-root" class="relative w-full max-w-lg mx-auto h-full flex flex-col justify-between px-2.5 sm:px-4 safe-top-pad safe-bottom-pad gap-2">
+  <!-- ==================== LAYER 1: LIVE CAMERA FEED ==================== -->
+  <video id="camera-feed" class="hidden filter-auspex" autoplay playsinline muted></video>
 
-        <!-- =========================================================
-             1. TOP RIVETED HEADER BAR (UNDERHIVE BIO-SCANNER v4.1)
-             ========================================================= -->
-        <header class="metal-plate-rusted rounded-md px-2.5 py-2 shrink-0 flex items-center justify-between gap-2">
-            <!-- Rivets -->
-            <span class="rivet top-1.5 left-1.5"></span>
-            <span class="rivet top-1.5 right-1.5"></span>
-            <span class="rivet bottom-1.5 left-1.5"></span>
-            <span class="rivet bottom-1.5 right-1.5"></span>
+  <!-- ==================== LAYER 2: AR RENDERING CANVAS ==================== -->
+  <canvas id="ar-canvas"></canvas>
 
-            <!-- Left Cog-Skull Emblem (Tap to open Campaign Scan Logs) -->
-            <button id="history-btn" class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900 border-2 border-stone-600 flex items-center justify-center shrink-0 active:scale-95 transition shadow-inner" title="Open Campaign Scan Logs">
-                <svg class="w-7 h-7 text-stone-400" viewBox="0 0 36 36" fill="currentColor">
-                    <path d="M16 1h4v3.2a13.9 13.9 0 0 1 3.7 1.5l2.3-2.3 2.8 2.8-2.3 2.3A13.9 13.9 0 0 1 28 12.2H31.2v4H28a13.9 13.9 0 0 1-1.5 3.7l2.3 2.3-2.8 2.8-2.3-2.3A13.9 13.9 0 0 1 20 24.2V27.4h-4v-3.2a13.9 13.9 0 0 1-3.7-1.5l-2.3 2.3-2.8-2.8 2.3-2.3A13.9 13.9 0 0 1 8 16.2H4.8v-4H8a13.9 13.9 0 0 1 1.5-3.7L7.2 6.2 10 3.4l2.3 2.3A13.9 13.9 0 0 1 16 4.2V1z" opacity="0.55"/>
-                    <path d="M18 7.5c-4.4 0-8 3.2-8 7.2 0 2.5 1.4 4.7 3.5 6v2.8c0 .8.7 1.5 1.5 1.5h6c.8 0 1.5-.7 1.5-1.5v-2.8c2.1-1.3 3.5-3.5 3.5-6 0-4-3.6-7.2-8-7.2zm-3 8.5a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm6 0a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm-4.5 5.5v-2h1v2h-1zm2 0v-2h1v2h-1z"/>
-                </svg>
-                <span id="history-badge" class="absolute -bottom-1 -right-1 px-1 min-w-[16px] rounded-full bg-amber-600 border border-amber-300 text-[9px] font-bold text-black text-center">0</span>
+  <!-- ==================== LAYER 3: CRT SCANLINES & VIGNETTE ==================== -->
+  <div class="crt-overlay"></div>
+
+  <!-- ==================== LAYER 4: TACTICAL AUSPEX HUD ==================== -->
+  <div id="hud-layer" class="flex flex-col justify-between p-2 sm:p-4">
+
+    <!-- TOP BAR: System Status, Compass Strip & Action Buttons -->
+    <div class="w-full max-w-5xl mx-auto flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-2">
+
+        <!-- Left: Unit Designation & Mode Badge -->
+        <div class="hud-panel rounded-lg px-2.5 py-1.5 flex items-center gap-2 interactive">
+          <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-[#33ff66] animate-pulse shadow-[0_0_8px_#33ff66]"></div>
+          <div class="leading-tight">
+            <div class="font-display text-[10px] sm:text-xs tracking-wider text-[#33ff66] glow-green">AUSPEX MK.IV</div>
+            <div id="mode-indicator" class="text-[10px] text-[#ffb000]">SIM-VISOR // DRAG TO SCAN</div>
+          </div>
+        </div>
+
+        <!-- Right: Quick Controls -->
+        <div class="flex items-center gap-1.5 sm:gap-2 interactive">
+          <!-- Sound Toggle -->
+          <button id="btn-sound" title="Toggle Audio" class="btn-auspex rounded-lg p-2 sm:px-3 sm:py-1.5 text-xs flex items-center gap-1.5">
+            <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"/>
+            </svg>
+            <svg id="icon-sound-off" class="w-4 h-4 hidden text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>
+            </svg>
+            <span class="hidden md:inline">VOX</span>
+          </button>
+
+          <!-- Camera / Sim Toggle -->
+          <button id="btn-camera-toggle" title="Toggle AR Camera" class="btn-auspex rounded-lg p-2 sm:px-3 sm:py-1.5 text-xs flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span id="btn-camera-label" class="hidden sm:inline">AR CAM</span>
+          </button>
+
+          <!-- Dataslate Archive Button -->
+          <button id="btn-archive" class="btn-auspex rounded-lg px-2.5 py-2 sm:px-3 sm:py-1.5 text-xs flex items-center gap-1.5 border-[#ffb000]/70 text-[#ffb000]">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span>LOGS</span>
+            <span id="archive-count" class="bg-[#ffb000]/20 border border-[#ffb000]/60 rounded px-1.5 py-0.5 text-[10px] font-bold">0/5</span>
+          </button>
+
+          <!-- Arbitrator / GM Campaign Editor -->
+          <button id="btn-gm" title="Arbitrator Campaign Editor" class="btn-auspex rounded-lg p-2 sm:px-3 sm:py-1.5 text-xs flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="hidden md:inline">GM</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- COMPASS BAR: Shows current heading & directional warp blips -->
+      <div class="hud-panel rounded-lg px-3 py-1.5 max-w-md w-full mx-auto relative overflow-hidden">
+        <div class="flex items-center justify-between text-[11px] text-[#33ff66]/80 mb-1">
+          <span>AZIMUTH: <strong id="hud-heading" class="text-[#33ff66]">000°</strong></span>
+          <span id="hud-signal-label" class="text-[#ffb000]">SIGNAL: NOMINAL</span>
+          <span>PITCH: <strong id="hud-pitch" class="text-[#33ff66]">00°</strong></span>
+        </div>
+        <!-- Dynamic Compass Strip -->
+        <div class="relative h-5 border-t border-b border-[#33ff66]/30 overflow-hidden bg-black/40 rounded">
+          <div id="compass-strip" class="absolute inset-y-0 flex items-center text-[10px] tracking-widest whitespace-nowrap"></div>
+          <!-- Center Heading Pointer -->
+          <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#ffb000] -translate-x-1/2 shadow-[0_0_6px_#ffb000]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER RETICLE: Dynamic Targeting Crosshair & Scan Progress Ring -->
+    <div class="relative flex-1 flex items-center justify-center pointer-events-none">
+      <div id="reticle-container" class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center transition-transform duration-150">
+        <!-- Outer Rotating Ring -->
+        <svg id="reticle-svg" class="w-full h-full" viewBox="0 0 200 200">
+          <!-- Subtle Dashed Outer Ring -->
+          <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(51, 255, 102, 0.25)" stroke-width="1" stroke-dasharray="6 8" class="spin-slow" style="transform-origin: 100px 100px;" />
+
+          <!-- Corner Brackets -->
+          <path id="reticle-brackets" d="M 42 58 L 42 42 L 58 42 M 142 42 L 158 42 L 158 58 M 158 142 L 158 158 L 142 158 M 58 158 L 42 158 L 42 142"
+                fill="none" stroke="#33ff66" stroke-width="2.5" stroke-linecap="square" />
+
+          <!-- Crosshair Ticks -->
+          <line x1="100" y1="22" x2="100" y2="36" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="100" y1="164" x2="100" y2="178" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="22" y1="100" x2="36" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="164" y1="100" x2="178" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+
+          <!-- Center Dot -->
+          <circle id="reticle-dot" cx="100" cy="100" r="2.5" fill="#33ff66" />
+
+          <!-- Scan Progress Circular Gauge -->
+          <circle id="scan-progress-ring" cx="100" cy="100" r="74"
+                  fill="none" stroke="#00f0ff" stroke-width="4"
+                  stroke-dasharray="465" stroke-dashoffset="465"
+                  stroke-linecap="round"
+                  transform="rotate(-90 100 100)"
+                  style="transition: stroke-dashoffset 0.05s linear;" />
+        </svg>
+
+        <!-- Dynamic Target Telemetry Readout Below Reticle -->
+        <div id="target-readout" class="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
+          <div id="target-name-badge" class="text-xs font-display tracking-wider px-2.5 py-0.5 rounded bg-black/70 border border-[#33ff66]/40 text-[#33ff66]">
+            SWEEPING SECTOR...
+          </div>
+          <div id="target-sub-info" class="text-[10px] text-[#33ff66]/70 mt-0.5">
+            PAN ROOM TO LOCATE WARP ECHOES
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM CONTROLS: Motion Radar, Primary Scan Button & Utility Controls -->
+    <div class="w-full max-w-5xl mx-auto flex items-end justify-between gap-2 pb-1">
+
+      <!-- BOTTOM-LEFT: Auspex Motion Tracker Radar -->
+      <div class="hud-panel rounded-full p-1.5 interactive relative shrink-0" title="Auspex Motion Radar">
+        <canvas id="radar-canvas" width="96" height="96" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full block"></canvas>
+        <div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] bg-black/80 px-1 rounded text-[#33ff66]/90 tracking-widest">
+          RADAR
+        </div>
+      </div>
+
+      <!-- BOTTOM-CENTER: Primary Scan Action & Status Ticker -->
+      <div class="flex flex-col items-center gap-1.5 flex-1 max-w-xs mx-auto interactive">
+        <button id="btn-scan"
+                class="btn-scan-primary w-full py-3 sm:py-3.5 px-4 rounded-xl font-display text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <span id="btn-scan-text">NO TARGET LOCK</span>
+        </button>
+        <div id="hint-bar" class="text-[10px] text-[#33ff66]/75 text-center bg-black/50 px-2.5 py-0.5 rounded-full border border-[#33ff66]/20">
+          Drag screen, use arrow keys, or move device
+        </div>
+      </div>
+
+      <!-- BOTTOM-RIGHT: Visual Filter & Rescatter Controls -->
+      <div class="flex flex-col gap-1.5 interactive shrink-0">
+        <button id="btn-filter" title="Toggle Night-Vision Filter" class="btn-auspex rounded-lg px-2.5 py-2 text-[10px] sm:text-xs flex items-center justify-center gap-1">
+          <span>NVG:</span>
+          <strong id="nvg-state" class="text-[#33ff66]">ON</strong>
+        </button>
+        <button id="btn-recenter" title="Recenter View / Calibrate" class="btn-auspex rounded-lg px-2.5 py-2 text-[10px] sm:text-xs flex items-center justify-center gap-1">
+          <span>CALIBRATE</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION BANNER ==================== -->
+  <div id="toast-banner" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+    <div id="toast-content" class="hud-panel border-[#ffb000] text-[#ffb000] px-4 py-2 rounded-lg text-xs sm:text-sm font-display tracking-wider shadow-lg">
+      SYSTEM MESSAGE
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: BOOT / CALIBRATION SPLASH ==================== -->
+  <div id="modal-boot" class="fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="hud-panel rounded-2xl max-w-md w-full overflow-hidden border-2 border-[#33ff66]/60 shadow-[0_0_40px_rgba(51,255,102,0.2)]">
+      <div class="hazard-border h-2.5 w-full"></div>
+      <div class="p-5 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-[#33ff66]/30 pb-3">
+          <div>
+            <div class="text-[10px] tracking-widest text-[#ffb000]">HIVE PRIMUS // UNDERHIVE TELEMETRY</div>
+            <h1 class="font-display text-xl sm:text-2xl text-[#33ff66] glow-green mt-0.5">AUSPEX PSY-SCANNER</h1>
+          </div>
+          <!-- Imperial Skull / Auspex Emblem SVG -->
+          <svg class="w-11 h-11 text-[#33ff66] opacity-90 shrink-0" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="32" cy="32" r="28" stroke-dasharray="4 4" opacity="0.5"/>
+            <path d="M22 28c0-6 4.5-11 10-11s10 5 10 11c0 4-2 7-4 8.5V42H26v-5.5C24 35 22 32 22 28z" fill="rgba(51,255,102,0.12)"/>
+            <circle cx="28" cy="28" r="2.5" fill="currentColor"/>
+            <circle cx="36" cy="28" r="2.5" fill="currentColor"/>
+            <path d="M32 32l-1.5 3h3L32 32z" fill="currentColor"/>
+            <line x1="28" y1="42" x2="28" y2="46"/>
+            <line x1="32" y1="42" x2="32" y2="46"/>
+            <line x1="36" y1="42" x2="36" y2="46"/>
+          </svg>
+        </div>
+
+        <p class="text-xs sm:text-sm text-[#33ff66]/85 leading-relaxed">
+          Psychic anomalies and Warp-echoes have been detected in this sector. Sweep the room with your Auspex to locate spectral signatures, lock your reticle onto them, and extract campaign intel.
+        </p>
+
+        <div class="bg-black/50 border border-[#33ff66]/25 rounded-lg p-3 text-[11px] space-y-1.5 text-[#33ff66]/80">
+          <div class="flex items-center gap-2">
+            <span class="text-[#ffb000] font-bold">01.</span>
+            <span>Follow the <strong class="text-[#ffb000]">Radar blips</strong> &amp; compass ticks to locate a ghost.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[#ffb000] font-bold">02.</span>
+            <span>Center the spectral entity in your reticle to establish a lock.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[#ffb000] font-bold">03.</span>
+            <span>Hold or tap <strong class="text-[#00f0ff]">ENGAGE PSY-SCAN</strong> to decode its Dataslate intel.</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2.5 pt-1">
+          <button id="btn-start-ar" class="btn-auspex w-full py-3 px-4 rounded-xl font-display text-xs sm:text-sm tracking-wider text-[#33ff66] flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <span>INITIALIZE LIVE AR CAMERA</span>
+          </button>
+
+          <button id="btn-start-sim" class="btn-auspex w-full py-2.5 px-4 rounded-xl font-display text-xs tracking-wider border-[#ffb000]/70 text-[#ffb000] flex items-center justify-center gap-2">
+            <span>LAUNCH SIMULATED AUSPEX VISOR</span>
+          </button>
+        </div>
+
+        <div class="text-[10px] text-center text-[#33ff66]/55">
+          +++ THOUGHT FOR THE DAY: THE WARP REMEMBERS ALL DEBTS +++
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: SCANNED INTEL DOSSIER ==================== -->
+  <div id="modal-intel" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
+    <div class="hud-panel rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col overflow-hidden border-2 border-[#00f0ff]/80 shadow-[0_0_40px_rgba(0,240,255,0.25)]">
+      <div class="hazard-border h-2 w-full shrink-0"></div>
+
+      <!-- Header -->
+      <div class="p-4 border-b border-[#00f0ff]/30 flex items-start justify-between gap-3 bg-[#001820]/70 shrink-0">
+        <div>
+          <div id="intel-class" class="text-[10px] tracking-widest text-[#00f0ff] uppercase">CLASSIFICATION // WARP ANOMALY</div>
+          <h2 id="intel-title" class="font-display text-lg sm:text-xl text-white mt-0.5">ENTITY NAME</h2>
+        </div>
+        <span id="intel-threat" class="text-[10px] font-display px-2 py-1 rounded border border-[#ff3344] text-[#ff3344] bg-[#ff3344]/15 shrink-0">
+          THREAT: HIGH
+        </span>
+      </div>
+
+      <!-- Body -->
+      <div class="p-4 sm:p-5 overflow-y-auto custom-scroll space-y-4 text-xs sm:text-sm">
+        <!-- Spectral Signature Telemetry Bar -->
+        <div class="grid grid-cols-3 gap-2 text-center bg-black/50 p-2.5 rounded-lg border border-[#33ff66]/25">
+          <div>
+            <div class="text-[9px] text-[#33ff66]/60">FREQ (Hz)</div>
+            <div id="intel-freq" class="font-display text-[#00f0ff] text-xs">66.4 kHz</div>
+          </div>
+          <div>
+            <div class="text-[9px] text-[#33ff66]/60">SECTOR</div>
+            <div id="intel-sector" class="font-display text-[#ffb000] text-xs">SUMP-09</div>
+          </div>
+          <div>
+            <div class="text-[9px] text-[#33ff66]/60">INTEGRITY</div>
+            <div class="font-display text-[#33ff66] text-xs">DECODED</div>
+          </div>
+        </div>
+
+        <!-- Lore / Data Entry -->
+        <div>
+          <div class="text-[10px] tracking-widest text-[#33ff66]/60 mb-1">DECODED VOX-TRANSCRIPT / DATA:</div>
+          <p id="intel-lore" class="text-[#d8ffe2] leading-relaxed bg-black/40 p-3 rounded-lg border-l-2 border-[#00f0ff]">
+            ...
+          </p>
+        </div>
+
+        <!-- Campaign Gameplay Effect / Reward -->
+        <div class="bg-[#ffb000]/10 border border-[#ffb000]/50 rounded-lg p-3">
+          <div class="text-[10px] font-display tracking-widest text-[#ffb000] mb-1">CAMPAIGN REWARD / RULE EFFECT:</div>
+          <p id="intel-reward" class="text-[#ffe3a3] leading-snug">
+            ...
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3.5 border-t border-[#33ff66]/25 bg-black/60 flex justify-end gap-2 shrink-0">
+        <button id="btn-close-intel" class="btn-auspex px-5 py-2.5 rounded-xl font-display text-xs tracking-wider text-[#00f0ff] border-[#00f0ff]/70">
+          LOG TO DATASLATE &amp; RESUME
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: DATASLATE ARCHIVE LOG ==================== -->
+  <div id="modal-archive" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
+    <div class="hud-panel rounded-2xl max-w-xl w-full max-h-[88dvh] flex flex-col overflow-hidden border border-[#ffb000]/70">
+      <div class="p-4 border-b border-[#ffb000]/30 flex items-center justify-between bg-black/50 shrink-0">
+        <div>
+          <div class="text-[10px] tracking-widest text-[#ffb000]">DATASLATE MEMORY CORE</div>
+          <h2 class="font-display text-lg text-[#33ff66]">CAPTURED SIGNATURES</h2>
+        </div>
+        <button id="btn-close-archive" class="btn-auspex px-3 py-1.5 rounded-lg text-xs">CLOSE</button>
+      </div>
+
+      <div id="archive-list" class="p-4 overflow-y-auto custom-scroll space-y-3 flex-1">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="p-3 border-t border-[#33ff66]/25 bg-black/60 flex items-center justify-between text-xs shrink-0">
+        <span id="archive-summary" class="text-[#33ff66]/80">0 of 5 anomalies catalogued</span>
+        <button id="btn-rescatter" class="btn-auspex px-3 py-1.5 rounded-lg text-[11px] border-[#ffb000]/60 text-[#ffb000]">
+          RESCATTER ROOM
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: ARBITRATOR (GM) CAMPAIGN EDITOR ==================== -->
+  <div id="modal-gm" class="fixed inset-0 z-40 bg-black/88 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
+    <div class="hud-panel rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col overflow-hidden border border-[#33ff66]/70">
+      <div class="hazard-border h-2 w-full shrink-0"></div>
+      <div class="p-4 border-b border-[#33ff66]/30 flex items-center justify-between bg-black/50 shrink-0">
+        <div>
+          <div class="text-[10px] tracking-widest text-[#ffb000]">ARBITRATOR OVERRIDE // GM TOOLS</div>
+          <h2 class="font-display text-base sm:text-lg text-[#33ff66]">CAMPAIGN GHOST CONFIGURATOR</h2>
+        </div>
+        <button id="btn-close-gm" class="btn-auspex px-3 py-1.5 rounded-lg text-xs">CLOSE</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto custom-scroll space-y-5 flex-1 text-xs">
+
+        <!-- Add New Ghost Form -->
+        <form id="gm-add-form" class="bg-black/45 border border-[#33ff66]/30 rounded-xl p-3.5 space-y-3">
+          <div class="font-display text-xs text-[#ffb000] tracking-wider">+ DEPLOY NEW SPECTRAL ANOMALY</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] text-[#33ff66]/70 mb-1">ENTITY NAME</label>
+              <input id="gm-name" type="text" required placeholder="e.g. Echo of Guildmaster Vex"
+                     class="w-full bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-[#33ff66]/70 mb-1">CLASSIFICATION / ARCHETYPE</label>
+              <select id="gm-archetype" class="w-full bg-black/90 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66] focus:outline-none focus:border-[#00f0ff]">
+                <option value="wraith">Warp Wraith (Cyan Shroud)</option>
+                <option value="skull">Servo-Skull Phantom (Phosphor)</option>
+                <option value="delaque">Delaque Whisper-Shade (Violet)</option>
+                <option value="machine">Machine Spirit (Amber)</option>
+                <option value="malstrain">Malstrain Psy-Echo (Crimson)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] text-[#33ff66]/70 mb-1">THREAT LEVEL</label>
+              <select id="gm-threat" class="w-full bg-black/90 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66]">
+                <option value="LOW">LOW</option>
+                <option value="MODERATE">MODERATE</option>
+                <option value="HIGH" selected>HIGH</option>
+                <option value="EXTREMIS">EXTREMIS</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-[#33ff66]/70 mb-1">SECTOR CODE</label>
+              <input id="gm-sector" type="text" placeholder="e.g. DUST-FALLS 4" value="UNDERHIVE-07"
+                     class="w-full bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66]" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-[#33ff66]/70 mb-1">DECODED LORE / CLUE DATA</label>
+            <textarea id="gm-lore" rows="2" required placeholder="What does the player discover when they scan this ghost?"
+                      class="w-full bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66] focus:outline-none focus:border-[#00f0ff]"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-[#33ff66]/70 mb-1">CAMPAIGN REWARD / GAMEPLAY EFFECT</label>
+            <input id="gm-reward" type="text" required placeholder="e.g. Gain +1D6x10 Credits or 1 Free Tactic Card"
+                   class="w-full bg-black/70 border border-[#33ff66]/40 rounded-lg px-2.5 py-2 text-[#33ff66] focus:outline-none focus:border-[#00f0ff]" />
+          </div>
+
+          <button type="submit" class="btn-auspex w-full py-2.5 rounded-lg font-display text-xs tracking-wider text-[#33ff66]">
+            SPAWN ANOMALY IN ROOM
+          </button>
+        </form>
+
+        <!-- Active Ghosts Management List -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-display text-xs text-[#33ff66]">ACTIVE ROOM ANOMALIES</span>
+            <button id="btn-reset-defaults" class="text-[10px] text-[#ffb000] underline hover:text-white">Reset to Default Campaign Pack</button>
+          </div>
+          <div id="gm-ghost-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Export / Import Campaign Pack JSON -->
+        <div class="bg-black/45 border border-[#33ff66]/30 rounded-xl p-3.5 space-y-2">
+          <div class="font-display text-xs text-[#00f0ff]">SHARE CAMPAIGN PACK (EXPORT / IMPORT JSON)</div>
+          <p class="text-[11px] text-[#33ff66]/75">
+            Copy this JSON to share your custom Necromunda ghosts with your players, or paste a pack below and click Load.
+          </p>
+          <textarea id="gm-json-box" rows="3" class="w-full bg-black/80 border border-[#33ff66]/30 rounded-lg p-2 text-[10px] text-[#00f0ff] font-mono"></textarea>
+          <div class="flex gap-2">
+            <button id="btn-copy-json" class="btn-auspex flex-1 py-2 rounded-lg text-[11px]">COPY PACK JSON</button>
+            <button id="btn-import-json" class="btn-auspex flex-1 py-2 rounded-lg text-[11px] border-[#00f0ff]/60 text-[#00f0ff]">LOAD PACK JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APPLICATION LOGIC ==================== -->
+  <script>
+    /**
+     * NECROMUNDA AUSPEX AR SCANNER
+     * Single-file AR & Simulated 360° Ghost-Hunting App for Necromunda Campaigns.
+     *
+     * Architecture:
+     * 1. DEFAULT_GHOSTS & State Management (persisted to localStorage)
+     * 2. Audio Engine (Tone.js procedural Auspex pings, warp hum, scan beam, lock chimes)
+     * 3. Camera & Sensor Controller (getUserMedia + DeviceOrientationEvent + Touch/Mouse Drag fallback)
+     * 4. 360° Spherical Projection & Canvas Renderer (Procedural Necromunda Ghosts + Simulated Grid)
+     * 5. Auspex Motion Radar Renderer
+     * 6. Scan Mechanics & UI Modals (Intel Dossier, Dataslate Archive, Arbitrator GM Editor)
+     */
+
+    // ==================== 1. DEFAULT NECROMUNDA CAMPAIGN GHOSTS ====================
+    const STORAGE_KEY = 'necromunda_auspex_campaign_v1';
+
+    const ARCHETYPE_COLORS = {
+      wraith:    { primary: '#00f0ff', secondary: '#0077ff', label: 'WARP WRAITH' },
+      skull:     { primary: '#33ff66', secondary: '#00aa44', label: 'SERVO-SKULL PHANTOM' },
+      delaque:   { primary: '#c864ff', secondary: '#6b21a8', label: 'DELAQUE WHISPER-SHADE' },
+      machine:   { primary: '#ffb000', secondary: '#d97706', label: 'MACHINE SPIRIT' },
+      malstrain: { primary: '#ff3344', secondary: '#991b1b', label: 'MALSTRAIN PSY-ECHO' }
+    };
+
+    const DEFAULT_GHOSTS = [
+      {
+        id: 'ghost-1',
+        name: 'Echo of Dome-Runner Kael',
+        archetype: 'wraith',
+        threat: 'MODERATE',
+        sector: 'SUMP-09',
+        freq: '64.2 kHz',
+        lore: 'Residual psychic imprint of a Guild prospector lost during the collapse of Dome 42. Fragmented vox-loops repeat coordinates to an unlooted Archeotech vault beneath the rusted slag-chutes.',
+        reward: 'CAMPAIGN BONUS: Your gang discovers a hidden stash! Add +2D6x10 Credits to your Stash after your next battle.',
+        azimuth: 35,
+        pitch: 4,
+        scanned: false
+      },
+      {
+        id: 'ghost-2',
+        name: 'Delaque Psychoteric Node',
+        archetype: 'delaque',
+        threat: 'HIGH',
+        sector: 'SHADOW-WELL',
+        freq: '112.8 kHz',
+        lore: 'A flickering silent-choir projection left behind by House Delaque Nacht-Ghuls. Decoded neural whispers reveal the patrol routes of a rival gang leader and their secret ammo cache.',
+        reward: 'TACTICAL INTEL: Gain +1 free Gang Tactics card in your next Necromunda skirmish and +1 to Priority rolls on Turn 1.',
+        azimuth: 118,
+        pitch: -6,
+        scanned: false
+      },
+      {
+        id: 'ghost-3',
+        name: 'Venerable Servo-Skull IX',
+        archetype: 'skull',
+        threat: 'LOW',
+        sector: 'MANUFACTORUM-B',
+        freq: '41.0 kHz',
+        lore: 'The spectral telemetry of an Adeptus Mechanicus inspection skull destroyed in a turf war. Its cogitator banks still hold an intact schematic for overcharged plasma coils.',
+        reward: 'ARCHEOTECH DATA: One Fighter in your gang may perform a free Weaponsmith check or gain +1 Ammo roll modifier on one weapon next game.',
+        azimuth: 195,
+        pitch: 10,
+        scanned: false
+      },
+      {
+        id: 'ghost-4',
+        name: 'Awakened Cogitator Spirit',
+        archetype: 'machine',
+        threat: 'MODERATE',
+        sector: 'TURBINE-14',
+        freq: '88.5 kHz',
+        lore: 'An enraged Machine Spirit haunting a dead plasma generator. Appeasing its binary cant grants remote override codes to the zone’s blast doors and lighting relays.',
+        reward: 'ZONE CONTROL: In your next Zone Mortalis or Sector Mechanicus battle, you may open or close one door/hatch for free at the start of any round.',
+        azimuth: 268,
+        pitch: -4,
+        scanned: false
+      },
+      {
+        id: 'ghost-5',
+        name: 'Malstrain Brood-Echo',
+        archetype: 'malstrain',
+        threat: 'EXTREMIS',
+        sector: 'HIVE-SECUNDUS',
+        freq: '199.9 kHz',
+        lore: 'WARNING: Corrupted xenos-psychic residue bleeding up from the Underhells. The entity emits a predatory chittering pulse that freezes blood and shorts out optical implants.',
+        reward: 'HIGH BOUNTY: Turning this telemetry over to the Palanite Enforcers earns +1 Reputation and +1 XP for your Gang Leader.',
+        azimuth: 325,
+        pitch: 6,
+        scanned: false
+      }
+    ];
+
+    // ==================== 2. GLOBAL APPLICATION STATE ====================
+    const state = {
+      ghosts: [],
+      // Current viewer orientation in degrees
+      heading: 0,       // 0..360 (yaw / azimuth)
+      pitch: 0,         // -60..60 (up/down)
+      headingOffset: 0, // Used when calibrating real gyro
+      rawGyroAlpha: 0,
+      rawGyroBeta: 90,
+
+      // Modes
+      cameraActive: false,
+      gyroActive: false,
+      nvgFilter: true,
+      soundEnabled: true,
+      audioInitialized: false,
+
+      // Drag / Keyboard controls
+      isDragging: false,
+      lastPointerX: 0,
+      lastPointerY: 0,
+      keysPressed: {},
+
+      // Target & Scanning State
+      lockedGhost: null,
+      isScanning: false,
+      scanProgress: 0, // 0..100
+      lastPingTime: 0,
+
+      // Field of view (degrees)
+      fovX: 72,
+      fovY: 54,
+
+      // Animation timestamp
+      time: 0
+    };
+
+    // ==================== 3. AUDIO ENGINE (TONE.JS) ====================
+    const AudioEngine = {
+      pingSynth: null,
+      scanOsc: null,
+      scanGain: null,
+      chimeSynth: null,
+
+      async init() {
+        if (state.audioInitialized || typeof Tone === 'undefined') return;
+        try {
+          await Tone.start();
+          // Auspex radar ping synth
+          this.pingSynth = new Tone.Synth({
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.005, decay: 0.12, sustain: 0, release: 0.15 }
+          }).toDestination();
+          this.pingSynth.volume.value = -16;
+
+          // Continuous scan beam oscillator
+          this.scanGain = new Tone.Gain(0).toDestination();
+          this.scanOsc = new Tone.Oscillator(220, 'sawtooth').connect(this.scanGain);
+          this.scanOsc.start();
+
+          // Discovery chord synth
+          this.chimeSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.3, sustain: 0.1, release: 0.8 }
+          }).toDestination();
+          this.chimeSynth.volume.value = -12;
+
+          state.audioInitialized = true;
+        } catch (err) {
+          console.warn('Audio init skipped:', err);
+        }
+      },
+
+      playPing(proximityFactor = 0.5) {
+        if (!state.soundEnabled || !state.audioInitialized || !this.pingSynth) return;
+        try {
+          // Higher pitch when closer to a ghost
+          const freq = 520 + proximityFactor * 680;
+          this.pingSynth.triggerAttackRelease(freq, '32n');
+        } catch (e) {}
+      },
+
+      updateScanBeam(active, progress = 0) {
+        if (!state.audioInitialized || !this.scanGain || !this.scanOsc) return;
+        try {
+          if (active && state.soundEnabled) {
+            this.scanOsc.frequency.rampTo(180 + progress * 6.5, 0.06);
+            this.scanGain.gain.rampTo(0.06, 0.05);
+          } else {
+            this.scanGain.gain.rampTo(0, 0.08);
+          }
+        } catch (e) {}
+      },
+
+      playDecodedChime() {
+        if (!state.soundEnabled || !state.audioInitialized || !this.chimeSynth) return;
+        try {
+          const now = Tone.now();
+          this.chimeSynth.triggerAttackRelease(['C5', 'E5', 'G5'], '8n', now);
+          this.chimeSynth.triggerAttackRelease(['G5', 'B5', 'D6'], '4n', now + 0.16);
+        } catch (e) {}
+      }
+    };
+
+    // ==================== 4. DOM REFERENCES ====================
+    const dom = {
+      video: document.getElementById('camera-feed'),
+      canvas: document.getElementById('ar-canvas'),
+      radarCanvas: document.getElementById('radar-canvas'),
+      modeIndicator: document.getElementById('mode-indicator'),
+      hudHeading: document.getElementById('hud-heading'),
+      hudPitch: document.getElementById('hud-pitch'),
+      hudSignalLabel: document.getElementById('hud-signal-label'),
+      compassStrip: document.getElementById('compass-strip'),
+
+      reticleBrackets: document.getElementById('reticle-brackets'),
+      reticleDot: document.getElementById('reticle-dot'),
+      scanProgressRing: document.getElementById('scan-progress-ring'),
+      targetNameBadge: document.getElementById('target-name-badge'),
+      targetSubInfo: document.getElementById('target-sub-info'),
+
+      btnScan: document.getElementById('btn-scan'),
+      btnScanText: document.getElementById('btn-scan-text'),
+      btnSound: document.getElementById('btn-sound'),
+      iconSoundOn: document.getElementById('icon-sound-on'),
+      iconSoundOff: document.getElementById('icon-sound-off'),
+      btnCameraToggle: document.getElementById('btn-camera-toggle'),
+      btnCameraLabel: document.getElementById('btn-camera-label'),
+      btnFilter: document.getElementById('btn-filter'),
+      nvgState: document.getElementById('nvg-state'),
+      btnRecenter: document.getElementById('btn-recenter'),
+
+      archiveCount: document.getElementById('archive-count'),
+      archiveList: document.getElementById('archive-list'),
+      archiveSummary: document.getElementById('archive-summary'),
+
+      modalBoot: document.getElementById('modal-boot'),
+      modalIntel: document.getElementById('modal-intel'),
+      modalArchive: document.getElementById('modal-archive'),
+      modalGm: document.getElementById('modal-gm'),
+
+      intelClass: document.getElementById('intel-class'),
+      intelTitle: document.getElementById('intel-title'),
+      intelThreat: document.getElementById('intel-threat'),
+      intelFreq: document.getElementById('intel-freq'),
+      intelSector: document.getElementById('intel-sector'),
+      intelLore: document.getElementById('intel-lore'),
+      intelReward: document.getElementById('intel-reward'),
+
+      gmAddForm: document.getElementById('gm-add-form'),
+      gmGhostList: document.getElementById('gm-ghost-list'),
+      gmJsonBox: document.getElementById('gm-json-box'),
+
+      toastBanner: document.getElementById('toast-banner'),
+      toastContent: document.getElementById('toast-content')
+    };
+
+    const ctx = dom.canvas.getContext('2d');
+    const radarCtx = dom.radarCanvas.getContext('2d');
+
+    // ==================== 5. UTILITIES & PERSISTENCE ====================
+    let toastTimer = null;
+    function showToast(message) {
+      dom.toastContent.textContent = message;
+      dom.toastBanner.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        dom.toastBanner.classList.add('opacity-0');
+      }, 2600);
+    }
+
+    function normalizeAngle(deg) {
+      return ((deg % 360) + 360) % 360;
+    }
+
+    // Shortest signed angular difference from a to b (-180..180)
+    function angleDiff(from, to) {
+      let diff = ((to - from + 540) % 360) - 180;
+      return diff;
+    }
+
+    function loadGhosts() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            state.ghosts = parsed;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load saved ghosts:', e);
+      }
+      state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+      saveGhosts();
+    }
+
+    function saveGhosts() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.ghosts));
+      } catch (e) {}
+      updateArchiveBadge();
+    }
+
+    function scatterGhosts() {
+      const count = state.ghosts.length;
+      const baseOffset = Math.random() * 360;
+      state.ghosts.forEach((g, idx) => {
+        // Distribute roughly around the 360° room with organic jitter
+        const sector = (360 / Math.max(1, count)) * idx;
+        g.azimuth = Math.round(normalizeAngle(baseOffset + sector + (Math.random() * 30 - 15)));
+        g.pitch = Math.round(Math.random() * 24 - 12);
+        g.scanned = false;
+      });
+      saveGhosts();
+      showToast('ANOMALIES RESCATTERED AROUND ROOM');
+    }
+
+    function updateArchiveBadge() {
+      const total = state.ghosts.length;
+      const scanned = state.ghosts.filter(g => g.scanned).length;
+      dom.archiveCount.textContent = `${scanned}/${total}`;
+    }
+
+    // ==================== 6. CAMERA & DEVICE ORIENTATION ====================
+    async function enableCamera() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera API unavailable in this browser');
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        dom.video.srcObject = stream;
+        dom.video.classList.remove('hidden');
+        state.cameraActive = true;
+        dom.btnCameraLabel.textContent = 'SIM MODE';
+        updateModeLabel();
+        showToast('LIVE OPTICAL FEED ENGAGED');
+        await enableGyroscope();
+      } catch (err) {
+        console.warn('Camera fallback to simulated visor:', err);
+        disableCamera();
+        showToast('CAMERA UNAVAILABLE — USING SIMULATED AUSPEX');
+      }
+    }
+
+    function disableCamera() {
+      if (dom.video.srcObject) {
+        dom.video.srcObject.getTracks().forEach(t => t.stop());
+        dom.video.srcObject = null;
+      }
+      dom.video.classList.add('hidden');
+      state.cameraActive = false;
+      dom.btnCameraLabel.textContent = 'AR CAM';
+      updateModeLabel();
+    }
+
+    async function enableGyroscope() {
+      try {
+        // iOS 13+ requires explicit permission prompt triggered by user gesture
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const perm = await DeviceOrientationEvent.requestPermission();
+          if (perm !== 'granted') return;
+        }
+        window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+      } catch (e) {
+        console.warn('Gyroscope unavailable:', e);
+      }
+    }
+
+    function handleDeviceOrientation(e) {
+      if (e.alpha === null || e.beta === null) return;
+      state.gyroActive = true;
+      state.rawGyroAlpha = e.alpha;
+      state.rawGyroBeta = e.beta;
+
+      // Convert device orientation into smooth room azimuth & pitch
+      // Using webkitCompassHeading if available on iOS for true magnetic north
+      const rawHeading = typeof e.webkitCompassHeading === 'number'
+        ? e.webkitCompassHeading
+        : normalizeAngle(360 - e.alpha);
+
+      state.heading = normalizeAngle(rawHeading - state.headingOffset);
+      // Beta = 90° when holding phone upright looking forward
+      state.pitch = Math.max(-45, Math.min(45, e.beta - 90));
+      updateModeLabel();
+    }
+
+    function updateModeLabel() {
+      if (state.cameraActive && state.gyroActive) {
+        dom.modeIndicator.textContent = 'LIVE AR // GYRO LOCKED';
+      } else if (state.cameraActive) {
+        dom.modeIndicator.textContent = 'LIVE CAM // DRAG TO PAN';
+      } else {
+        dom.modeIndicator.textContent = 'SIM-VISOR // DRAG TO SCAN';
+      }
+    }
+
+    // ==================== 7. CANVAS RESIZING & INPUT CONTROLS ====================
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dom.canvas.width = Math.floor(window.innerWidth * dpr);
+      dom.canvas.height = Math.floor(window.innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Mouse & Touch drag to pan 360° around the room
+    function onPointerDown(e) {
+      state.isDragging = true;
+      const pt = e.touches ? e.touches[0] : e;
+      state.lastPointerX = pt.clientX;
+      state.lastPointerY = pt.clientY;
+    }
+
+    function onPointerMove(e) {
+      if (!state.isDragging) return;
+      const pt = e.touches ? e.touches[0] : e;
+      const dx = pt.clientX - state.lastPointerX;
+      const dy = pt.clientY - state.lastPointerY;
+      state.lastPointerX = pt.clientX;
+      state.lastPointerY = pt.clientY;
+
+      // Sensitivity scaled to viewport
+      const degPerPx = 0.28;
+      if (state.gyroActive) {
+        state.headingOffset = normalizeAngle(state.headingOffset + dx * degPerPx);
+      } else {
+        state.heading = normalizeAngle(state.heading - dx * degPerPx);
+        state.pitch = Math.max(-40, Math.min(40, state.pitch + dy * degPerPx * 0.6));
+      }
+    }
+
+    function onPointerUp() {
+      state.isDragging = false;
+    }
+
+    // ==================== 8. PROCEDURAL GRAPHICS RENDERER ====================
+
+    /**
+     * Draws a dark atmospheric 3D-projected wireframe underhive room
+     * when the live camera is off, giving an authentic Auspex visor feel.
+     */
+    function drawSimulatedUnderhive(w, h) {
+      // Deep phosphor dark background
+      const grad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.75);
+      grad.addColorStop(0, '#071c10');
+      grad.addColorStop(1, '#020704');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Horizon line shifts based on pitch
+      const horizonY = h / 2 + (state.pitch / state.fovY) * h;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
+      ctx.lineWidth = 1;
+
+      // Vertical architectural ribs every 15° around the 360° room
+      for (let deg = 0; deg < 360; deg += 15) {
+        const rel = angleDiff(state.heading, deg);
+        if (Math.abs(rel) > state.fovX * 0.75) continue;
+        const x = w / 2 + (rel / (state.fovX / 2)) * (w / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+
+        // Draw subtle industrial bulkhead cross-braces every 45°
+        if (deg % 45 === 0) {
+          ctx.strokeStyle = 'rgba(51, 255, 102, 0.24)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, horizonY - 120);
+          ctx.lineTo(x, horizonY + 120);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
+          ctx.lineWidth = 1;
+
+          // Sector stenciling on virtual walls
+          ctx.fillStyle = 'rgba(51, 255, 102, 0.22)';
+          ctx.font = '11px "Share Tech Mono", monospace';
+          ctx.fillText(`SEC-${String(deg).padStart(3, '0')}`, x + 6, horizonY - 10);
+        }
+      }
+
+      // Horizontal perspective deck lines
+      const lines = [-30, -18, -8, 0, 8, 18, 30];
+      lines.forEach((p) => {
+        const y = h / 2 - ((p - state.pitch) / (state.fovY / 2)) * (h / 2);
+        ctx.strokeStyle = p === 0 ? 'rgba(51, 255, 102, 0.32)' : 'rgba(51, 255, 102, 0.11)';
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    }
+
+    /**
+     * Procedurally draws a flickering, glitching Necromunda spectral entity at (x, y)
+     */
+    function drawSpectralGhost(ghost, x, y, scale, isLocked) {
+      const style = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
+      const t = state.time;
+
+      // Eerie floating bob + subtle glitch jitter
+      const bobY = Math.sin(t * 2.4 + ghost.azimuth) * 10 * scale;
+      const glitchX = Math.random() < 0.08 ? (Math.random() - 0.5) * 14 : 0;
+      const cx = x + glitchX;
+      const cy = y + bobY;
+      const r = 46 * scale;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Outer spectral aura glow
+      const aura = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.9);
+      aura.addColorStop(0, style.primary + (ghost.scanned ? '44' : '66'));
+      aura.addColorStop(0.55, style.secondary + '22');
+      aura.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotating psychic rune ring around the entity
+      ctx.save();
+      ctx.rotate(t * (isLocked ? 1.8 : 0.6));
+      ctx.strokeStyle = style.primary;
+      ctx.globalAlpha = ghost.scanned ? 0.35 : 0.75;
+      ctx.lineWidth = isLocked ? 2 : 1.2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw distinct silhouette per Necromunda archetype
+      ctx.globalAlpha = (ghost.scanned ? 0.48 : 0.85) + Math.sin(t * 9) * 0.08;
+      ctx.strokeStyle = style.primary;
+      ctx.fillStyle = style.primary + '25';
+      ctx.lineWidth = 2;
+
+      if (ghost.archetype === 'skull') {
+        // Servo-Skull Phantom
+        ctx.beginPath();
+        ctx.arc(0, -r * 0.12, r * 0.52, Math.PI * 0.85, Math.PI * 2.15);
+        ctx.lineTo(r * 0.28, r * 0.45);
+        ctx.lineTo(-r * 0.28, r * 0.45);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Cybernetic optic eye + hollow eye socket
+        ctx.fillStyle = style.primary;
+        ctx.beginPath();
+        ctx.arc(-r * 0.18, -r * 0.1, r * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(r * 0.18, -r * 0.1, r * 0.16, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(r * 0.18, -r * 0.1, r * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Floating Mechadendrite tendrils
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * r * 0.16, r * 0.45);
+          ctx.quadraticCurveTo(i * r * 0.3 + Math.sin(t * 4 + i) * 8, r * 0.85, i * r * 0.2, r * 1.15);
+          ctx.stroke();
+        }
+      } else if (ghost.archetype === 'machine') {
+        // Machine Spirit Cog-Halo
+        const teeth = 10;
+        ctx.beginPath();
+        for (let i = 0; i < teeth * 2; i++) {
+          const ang = (i / (teeth * 2)) * Math.PI * 2 + t * 0.4;
+          const rad = i % 2 === 0 ? r * 0.72 : r * 0.56;
+          const px = Math.cos(ang) * rad;
+          const py = Math.sin(ang) * rad;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Inner binary core
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.26, 0, Math.PI * 2);
+        ctx.fillStyle = style.primary;
+        ctx.fill();
+      } else if (ghost.archetype === 'malstrain') {
+        // Malstrain Xenos Psychic Maw / Tendrils
+        for (let i = 0; i < 6; i++) {
+          const ang = (i / 6) * Math.PI * 2 + Math.sin(t * 2 + i) * 0.18;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(
+            Math.cos(ang + 0.4) * r * 0.65,
+            Math.sin(ang + 0.4) * r * 0.65,
+            Math.cos(ang) * r * 1.05,
+            Math.sin(ang) * r * 1.05
+          );
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Three glowing xenos eyes
+        ctx.fillStyle = '#ffffff';
+        [-0.14, 0, 0.14].forEach((ox, idx) => {
+          ctx.beginPath();
+          ctx.arc(ox * r, (idx === 1 ? -0.1 : 0.06) * r, r * 0.06, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else {
+        // Hooded Warp Wraith / Delaque Whisper-Shade
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.85);
+        ctx.bezierCurveTo(r * 0.65, -r * 0.65, r * 0.6, r * 0.35, r * 0.45, r * 0.95);
+        // Ragged spectral hem
+        ctx.lineTo(r * 0.2, r * 0.72);
+        ctx.lineTo(0, r * 1.02);
+        ctx.lineTo(-r * 0.22, r * 0.72);
+        ctx.lineTo(-r * 0.45, r * 0.95);
+        ctx.bezierCurveTo(-r * 0.6, r * 0.35, -r * 0.65, -r * 0.65, 0, -r * 0.85);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Piercing spectral eyes beneath hood
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = style.primary;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.15, -r * 0.22, r * 0.09, r * 0.045, 0.2, 0, Math.PI * 2);
+        ctx.ellipse(r * 0.15, -r * 0.22, r * 0.09, r * 0.045, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // Floating ectoplasmic particles
+      ctx.fillStyle = style.primary;
+      for (let i = 0; i < 6; i++) {
+        const pAngle = t * 1.3 + i * 1.05;
+        const pDist = r * (0.7 + ((i * 19) % 10) * 0.05);
+        const px = Math.cos(pAngle) * pDist;
+        const py = Math.sin(pAngle * 1.4) * pDist - ((t * 20 + i * 15) % 30);
+        ctx.globalAlpha = 0.65;
+        ctx.fillRect(px, py, 2.5, 2.5);
+      }
+
+      // Scan beam interference lines while actively scanning this ghost
+      if (isLocked && state.isScanning) {
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        const scanY = Math.sin(t * 14) * r;
+        ctx.beginPath();
+        ctx.moveTo(-r * 1.1, scanY);
+        ctx.lineTo(r * 1.1, scanY);
+        ctx.stroke();
+      }
+
+      // Tag above ghost
+      ctx.globalAlpha = 0.92;
+      ctx.font = 'bold 11px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = ghost.scanned ? '#33ff66' : style.primary;
+      const tag = ghost.scanned ? `[LOGGED] ${ghost.name.toUpperCase()}` : `[UNKNOWN WARP SIGNATURE]`;
+      ctx.fillText(tag, 0, -r * 1.42);
+
+      ctx.restore();
+    }
+
+    /**
+     * Renders the bottom-left circular Auspex Motion Radar
+     */
+    function drawRadar() {
+      const size = dom.radarCanvas.width;
+      const cx = size / 2;
+      const cy = size / 2;
+      const radius = size / 2 - 4;
+
+      radarCtx.clearRect(0, 0, size, size);
+
+      // Dark radar disc
+      radarCtx.fillStyle = 'rgba(2, 16, 8, 0.9)';
+      radarCtx.beginPath();
+      radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      radarCtx.fill();
+
+      // Concentric range rings
+      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.25)';
+      radarCtx.lineWidth = 1;
+      [0.33, 0.66, 1].forEach((f) => {
+        radarCtx.beginPath();
+        radarCtx.arc(cx, cy, radius * f, 0, Math.PI * 2);
+        radarCtx.stroke();
+      });
+
+      // Crosshairs & Forward FOV cone
+      radarCtx.beginPath();
+      radarCtx.moveTo(cx, cy - radius);
+      radarCtx.lineTo(cx, cy + radius);
+      radarCtx.moveTo(cx - radius, cy);
+      radarCtx.lineTo(cx + radius, cy);
+      radarCtx.stroke();
+
+      // Forward FOV wedge (pointing UP)
+      const halfFovRad = ((state.fovX / 2) * Math.PI) / 180;
+      radarCtx.fillStyle = 'rgba(51, 255, 102, 0.12)';
+      radarCtx.beginPath();
+      radarCtx.moveTo(cx, cy);
+      radarCtx.arc(cx, cy, radius, -Math.PI / 2 - halfFovRad, -Math.PI / 2 + halfFovRad);
+      radarCtx.closePath();
+      radarCtx.fill();
+
+      // Rotating sweep beam
+      const sweepAng = (state.time * 2.1) % (Math.PI * 2);
+      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.65)';
+      radarCtx.lineWidth = 1.5;
+      radarCtx.beginPath();
+      radarCtx.moveTo(cx, cy);
+      radarCtx.lineTo(cx + Math.cos(sweepAng) * radius, cy + Math.sin(sweepAng) * radius);
+      radarCtx.stroke();
+
+      // Plot each ghost relative to player's current heading
+      state.ghosts.forEach((g) => {
+        const relDeg = angleDiff(state.heading, g.azimuth);
+        const rad = ((relDeg - 90) * Math.PI) / 180;
+        // Place blips at ~72% radius
+        const dist = radius * 0.72;
+        const bx = cx + Math.cos(rad) * dist;
+        const by = cy + Math.sin(rad) * dist;
+
+        const pulse = 0.6 + 0.4 * Math.sin(state.time * 6 + g.azimuth);
+        radarCtx.fillStyle = g.scanned
+          ? 'rgba(51, 255, 102, 0.45)'
+          : `rgba(255, 176, 0, ${pulse})`;
+
+        radarCtx.beginPath();
+        radarCtx.arc(bx, by, g.scanned ? 2.5 : 3.8, 0, Math.PI * 2);
+        radarCtx.fill();
+      });
+
+      // Center player dot
+      radarCtx.fillStyle = '#33ff66';
+      radarCtx.beginPath();
+      radarCtx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      radarCtx.fill();
+    }
+
+    /**
+     * Updates the top horizontal compass strip with cardinal directions
+     */
+    function updateCompassHUD() {
+      dom.hudHeading.textContent = `${String(Math.round(state.heading)).padStart(3, '0')}°`;
+      dom.hudPitch.textContent = `${state.pitch >= 0 ? '+' : ''}${Math.round(state.pitch)}°`;
+
+      const labels = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+      let html = '';
+      // Show a 120° window centered on current heading
+      const startDeg = Math.floor(state.heading - 60);
+      for (let d = startDeg; d <= startDeg + 120; d += 15) {
+        const snap = Math.round(d / 15) * 15;
+        const norm = normalizeAngle(snap);
+        const rel = angleDiff(state.heading, norm);
+        const pct = 50 + (rel / 120) * 100;
+        const text = labels[norm] || `${norm}°`;
+        const isCardinal = Boolean(labels[norm]);
+        html += `<span style="position:absolute; left:${pct}%; transform:translateX(-50%);" class="${isCardinal ? 'text-[#33ff66] font-bold' : 'text-[#33ff66]/45'}">${text}</span>`;
+      }
+
+      // Also plot unscanned ghost blips directly on the compass bar!
+      state.ghosts.forEach((g) => {
+        const rel = angleDiff(state.heading, g.azimuth);
+        if (Math.abs(rel) <= 58) {
+          const pct = 50 + (rel / 120) * 100;
+          const color = g.scanned ? '#33ff66' : '#ff3344';
+          html += `<span style="position:absolute; left:${pct}%; bottom:1px; transform:translateX(-50%); width:6px; height:6px; border-radius:9999px; background:${color}; box-shadow:0 0 6px ${color};"></span>`;
+        }
+      });
+
+      dom.compassStrip.innerHTML = html;
+    }
+
+    // ==================== 9. MAIN ANIMATION & SCAN LOOP ====================
+    let lastFrameTime = performance.now();
+
+    function animate(now) {
+      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+      state.time += dt;
+
+      // Keyboard navigation support (Arrow keys or WASD)
+      const turnSpeed = 75 * dt;
+      if (state.keysPressed['ArrowLeft'] || state.keysPressed['a']) {
+        state.heading = normalizeAngle(state.heading - turnSpeed);
+      }
+      if (state.keysPressed['ArrowRight'] || state.keysPressed['d']) {
+        state.heading = normalizeAngle(state.heading + turnSpeed);
+      }
+      if (state.keysPressed['ArrowUp'] || state.keysPressed['w']) {
+        state.pitch = Math.min(40, state.pitch + turnSpeed * 0.6);
+      }
+      if (state.keysPressed['ArrowDown'] || state.keysPressed['s']) {
+        state.pitch = Math.max(-40, state.pitch - turnSpeed * 0.6);
+      }
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Clear or draw simulated underhive room
+      if (state.cameraActive) {
+        ctx.clearRect(0, 0, w, h);
+      } else {
+        drawSimulatedUnderhive(w, h);
+      }
+
+      // Project & render all ghosts in viewport, and detect closest lock
+      let bestLock = null;
+      let bestAngleDist = Infinity;
+      let nearestUnscannedDist = 180;
+
+      state.ghosts.forEach((ghost) => {
+        const dAz = angleDiff(state.heading, ghost.azimuth);
+        const dPi = ghost.pitch - state.pitch;
+        const angularDist = Math.hypot(dAz, dPi);
+
+        if (!ghost.scanned && angularDist < nearestUnscannedDist) {
+          nearestUnscannedDist = angularDist;
+        }
+
+        // Check if within camera field of view
+        if (Math.abs(dAz) < state.fovX * 0.72 && Math.abs(dPi) < state.fovY * 0.75) {
+          const sx = w / 2 + (dAz / (state.fovX / 2)) * (w / 2);
+          const sy = h / 2 - (dPi / (state.fovY / 2)) * (h / 2);
+
+          // Lock threshold: within 14° of center reticle
+          const inReticle = angularDist < 14;
+          if (inReticle && angularDist < bestAngleDist) {
+            bestAngleDist = angularDist;
+            bestLock = ghost;
+          }
+
+          const scale = Math.min(1.25, Math.max(0.75, w / 520));
+          drawSpectralGhost(ghost, sx, sy, scale, bestLock === ghost);
+        }
+      });
+
+      state.lockedGhost = bestLock;
+
+      // Periodic Auspex sonar ping (faster when aiming near an unscanned ghost)
+      if (nearestUnscannedDist < 90) {
+        const proximity = 1 - nearestUnscannedDist / 90;
+        const pingInterval = 1.6 - proximity * 1.25; // 1.6s down to 0.35s
+        if (state.time - state.lastPingTime > pingInterval) {
+          state.lastPingTime = state.time;
+          AudioEngine.playPing(proximity);
+        }
+      }
+
+      // Update Signal Strength HUD
+      if (bestLock) {
+        dom.hudSignalLabel.textContent = 'SIGNAL: TARGET LOCKED';
+        dom.hudSignalLabel.className = 'text-[#00f0ff] font-bold';
+      } else if (nearestUnscannedDist < 38) {
+        dom.hudSignalLabel.textContent = 'SIGNAL: STRONG ECHO';
+        dom.hudSignalLabel.className = 'text-[#ffb000]';
+      } else {
+        dom.hudSignalLabel.textContent = 'SIGNAL: NOMINAL';
+        dom.hudSignalLabel.className = 'text-[#33ff66]/80';
+      }
+
+      // Update Reticle & Scan Progress
+      if (bestLock) {
+        const isAlreadyScanned = bestLock.scanned;
+        const lockColor = isAlreadyScanned ? '#33ff66' : '#00f0ff';
+        dom.reticleBrackets.setAttribute('stroke', lockColor);
+        dom.reticleDot.setAttribute('fill', lockColor);
+
+        dom.targetNameBadge.textContent = isAlreadyScanned
+          ? `LOGGED: ${bestLock.name.toUpperCase()}`
+          : 'WARP ENTITY LOCKED!';
+        dom.targetNameBadge.style.borderColor = lockColor;
+        dom.targetNameBadge.style.color = lockColor;
+        dom.targetSubInfo.textContent = isAlreadyScanned
+          ? 'TAP SCAN TO REVIEW DATASLATE'
+          : `FREQ ${bestLock.freq} // HOLD SCAN TO DECODE`;
+
+        dom.btnScan.classList.add('locked');
+        dom.btnScanText.textContent = isAlreadyScanned ? 'VIEW DECODED INTEL' : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'HOLD TO PSY-SCAN');
+
+        // Advance scan progress if user is holding scan
+        if (state.isScanning && !isAlreadyScanned) {
+          state.scanProgress = Math.min(100, state.scanProgress + dt * 52); // ~1.9 sec full scan
+          AudioEngine.updateScanBeam(true, state.scanProgress);
+
+          if (state.scanProgress >= 100) {
+            completeScan(bestLock);
+          }
+        } else {
+          state.scanProgress = Math.max(0, state.scanProgress - dt * 60);
+          AudioEngine.updateScanBeam(false);
+        }
+      } else {
+        // No target in reticle
+        state.isScanning = false;
+        state.scanProgress = Math.max(0, state.scanProgress - dt * 80);
+        AudioEngine.updateScanBeam(false);
+
+        dom.reticleBrackets.setAttribute('stroke', '#33ff66');
+        dom.reticleDot.setAttribute('fill', '#33ff66');
+        dom.targetNameBadge.textContent = nearestUnscannedDist < 35 ? 'ANOMALY NEARBY...' : 'SWEEPING SECTOR...';
+        dom.targetNameBadge.style.borderColor = 'rgba(51,255,102,0.4)';
+        dom.targetNameBadge.style.color = '#33ff66';
+        dom.targetSubInfo.textContent = 'FOLLOW RADAR BLIPS TO LOCATE GHOSTS';
+
+        dom.btnScan.classList.remove('locked');
+        dom.btnScanText.textContent = 'NO TARGET LOCK';
+      }
+
+      // Update SVG circular scan progress ring (circumference ≈ 465)
+      const dashOffset = 465 - (state.scanProgress / 100) * 465;
+      dom.scanProgressRing.setAttribute('stroke-dashoffset', dashOffset.toFixed(1));
+
+      updateCompassHUD();
+      drawRadar();
+
+      requestAnimationFrame(animate);
+    }
+
+    // ==================== 10. SCAN COMPLETION & MODALS ====================
+    function completeScan(ghost) {
+      state.isScanning = false;
+      state.scanProgress = 0;
+      AudioEngine.updateScanBeam(false);
+      AudioEngine.playDecodedChime();
+
+      if (!ghost.scanned) {
+        ghost.scanned = true;
+        saveGhosts();
+      }
+      openIntelModal(ghost);
+    }
+
+    function openIntelModal(ghost) {
+      const arch = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
+      dom.intelClass.textContent = `CLASSIFICATION // ${arch.label}`;
+      dom.intelTitle.textContent = ghost.name;
+      dom.intelThreat.textContent = `THREAT: ${ghost.threat}`;
+      dom.intelFreq.textContent = ghost.freq || '77.4 kHz';
+      dom.intelSector.textContent = ghost.sector || 'UNDERHIVE';
+      dom.intelLore.textContent = ghost.lore;
+      dom.intelReward.textContent = ghost.reward;
+
+      dom.modalIntel.classList.remove('hidden');
+      dom.modalIntel.classList.add('flex');
+    }
+
+    function closeIntelModal() {
+      dom.modalIntel.classList.add('hidden');
+      dom.modalIntel.classList.remove('flex');
+    }
+
+    function openArchiveModal() {
+      const scannedGhosts = state.ghosts.filter(g => g.scanned);
+      dom.archiveSummary.textContent = `${scannedGhosts.length} of ${state.ghosts.length} anomalies catalogued`;
+
+      if (scannedGhosts.length === 0) {
+        dom.archiveList.innerHTML = `
+          <div class="text-center py-8 text-[#33ff66]/60 text-xs">
+            NO SIGNATURES DECODED YET.<br/>
+            Sweep the room and scan Warp entities to populate your Dataslate.
+          </div>
+        `;
+      } else {
+        dom.archiveList.innerHTML = scannedGhosts.map((g) => {
+          const arch = ARCHETYPE_COLORS[g.archetype] || ARCHETYPE_COLORS.wraith;
+          return `
+            <div class="bg-black/50 border border-[#33ff66]/35 rounded-xl p-3 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-display text-sm text-white">${escapeHtml(g.name)}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded border" style="border-color:${arch.primary}; color:${arch.primary};">
+                  ${arch.label}
+                </span>
+              </div>
+              <p class="text-xs text-[#33ff66]/85 leading-relaxed">${escapeHtml(g.lore)}</p>
+              <div class="text-[11px] text-[#ffb000] bg-[#ffb000]/10 border border-[#ffb000]/30 rounded px-2.5 py-1.5">
+                <strong>REWARD:</strong> ${escapeHtml(g.reward)}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      dom.modalArchive.classList.remove('hidden');
+      dom.modalArchive.classList.add('flex');
+    }
+
+    function closeArchiveModal() {
+      dom.modalArchive.classList.add('hidden');
+      dom.modalArchive.classList.remove('flex');
+    }
+
+    // ==================== 11. ARBITRATOR (GM) CAMPAIGN EDITOR ====================
+    function openGmModal() {
+      renderGmGhostList();
+      dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+      dom.modalGm.classList.remove('hidden');
+      dom.modalGm.classList.add('flex');
+    }
+
+    function closeGmModal() {
+      dom.modalGm.classList.add('hidden');
+      dom.modalGm.classList.remove('flex');
+    }
+
+    function renderGmGhostList() {
+      dom.gmGhostList.innerHTML = state.ghosts.map((g, index) => {
+        const arch = ARCHETYPE_COLORS[g.archetype] || ARCHETYPE_COLORS.wraith;
+        return `
+          <div class="flex items-center justify-between gap-2 bg-black/50 border border-[#33ff66]/25 rounded-lg px-3 py-2">
+            <div class="min-w-0">
+              <div class="font-display text-xs text-white truncate">${escapeHtml(g.name)}</div>
+              <div class="text-[10px] text-[#33ff66]/70">
+                <span style="color:${arch.primary}">${arch.label}</span> • AZ ${g.azimuth}° • ${g.scanned ? 'SCANNED' : 'ACTIVE'}
+              </div>
+            </div>
+            <button data-delete-idx="${index}" class="btn-delete-ghost text-[10px] px-2.5 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-500/20 shrink-0">
+              PURGE
             </button>
+          </div>
+        `;
+      }).join('');
 
-            <!-- Center Title Screen -->
-            <div class="flex-1 crt-well rounded px-2.5 py-1.5 flex flex-col justify-center min-w-0">
-                <div class="font-stencil text-sm sm:text-base font-bold tracking-wider text-[#58e678] glow-green truncate text-center leading-tight">
-                    UNDERHIVE BIO-SCANNER v4.1
-                </div>
-                <div class="flex items-center justify-between text-[9px] sm:text-[10px] mt-0.5 pt-0.5 border-t border-emerald-500/20 gap-1">
-                    <span class="text-emerald-500/70 tracking-widest truncate">☩ ⌖ ⟁ ⧉ ⌬ ⚚</span>
-                    <span class="text-zinc-500 hidden sm:inline">SERIAL.8866365</span>
-                    <span class="font-bold tracking-wider shrink-0">
-                        <span class="text-stone-400">STATUS:</span>
-                        <span id="header-status-text" class="text-[#58e678] glow-green">ACTIVE</span>
-                    </span>
-                </div>
-            </div>
+      document.querySelectorAll('.btn-delete-ghost').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.getAttribute('data-delete-idx'));
+          state.ghosts.splice(idx, 1);
+          saveGhosts();
+          renderGmGhostList();
+          dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+          showToast('ANOMALY PURGED FROM SECTOR');
+        });
+      });
+    }
 
-            <!-- Right Cog-Skull Emblem (Tap to Toggle Vox Audio) -->
-            <button id="audio-btn" class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900 border-2 border-stone-600 flex items-center justify-center shrink-0 active:scale-95 transition shadow-inner" title="Toggle Vox Audio">
-                <svg id="audio-skull-svg" class="w-7 h-7 text-emerald-400 transition-colors" viewBox="0 0 36 36" fill="currentColor">
-                    <path d="M16 1h4v3.2a13.9 13.9 0 0 1 3.7 1.5l2.3-2.3 2.8 2.8-2.3 2.3A13.9 13.9 0 0 1 28 12.2H31.2v4H28a13.9 13.9 0 0 1-1.5 3.7l2.3 2.3-2.8 2.8-2.3-2.3A13.9 13.9 0 0 1 20 24.2V27.4h-4v-3.2a13.9 13.9 0 0 1-3.7-1.5l-2.3 2.3-2.8-2.8 2.3-2.3A13.9 13.9 0 0 1 8 16.2H4.8v-4H8a13.9 13.9 0 0 1 1.5-3.7L7.2 6.2 10 3.4l2.3 2.3A13.9 13.9 0 0 1 16 4.2V1z" opacity="0.55"/>
-                    <path d="M18 7.5c-4.4 0-8 3.2-8 7.2 0 2.5 1.4 4.7 3.5 6v2.8c0 .8.7 1.5 1.5 1.5h6c.8 0 1.5-.7 1.5-1.5v-2.8c2.1-1.3 3.5-3.5 3.5-6 0-4-3.6-7.2-8-7.2zm-3 8.5a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm6 0a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6zm-4.5 5.5v-2h1v2h-1zm2 0v-2h1v2h-1z"/>
-                </svg>
-                <span id="audio-badge" class="absolute -bottom-1 -left-1 px-1 rounded bg-emerald-950 border border-emerald-500/60 text-[8px] font-bold text-emerald-400">VOX</span>
-            </button>
-        </header>
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
-        <!-- =========================================================
-             2. CIRCULAR PHOSPHOR RADAR & LIVE CAMERA VIEWPORT
-             ========================================================= -->
-        <main class="relative flex-1 min-h-0 metal-plate-rusted rounded-md p-2 flex items-center justify-center overflow-hidden">
-            <!-- Rivets -->
-            <span class="rivet top-2 left-2"></span>
-            <span class="rivet top-2 right-2"></span>
-            <span class="rivet bottom-2 left-2"></span>
-            <span class="rivet bottom-2 right-2"></span>
+    // ==================== 12. EVENT LISTENERS & INITIALIZATION ====================
+    function bindEvents() {
+      window.addEventListener('resize', resizeCanvas);
 
-            <!-- Diagonal Industrial Cooling Louvers (Top-Right & Bottom-Left) -->
-            <div class="vent-slits absolute top-3 right-3 w-16 h-10 sm:w-20 sm:h-12 rounded-sm opacity-80 pointer-events-none"></div>
-            <div class="vent-slits absolute bottom-3 left-3 w-16 h-10 sm:w-20 sm:h-12 rounded-sm opacity-80 pointer-events-none"></div>
+      // Canvas pointer/touch dragging
+      dom.canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
 
-            <!-- Camera Utility Pills (Top Left: Optic Flip / Pict Upload / Glyph Grimoire) -->
-            <div class="absolute top-2.5 left-3.5 z-30 flex items-center gap-1.5">
-                <button id="switch-cam-btn" class="px-2 py-1 rounded bg-black/80 border border-stone-600 text-[9px] text-emerald-400 hover:border-emerald-500 active:scale-95 transition" title="Switch Front/Rear Camera">
-                    OPTIC
-                </button>
-                <label for="file-upload" class="px-2 py-1 rounded bg-black/80 border border-stone-600 text-[9px] text-amber-400 hover:border-amber-500 active:scale-95 transition cursor-pointer" title="Load Miniature Photo">
-                    PICT
-                </label>
-                <button id="glyph-guide-btn" class="px-2 py-1 rounded bg-black/80 border border-amber-500/70 text-[9px] text-amber-300 hover:border-amber-400 active:scale-95 transition font-bold" title="View Printable Campaign Glyphs">
-                    GLYPHS
-                </button>
-                <input id="file-upload" type="file" accept="image/*" class="hidden" />
-            </div>
+      dom.canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+      window.addEventListener('touchmove', onPointerMove, { passive: true });
+      window.addEventListener('touchend', onPointerUp);
 
-            <!-- Live Optical Glyph Lock Indicator Pill (Top Right) -->
-            <div id="glyph-lock-pill" class="hidden absolute top-2.5 right-3.5 z-30 px-2 py-0.5 rounded bg-amber-950/90 border border-amber-400 text-[9px] font-bold text-amber-300 tracking-wider animate-pulse">
-                RUNE LOCK: <span id="glyph-lock-name">SIGIL-01</span>
-            </div>
+      // Keyboard controls
+      window.addEventListener('keydown', (e) => { state.keysPressed[e.key] = true; });
+      window.addEventListener('keyup', (e) => { state.keysPressed[e.key] = false; });
 
-            <!-- Circular Auspex Lens Housing -->
-            <div id="radar-aperture" class="relative h-full aspect-square max-h-full max-w-full rounded-full crt-well overflow-hidden flex items-center justify-center border-4 border-stone-700 shadow-2xl">
-                <!-- Live Camera Video Stream -->
-                <video id="camera-feed" class="w-full h-full object-cover" autoplay playsinline muted></video>
-                <!-- Fallback / Pict Simulation Canvas -->
-                <canvas id="sim-canvas" class="hidden w-full h-full block"></canvas>
-                <!-- Phosphor Radar Sweep & Reticle Overlay -->
-                <canvas id="radar-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
-                <!-- CRT Scanline Tint -->
-                <div class="absolute inset-0 crt-scanlines z-20"></div>
-            </div>
+      // Boot modal buttons
+      document.getElementById('btn-start-ar').addEventListener('click', async () => {
+        await AudioEngine.init();
+        dom.modalBoot.classList.add('hidden');
+        await enableCamera();
+      });
 
-            <!-- Corner Range & Threat Telemetry Readout (Bottom Right) -->
-            <div class="absolute bottom-2 right-3 z-30 text-right leading-tight pointer-events-none bg-black/65 px-2 py-1 rounded border border-stone-800/80">
-                <div id="tele-acquired" class="text-[9px] sm:text-[10px] text-[#58e678] font-bold tracking-wider">AUSPEX READY</div>
-                <div class="text-[9px] text-stone-300">RANGE: <span id="tele-range" class="text-emerald-300 font-bold">14m</span></div>
-                <div class="text-[9px] text-stone-300">MUTATION: <span id="tele-mutation" class="text-amber-400 font-bold">04%</span></div>
-                <div class="text-[9px] text-stone-300">THREAT: <span id="tele-threat" class="text-[#58e678] font-bold">LOW</span></div>
-            </div>
-        </main>
+      document.getElementById('btn-start-sim').addEventListener('click', async () => {
+        await AudioEngine.init();
+        dom.modalBoot.classList.add('hidden');
+        showToast('SIMULATED AUSPEX ONLINE — SWEEP THE ROOM');
+      });
 
-        <!-- =========================================================
-             3. LOWER BIOMETRIC TELEMETRY MONITOR PANEL
-             ========================================================= -->
-        <section class="metal-plate rounded-md p-2 shrink-0">
-            <span class="rivet top-1.5 left-1.5"></span>
-            <span class="rivet top-1.5 right-1.5"></span>
-            <span class="rivet bottom-1.5 left-1.5"></span>
-            <span class="rivet bottom-1.5 right-1.5"></span>
+      // Scan button (supports both Hold-to-Scan and Tap-to-View if already decoded)
+      const startScan = async (e) => {
+        e.preventDefault();
+        await AudioEngine.init();
+        if (!state.lockedGhost) {
+          showToast('ALIGN A GHOST IN THE RETICLE FIRST');
+          return;
+        }
+        if (state.lockedGhost.scanned) {
+          openIntelModal(state.lockedGhost);
+          return;
+        }
+        state.isScanning = true;
+      };
 
-            <div class="crt-well rounded p-2 relative overflow-hidden">
-                <div class="crt-scanlines absolute inset-0 z-10"></div>
+      const stopScan = () => {
+        state.isScanning = false;
+      };
 
-                <!-- Top Banner & Dossier Re-open Trigger -->
-                <div class="flex items-center justify-between gap-2 pb-1 mb-1.5 border-b border-emerald-500/20 relative z-20">
-                    <h2 id="bio-banner-title" class="font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate">
-                        BIO-SIGNATURES STANDBY
-                    </h2>
-                    <button id="open-dossier-btn" class="hidden px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-[9px] font-bold text-[#58e678] shrink-0 active:scale-95">
-                        DOSSIER
-                    </button>
-                </div>
+      dom.btnScan.addEventListener('mousedown', startScan);
+      dom.btnScan.addEventListener('touchstart', startScan, { passive: false });
+      window.addEventListener('mouseup', stopScan);
+      window.addEventListener('touchend', stopScan);
 
-                <!-- Left Wireframe Hologram + Right Segmented Meters & ECG -->
-                <div class="grid grid-cols-12 gap-2.5 items-center relative z-20">
-                    <!-- Left: Wireframe Skull/Bust Hologram -->
-                    <div class="col-span-4 flex flex-col items-center">
-                        <div class="w-full aspect-square max-h-[82px] bg-black/90 border border-emerald-500/40 rounded overflow-hidden relative">
-                            <canvas id="portrait-canvas" class="w-full h-full block"></canvas>
-                        </div>
-                        <div id="subject-tag-display" class="mt-1 text-[8px] sm:text-[9px] text-amber-400 font-bold tracking-wider truncate w-full text-center">
-                            SUBJECT: UNKNOWN
-                        </div>
-                    </div>
+      // HUD Controls
+      dom.btnSound.addEventListener('click', async () => {
+        await AudioEngine.init();
+        state.soundEnabled = !state.soundEnabled;
+        dom.iconSoundOn.classList.toggle('hidden', !state.soundEnabled);
+        dom.iconSoundOff.classList.toggle('hidden', state.soundEnabled);
+        showToast(state.soundEnabled ? 'VOX AUDIO ENABLED' : 'VOX AUDIO MUTED');
+      });
 
-                    <!-- Right: RAD LEVEL, GENE-STABILITY & VITAL SIGNS ECG -->
-                    <div class="col-span-8 flex flex-col gap-1.5">
-                        <!-- RAD LEVEL Meter -->
-                        <div>
-                            <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider text-[#58e678] glow-green">
-                                <span>RAD LEVEL</span>
-                                <span id="rad-val-label" class="text-[9px] font-mono text-emerald-300">1.42 mSv</span>
-                            </div>
-                            <div id="rad-meter-bar" class="h-2.5 sm:h-3 p-0.5 bg-black border border-emerald-500/50 rounded-sm flex gap-[2px]">
-                                <!-- 24 LED segments injected via JS -->
-                            </div>
-                        </div>
+      dom.btnCameraToggle.addEventListener('click', async () => {
+        await AudioEngine.init();
+        if (state.cameraActive) {
+          disableCamera();
+          showToast('SWITCHED TO SIMULATED AUSPEX');
+        } else {
+          await enableCamera();
+        }
+      });
 
-                        <!-- GENE-WARPED / STABILITY Meter + Warning Triangle -->
-                        <div class="flex items-center gap-2">
-                            <div class="flex-1">
-                                <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider">
-                                    <span id="gene-status-label" class="text-amber-400 glow-amber">GENE-STABILITY</span>
-                                    <span id="gene-val-label" class="text-[9px] font-mono text-amber-300">NOMINAL</span>
-                                </div>
-                                <div id="gene-meter-bar" class="h-2.5 sm:h-3 p-0.5 bg-black border border-amber-500/50 rounded-sm flex gap-[2px]">
-                                    <!-- 20 LED segments injected via JS -->
-                                </div>
-                            </div>
-                            <!-- Warning Triangle Icon -->
-                            <div id="warning-triangle" class="shrink-0 text-amber-500/40 transition-colors">
-                                <svg class="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L2 20h20L12 3z"/>
-                                    <line x1="12" y1="9" x2="12" y2="14"/>
-                                    <circle cx="12" cy="17.2" r="0.8" fill="currentColor"/>
-                                </svg>
-                            </div>
-                        </div>
+      dom.btnFilter.addEventListener('click', () => {
+        state.nvgFilter = !state.nvgFilter;
+        dom.video.classList.toggle('filter-auspex', state.nvgFilter);
+        dom.video.classList.toggle('filter-raw', !state.nvgFilter);
+        dom.nvgState.textContent = state.nvgFilter ? 'ON' : 'OFF';
+      });
 
-                        <!-- VITAL SIGNS Live ECG Waveform -->
-                        <div>
-                            <div class="flex justify-between items-baseline text-[10px] sm:text-xs font-stencil font-bold tracking-wider text-[#58e678] glow-green">
-                                <span>VITAL SIGNS</span>
-                                <span id="bpm-label" class="text-[9px] font-mono text-emerald-300">78 BPM</span>
-                            </div>
-                            <div class="h-7 sm:h-8 w-full relative overflow-hidden">
-                                <canvas id="ecg-canvas" class="w-full h-full block"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+      dom.btnRecenter.addEventListener('click', () => {
+        if (state.gyroActive) {
+          state.headingOffset = normalizeAngle(state.headingOffset + state.heading);
+        } else {
+          state.heading = 0;
+          state.pitch = 0;
+        }
+        showToast('AUSPEX GYRO CALIBRATED TO 000°');
+      });
 
-        <!-- =========================================================
-             4. BOTTOM HAZARD STRIPE & 3 HEAVY HARDWARE SWITCHES
-             ========================================================= -->
-        <footer class="shrink-0 flex flex-col gap-1.5">
-            <!-- Diagonal Yellow/Black Hazard Bar -->
-            <div class="h-3 w-full hazard-stripe rounded-sm border border-stone-700"></div>
+      // Modals
+      document.getElementById('btn-close-intel').addEventListener('click', closeIntelModal);
+      document.getElementById('btn-archive').addEventListener('click', openArchiveModal);
+      document.getElementById('btn-close-archive').addEventListener('click', closeArchiveModal);
+      document.getElementById('btn-rescatter').addEventListener('click', () => {
+        scatterGhosts();
+        closeArchiveModal();
+      });
 
-            <!-- 3 Tactile Industrial Buttons: START SCAN | PULSE | OVERRIDE -->
-            <div class="grid grid-cols-3 gap-2">
-                <!-- START SCAN -->
-                <button id="scan-btn" class="hw-btn rounded py-2.5 sm:py-3 px-1.5 relative flex items-center justify-center">
-                    <span class="rivet top-1 left-1"></span>
-                    <span class="rivet top-1 right-1"></span>
-                    <span class="rivet bottom-1 left-1"></span>
-                    <span class="rivet bottom-1 right-1"></span>
-                    <span id="scan-btn-text" class="font-stencil font-bold text-sm sm:text-base tracking-wider text-[#58e678] glow-green uppercase">
-                        START SCAN
-                    </span>
-                </button>
+      document.getElementById('btn-gm').addEventListener('click', openGmModal);
+      document.getElementById('btn-close-gm').addEventListener('click', closeGmModal);
 
-                <!-- PULSE (Triggers Active Auspex Sonar Ping & Sub-dermal Sweep) -->
-                <button id="pulse-btn" class="hw-btn hw-btn-amber rounded py-2.5 sm:py-3 px-1.5 relative flex items-center justify-center">
-                    <span class="rivet top-1 left-1"></span>
-                    <span class="rivet top-1 right-1"></span>
-                    <span class="rivet bottom-1 left-1"></span>
-                    <span class="rivet bottom-1 right-1"></span>
-                    <span class="font-stencil font-bold text-sm sm:text-base tracking-wider text-amber-400 glow-amber uppercase">
-                        PULSE
-                    </span>
-                </button>
-
-                <!-- OVERRIDE (Discreet Arbiter Mode Cycler) -->
-                <button id="arbiter-mode-btn" class="hw-btn rounded py-2.5 sm:py-3 px-1.5 relative flex flex-col items-center justify-center">
-                    <span class="rivet top-1 left-1"></span>
-                    <span class="rivet top-1 right-1"></span>
-                    <span class="rivet bottom-1 left-1"></span>
-                    <span class="rivet bottom-1 right-1"></span>
-                    <span class="font-stencil font-bold text-sm sm:text-base tracking-wider text-red-500 glow-red uppercase leading-none">
-                        OVERRIDE
-                    </span>
-                    <span id="mode-label" class="text-[8px] font-mono text-stone-400 tracking-widest mt-0.5 uppercase">
-                        SYS: AUTO
-                    </span>
-                </button>
-            </div>
-        </footer>
-
-    </div>
-
-    <!-- =========================================================
-         PRINTABLE / DRAWABLE GLYPH GRIMOIRE MODAL
-         ========================================================= -->
-    <div id="glyph-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col justify-between p-3 sm:p-5 safe-top-pad safe-bottom-pad">
-        <div class="w-full max-w-md mx-auto flex-1 flex flex-col metal-plate-rusted rounded-lg overflow-hidden shadow-2xl">
-            <div class="p-3 bg-zinc-950 border-b border-stone-800 flex items-center justify-between">
-                <div>
-                    <div class="text-[10px] text-amber-500 uppercase tracking-widest">Optical Auspex Recognition Keys</div>
-                    <h3 class="font-stencil text-base font-bold text-[#58e678]">CAMPAIGN GLYPH GRIMOIRE</h3>
-                </div>
-                <button id="close-glyph-btn" class="px-2.5 py-1 rounded border border-stone-600 bg-zinc-900 text-xs text-emerald-400">
-                    CLOSE [X]
-                </button>
-            </div>
-
-            <div class="p-2.5 bg-amber-950/30 border-b border-amber-500/30 text-[11px] text-amber-200 leading-snug">
-                Print or draw these high-contrast <span class="font-bold text-white">2x2 Grid Glyphs</span> on white paper/cards (at least 1.5cm wide). Center a glyph inside the <span class="text-amber-400 font-bold">amber crosshair</span>—the scanner will automatically lock onto the rune!
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2.5 bg-zinc-950/95">
-                <!-- GLYPH 1: IMPERIAL AQUILA (Top-Left Dark) -->
-                <div class="p-2.5 rounded border border-emerald-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
-                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☩</div>
-                        <div class="bg-white"></div>
-                        <div class="bg-white"></div>
-                        <div class="bg-white"></div>
-                    </div>
-                    <div class="mt-2 font-stencil font-bold text-xs text-[#58e678]">RUNE I: AQUILA SEAL</div>
-                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-[#58e678]">PURE / SANCTIFIED</span></div>
-                </div>
-
-                <!-- GLYPH 2: BROOD-TAINT (Top-Right + Bottom-Left Dark) -->
-                <div class="p-2.5 rounded border border-amber-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
-                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
-                        <div class="bg-white"></div>
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⌖</div>
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⌖</div>
-                        <div class="bg-white"></div>
-                    </div>
-                    <div class="mt-2 font-stencil font-bold text-xs text-amber-400">RUNE II: BROOD-MARK</div>
-                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-amber-400">LATENT BROOD-TAINT</span></div>
-                </div>
-
-                <!-- GLYPH 3: MALSTRAIN HORROR (Top-Left + Bottom-Right Dark) -->
-                <div class="p-2.5 rounded border border-red-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
-                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☣</div>
-                        <div class="bg-white"></div>
-                        <div class="bg-white"></div>
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">☣</div>
-                    </div>
-                    <div class="mt-2 font-stencil font-bold text-xs text-red-500">RUNE III: XENOS SIGIL</div>
-                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-red-400">MALSTRAIN INFECTED</span></div>
-                </div>
-
-                <!-- GLYPH 4: ARCHEO-RELIC (Bottom-Left + Bottom-Right Dark) -->
-                <div class="p-2.5 rounded border border-cyan-500/40 bg-zinc-900/90 flex flex-col items-center text-center">
-                    <div class="w-20 h-20 bg-white p-1.5 rounded border-2 border-black grid grid-cols-2 grid-rows-2 gap-0.5 shadow">
-                        <div class="bg-white"></div>
-                        <div class="bg-white"></div>
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⚙</div>
-                        <div class="bg-black flex items-center justify-center text-white text-xs font-bold">⚙</div>
-                    </div>
-                    <div class="mt-2 font-stencil font-bold text-xs text-cyan-400">RUNE IV: ARCHEO-KEY</div>
-                    <div class="text-[10px] text-stone-400 mt-0.5">Triggers: <span class="text-cyan-300">RELIC CACHE UNLOCKED</span></div>
-                </div>
-            </div>
-
-            <div class="p-2.5 bg-zinc-950 border-t border-stone-800">
-                <button id="close-glyph-footer-btn" class="hw-btn w-full py-2.5 rounded font-stencil font-bold text-xs uppercase text-[#58e678]">
-                    RETURN TO AUSPEX
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================
-         FULL DIAGNOSTIC DOSSIER MODAL (Opens on Scan Complete)
-         ========================================================= -->
-    <div id="result-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col justify-center p-3 sm:p-5 overflow-y-auto">
-        <div id="result-card" class="w-full max-w-md mx-auto my-auto metal-plate-rusted rounded-lg overflow-hidden shadow-2xl">
-            <div id="result-hazard" class="h-2.5 w-full hazard-stripe"></div>
-
-            <div class="p-3.5 bg-zinc-950/95">
-                <div class="pb-3 border-b border-stone-800 flex items-center justify-between gap-2">
-                    <div>
-                        <div id="result-classification" class="text-[10px] tracking-widest uppercase text-stone-400">BIO-SCAN COMPLETE // SUBJECT VERIFIED</div>
-                        <h2 id="result-title" class="font-stencil text-xl sm:text-2xl font-bold tracking-wide text-[#58e678] glow-green mt-0.5">
-                            PURE STRAIN HUMAN
-                        </h2>
-                    </div>
-                    <div id="result-badge" class="w-11 h-11 rounded border-2 border-[#58e678] bg-emerald-950/50 flex items-center justify-center shrink-0">
-                        <svg id="icon-clean" class="w-6 h-6 text-[#58e678]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <svg id="icon-infected" class="w-6 h-6 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- Optional Fighter Name Tag for Campaign Log -->
-                <div class="mt-3 flex items-center gap-2 bg-black/80 border border-stone-700 rounded px-2.5 py-1.5">
-                    <span class="text-[10px] text-amber-500 uppercase shrink-0">SUBJECT ID:</span>
-                    <input id="subject-name-input" type="text" maxlength="28" placeholder="Name fighter (e.g. Ganger Vex)..." class="w-full bg-transparent text-xs text-emerald-300 placeholder-stone-600 focus:outline-none font-mono" />
-                </div>
-
-                <!-- Captured Miniature Pict-Feed Frame -->
-                <div id="result-pict-wrapper" class="hidden mt-3 bg-black/90 p-1.5 rounded border border-stone-700 relative overflow-hidden">
-                    <div class="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider mb-1 px-0.5">
-                        <span>OPTIC PICT-CAPTURE // LOCK FRAME</span>
-                        <span id="result-pict-stamp" class="text-emerald-400 font-mono">00:00</span>
-                    </div>
-                    <div class="relative w-full h-36 sm:h-40 rounded overflow-hidden border border-emerald-500/30 bg-black">
-                        <img id="result-pict-img" alt="Captured Subject Pict" class="w-full h-full object-cover" />
-                        <div class="crt-scanlines absolute inset-0"></div>
-                    </div>
-                </div>
-
-                <!-- 2x2 Biometric Grid -->
-                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div class="bg-black/80 p-2 rounded border border-stone-800">
-                        <div class="text-[9px] text-stone-400">MALSTRAIN CONTAMINATION</div>
-                        <div id="stat-corruption" class="font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5">0.04% [TRACE]</div>
-                    </div>
-                    <div class="bg-black/80 p-2 rounded border border-stone-800">
-                        <div class="text-[9px] text-stone-400">XENOS GENOME MATCH</div>
-                        <div id="stat-xenos" class="font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5">NEGATIVE</div>
-                    </div>
-                    <div class="bg-black/80 p-2 rounded border border-stone-800">
-                        <div class="text-[9px] text-stone-400">CHITIN / MUTATION INDEX</div>
-                        <div id="stat-mutation" class="font-mono text-xs sm:text-sm font-bold text-stone-200 mt-0.5">BASELINE</div>
-                    </div>
-                    <div class="bg-black/80 p-2 rounded border border-stone-800">
-                        <div class="text-[9px] text-stone-400">SYNAPTIC RESONANCE</div>
-                        <div id="stat-psychic" class="font-mono text-xs sm:text-sm font-bold text-stone-200 mt-0.5">DORMANT</div>
-                    </div>
-                </div>
-
-                <!-- Cogitator Directive -->
-                <div id="result-notes-box" class="mt-3 bg-black/90 p-2.5 rounded border border-emerald-500/30">
-                    <div class="text-[10px] text-amber-500 uppercase tracking-wider mb-1">>> COGITATOR ASSESSMENT & DIRECTIVE:</div>
-                    <p id="result-notes" class="text-stone-300 leading-relaxed text-xs">
-                        Subject exhibits standard Necromundan hive-dweller rad-scarring. Cleared for duty.
-                    </p>
-                </div>
-
-                <!-- Encrypted Datalog Intercept Prompt (Appears when a Campaign Rune is scanned) -->
-                <div id="datalog-prompt-box" class="hidden mt-3 bg-amber-950/35 border border-amber-500/80 rounded p-2.5 flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-[10px] font-bold tracking-widest text-amber-400 uppercase animate-pulse">
-                            ⚠ ENCRYPTED DATALOG DETECTED
-                        </span>
-                        <span id="datalog-code-tag" class="text-[9px] font-mono text-amber-300/80">LOG // SEC-01</span>
-                    </div>
-                    <p class="text-[11px] text-stone-200 leading-snug">
-                        Sub-dermal vox-buffer recovered from <span id="datalog-prompt-rune" class="text-amber-300 font-bold">RUNE I</span>. Decrypt recovered research transmission?
-                    </p>
-                    <button id="open-datalog-btn" class="hw-btn hw-btn-amber w-full py-2 rounded font-stencil font-bold text-xs tracking-wider uppercase text-amber-300 glow-amber">
-                        DECRYPT & READ DATALOG
-                    </button>
-                </div>
-
-                <div class="mt-3.5 flex gap-2">
-                    <button id="reset-scan-btn" class="hw-btn w-full py-3 rounded font-stencil font-bold text-sm tracking-wider uppercase text-[#58e678] glow-green">
-                        LOG & RETURN TO AUSPEX
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================
-         RECOVERED BLACK-SCIENCE DATALOG READER MODAL
-         ========================================================= -->
-    <div id="datalog-modal" class="hidden fixed inset-0 z-[60] bg-black/92 backdrop-blur-md flex flex-col justify-center p-3 sm:p-5 safe-top-pad safe-bottom-pad">
-        <div id="datalog-card" class="w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-amber-500 rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-[88dvh]">
-            <div class="h-2.5 w-full hazard-stripe shrink-0"></div>
-
-            <!-- Header -->
-            <div class="p-3 bg-zinc-950 border-b border-stone-800 flex items-center justify-between gap-2 shrink-0">
-                <div>
-                    <div id="datalog-header-sub" class="text-[9px] tracking-widest uppercase text-amber-500">
-                        SECUNDUS QUARANTINE // BLACK-SCIENCE ARCHIVE
-                    </div>
-                    <h3 id="datalog-title" class="font-stencil text-base sm:text-lg font-bold text-amber-400 glow-amber mt-0.5">
-                        LOG 01 // THE RADIANT ROT
-                    </h3>
-                </div>
-                <button id="close-datalog-btn" class="px-2.5 py-1 rounded border border-stone-600 bg-zinc-900 text-xs text-stone-300 shrink-0">
-                    CLOSE [X]
-                </button>
-            </div>
-
-            <!-- Metadata Strip -->
-            <div class="px-3 py-1.5 bg-black/90 border-b border-stone-800/90 flex items-center justify-between text-[9px] font-mono text-stone-400 shrink-0">
-                <span id="datalog-author">AUTHOR: MAGOS-BIOLOGIS VANE</span>
-                <span id="datalog-integrity" class="text-red-400">INTEGRITY: 64% [CORRUPTED]</span>
-            </div>
-
-            <!-- Scrollable Narrative Body -->
-            <div class="p-3.5 bg-zinc-950/95 overflow-y-auto space-y-3 text-xs leading-relaxed font-mono relative">
-                <div class="crt-scanlines absolute inset-0 pointer-events-none"></div>
-                <p id="datalog-body-1" class="text-stone-200 relative z-10"></p>
-                <p id="datalog-body-2" class="text-stone-300 relative z-10"></p>
-                <div id="datalog-whisper-box" class="p-2.5 rounded bg-black/90 border-l-2 border-amber-500 text-amber-300/95 italic text-[11px] relative z-10">
-                    <span id="datalog-whisper"></span>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-2.5 bg-zinc-950 border-t border-stone-800 shrink-0">
-                <button id="close-datalog-footer-btn" class="hw-btn hw-btn-amber w-full py-2.5 rounded font-stencil font-bold text-xs tracking-wider uppercase text-amber-300">
-                    PURGE BUFFER & RETURN TO DOSSIER
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================
-         CAMPAIGN SCAN LOGS DRAWER MODAL
-         ========================================================= -->
-    <div id="history-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col justify-between p-3 sm:p-5 safe-top-pad safe-bottom-pad">
-        <div class="w-full max-w-md mx-auto flex-1 flex flex-col metal-plate-rusted rounded-lg overflow-hidden shadow-2xl">
-            <div class="p-3 bg-zinc-950 border-b border-stone-800 flex items-center justify-between">
-                <div>
-                    <div class="text-[10px] text-amber-500 uppercase tracking-widest">Ordo Xenos Cogitator Memory</div>
-                    <h3 class="font-stencil text-base font-bold text-[#58e678]">CAMPAIGN SCAN LOGS</h3>
-                </div>
-                <button id="close-history-btn" class="px-2.5 py-1 rounded border border-stone-600 bg-zinc-900 text-xs text-emerald-400">
-                    CLOSE [X]
-                </button>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 p-2.5 bg-black/80 border-b border-stone-800 text-center text-xs">
-                <div class="p-1.5 rounded bg-zinc-900 border border-emerald-500/30">
-                    <div class="text-[9px] text-stone-400">PURE</div>
-                    <div id="count-clean" class="font-stencil font-bold text-[#58e678] text-sm">0</div>
-                </div>
-                <div class="p-1.5 rounded bg-zinc-900 border border-amber-500/30">
-                    <div class="text-[9px] text-stone-400">BROOD-TAINT</div>
-                    <div id="count-brood" class="font-stencil font-bold text-amber-400 text-sm">0</div>
-                </div>
-                <div class="p-1.5 rounded bg-zinc-900 border border-red-500/30">
-                    <div class="text-[9px] text-stone-400">MALSTRAIN</div>
-                    <div id="count-infected" class="font-stencil font-bold text-red-500 text-sm">0</div>
-                </div>
-            </div>
-
-            <div id="history-list" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs bg-zinc-950/95">
-                <div class="text-center text-stone-500 py-10 italic">No bio-signatures recorded in current cycle.</div>
-            </div>
-
-            <div class="p-2.5 bg-zinc-950 border-t border-stone-800 flex justify-between gap-2">
-                <button id="clear-history-btn" class="px-3 py-2 rounded border border-red-500/40 text-red-400 text-xs">
-                    PURGE
-                </button>
-                <button id="close-history-footer-btn" class="hw-btn flex-1 py-2 rounded font-stencil font-bold text-xs uppercase text-[#58e678]">
-                    RETURN TO SCANNER
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        /**
-         * UNDERHIVE BIO-SCANNER v4.1 // MALSTRAIN PROTOCOL
-         * Grimy Industrial Auspex UI + Live Mobile Camera + Optical Glyph Recognition
-         */
-
-        // --- APPLICATION STATE ---
-        const state = {
-            isScanning: false,
-            audioEnabled: true,
-            facingMode: 'environment',
-            stream: null,
-            usingFallbackSim: false,
-            uploadedImage: null,
-            arbiterModes: ['AUTO', 'INFECTED', 'BROOD', 'CLEAN', 'RELIC'],
-            arbiterIndex: 0,
-            scanProgress: 0,
-            currentOutcome: 'CLEAN', // 'CLEAN' | 'BROOD' | 'INFECTED' | 'RELIC'
-            detectedGlyph: null,
-            glyphLockFrames: 0,
-            glyphCooldownUntil: 0,
-            radarAngle: -Math.PI / 4,
-            pulseRings: [],
-            blips: [
-                { angle: 0.72, dist: 0.44, type: 'danger', phase: 0 },
-                { angle: 2.35, dist: 0.68, type: 'warn', phase: 1.4 },
-                { angle: 4.15, dist: 0.56, type: 'normal', phase: 2.8 },
-                { angle: 5.55, dist: 0.34, type: 'danger', phase: 4.1 }
-            ],
-            ecgHistory: new Array(70).fill(0),
-            ecgPhase: 0,
-            bpm: 78,
-            radValue: 1.42,
-            geneInstability: 12,
-            capturedPict: null,
-            scanHistory: JSON.parse(localStorage.getItem('necromunda_malstrain_logs') || '[]'),
-            pendingLogEntry: null,
-            activeDatalog: null
+      // GM Add Ghost Form
+      dom.gmAddForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newGhost = {
+          id: 'ghost-' + Date.now(),
+          name: document.getElementById('gm-name').value.trim(),
+          archetype: document.getElementById('gm-archetype').value,
+          threat: document.getElementById('gm-threat').value,
+          sector: document.getElementById('gm-sector').value.trim() || 'UNDERHIVE',
+          freq: (40 + Math.random() * 140).toFixed(1) + ' kHz',
+          lore: document.getElementById('gm-lore').value.trim(),
+          reward: document.getElementById('gm-reward').value.trim(),
+          // Spawn at a random angle away from current view
+          azimuth: Math.round(normalizeAngle(state.heading + 45 + Math.random() * 270)),
+          pitch: Math.round(Math.random() * 20 - 10),
+          scanned: false
         };
+        state.ghosts.push(newGhost);
+        saveGhosts();
+        renderGmGhostList();
+        dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+        dom.gmAddForm.reset();
+        showToast(`DEPLOYED: ${newGhost.name.toUpperCase()}`);
+      });
 
-        // --- DOM ELEMENTS ---
-        const chassisRoot = document.getElementById('chassis-root');
-        const videoEl = document.getElementById('camera-feed');
-        const simCanvas = document.getElementById('sim-canvas');
-        const simCtx = simCanvas.getContext('2d');
-        const radarCanvas = document.getElementById('radar-canvas');
-        const radarCtx = radarCanvas.getContext('2d');
-        const portraitCanvas = document.getElementById('portrait-canvas');
-        const portraitCtx = portraitCanvas.getContext('2d');
-        const ecgCanvas = document.getElementById('ecg-canvas');
-        const ecgCtx = ecgCanvas.getContext('2d');
+      // GM Reset Defaults
+      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+        state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+        saveGhosts();
+        renderGmGhostList();
+        dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+        showToast('DEFAULT NECROMUNDA PACK RESTORED');
+      });
 
-        // Hidden Offscreen Canvas for Optical 2x2 Glyph Analysis
-        const glyphCanvas = document.createElement('canvas');
-        glyphCanvas.width = 48;
-        glyphCanvas.height = 48;
-        const glyphCtx = glyphCanvas.getContext('2d', { willReadFrequently: true });
-
-        const headerStatusText = document.getElementById('header-status-text');
-        const teleAcquired = document.getElementById('tele-acquired');
-        const teleRange = document.getElementById('tele-range');
-        const teleMutation = document.getElementById('tele-mutation');
-        const teleThreat = document.getElementById('tele-threat');
-        const glyphLockPill = document.getElementById('glyph-lock-pill');
-        const glyphLockName = document.getElementById('glyph-lock-name');
-
-        const bioBannerTitle = document.getElementById('bio-banner-title');
-        const openDossierBtn = document.getElementById('open-dossier-btn');
-        const subjectTagDisplay = document.getElementById('subject-tag-display');
-        const radValLabel = document.getElementById('rad-val-label');
-        const radMeterBar = document.getElementById('rad-meter-bar');
-        const geneStatusLabel = document.getElementById('gene-status-label');
-        const geneValLabel = document.getElementById('gene-val-label');
-        const geneMeterBar = document.getElementById('gene-meter-bar');
-        const warningTriangle = document.getElementById('warning-triangle');
-        const bpmLabel = document.getElementById('bpm-label');
-
-        const scanBtn = document.getElementById('scan-btn');
-        const scanBtnText = document.getElementById('scan-btn-text');
-        const pulseBtn = document.getElementById('pulse-btn');
-        const arbiterModeBtn = document.getElementById('arbiter-mode-btn');
-        const modeLabel = document.getElementById('mode-label');
-
-        const audioBtn = document.getElementById('audio-btn');
-        const audioSkullSvg = document.getElementById('audio-skull-svg');
-        const audioBadge = document.getElementById('audio-badge');
-        const switchCamBtn = document.getElementById('switch-cam-btn');
-        const fileUpload = document.getElementById('file-upload');
-
-        // Glyph Grimoire Modal
-        const glyphGuideBtn = document.getElementById('glyph-guide-btn');
-        const glyphModal = document.getElementById('glyph-modal');
-        const closeGlyphBtn = document.getElementById('close-glyph-btn');
-        const closeGlyphFooterBtn = document.getElementById('close-glyph-footer-btn');
-
-        // Result Modal Elements
-        const resultModal = document.getElementById('result-modal');
-        const resultCard = document.getElementById('result-card');
-        const resultClassification = document.getElementById('result-classification');
-        const resultTitle = document.getElementById('result-title');
-        const resultBadge = document.getElementById('result-badge');
-        const iconClean = document.getElementById('icon-clean');
-        const iconInfected = document.getElementById('icon-infected');
-        const subjectNameInput = document.getElementById('subject-name-input');
-        const resultPictWrapper = document.getElementById('result-pict-wrapper');
-        const resultPictImg = document.getElementById('result-pict-img');
-        const resultPictStamp = document.getElementById('result-pict-stamp');
-        const statCorruption = document.getElementById('stat-corruption');
-        const statXenos = document.getElementById('stat-xenos');
-        const statMutation = document.getElementById('stat-mutation');
-        const statPsychic = document.getElementById('stat-psychic');
-        const resultNotesBox = document.getElementById('result-notes-box');
-        const resultNotes = document.getElementById('result-notes');
-        const resetScanBtn = document.getElementById('reset-scan-btn');
-
-        // Datalog Prompt & Reader Elements
-        const datalogPromptBox = document.getElementById('datalog-prompt-box');
-        const datalogCodeTag = document.getElementById('datalog-code-tag');
-        const datalogPromptRune = document.getElementById('datalog-prompt-rune');
-        const openDatalogBtn = document.getElementById('open-datalog-btn');
-        const datalogModal = document.getElementById('datalog-modal');
-        const datalogHeaderSub = document.getElementById('datalog-header-sub');
-        const datalogTitle = document.getElementById('datalog-title');
-        const datalogAuthor = document.getElementById('datalog-author');
-        const datalogIntegrity = document.getElementById('datalog-integrity');
-        const datalogBody1 = document.getElementById('datalog-body-1');
-        const datalogBody2 = document.getElementById('datalog-body-2');
-        const datalogWhisper = document.getElementById('datalog-whisper');
-        const closeDatalogBtn = document.getElementById('close-datalog-btn');
-        const closeDatalogFooterBtn = document.getElementById('close-datalog-footer-btn');
-
-        // History Modal Elements
-        const historyBtn = document.getElementById('history-btn');
-        const historyBadge = document.getElementById('history-badge');
-        const historyModal = document.getElementById('history-modal');
-        const closeHistoryBtn = document.getElementById('close-history-btn');
-        const closeHistoryFooterBtn = document.getElementById('close-history-footer-btn');
-        const historyList = document.getElementById('history-list');
-        const clearHistoryBtn = document.getElementById('clear-history-btn');
-        const countCleanEl = document.getElementById('count-clean');
-        const countBroodEl = document.getElementById('count-brood');
-        const countInfectedEl = document.getElementById('count-infected');
-
-        // --- INITIALIZE SEGMENTED LED BARS ---
-        const RAD_SEGMENTS = 24;
-        const GENE_SEGMENTS = 20;
-        for (let i = 0; i < RAD_SEGMENTS; i++) {
-            const seg = document.createElement('div');
-            seg.className = 'led-segment';
-            radMeterBar.appendChild(seg);
+      // GM Copy JSON (using execCommand for iframe compatibility)
+      document.getElementById('btn-copy-json').addEventListener('click', () => {
+        dom.gmJsonBox.select();
+        try {
+          document.execCommand('copy');
+          showToast('CAMPAIGN PACK COPIED TO CLIPBOARD');
+        } catch (err) {
+          showToast('SELECT & COPY THE JSON TEXT MANUALLY');
         }
-        for (let i = 0; i < GENE_SEGMENTS; i++) {
-            const seg = document.createElement('div');
-            seg.className = 'led-segment';
-            geneMeterBar.appendChild(seg);
+      });
+
+      // GM Import JSON
+      document.getElementById('btn-import-json').addEventListener('click', () => {
+        try {
+          const parsed = JSON.parse(dom.gmJsonBox.value);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            throw new Error('Invalid array');
+          }
+          state.ghosts = parsed;
+          saveGhosts();
+          renderGmGhostList();
+          showToast(`LOADED ${parsed.length} CAMPAIGN ANOMALIES`);
+        } catch (err) {
+          showToast('ERROR: INVALID CAMPAIGN JSON FORMAT');
         }
-
-        function updateLedMeters() {
-            const radFill = Math.round(Math.min(1, Math.max(0.1, state.radValue / 10)) * RAD_SEGMENTS);
-            Array.from(radMeterBar.children).forEach((seg, idx) => {
-                seg.className = 'led-segment';
-                if (idx < radFill) {
-                    if (idx > 18) seg.classList.add('active-red');
-                    else if (idx > 13) seg.classList.add('active-amber');
-                    else seg.classList.add('active-green');
-                }
-            });
-
-            const geneFill = Math.round(Math.min(1, Math.max(0.08, state.geneInstability / 100)) * GENE_SEGMENTS);
-            const isDanger = state.geneInstability >= 65;
-            const isWarn = state.geneInstability >= 35 && state.geneInstability < 65;
-
-            Array.from(geneMeterBar.children).forEach((seg, idx) => {
-                seg.className = 'led-segment';
-                if (idx < geneFill) {
-                    if (isDanger) seg.classList.add('active-red');
-                    else if (isWarn) seg.classList.add('active-amber');
-                    else seg.classList.add('active-green');
-                }
-            });
-
-            if (isDanger) {
-                geneStatusLabel.textContent = 'GENE-WARPED';
-                geneStatusLabel.className = 'text-red-500 glow-red';
-                geneValLabel.textContent = `${Math.round(state.geneInstability)}% CRITICAL`;
-                geneValLabel.className = 'text-[9px] font-mono text-red-400 font-bold';
-                warningTriangle.className = 'shrink-0 text-red-500 animate-pulse';
-            } else if (isWarn) {
-                geneStatusLabel.textContent = 'GENE-DRIFT';
-                geneStatusLabel.className = 'text-amber-400 glow-amber';
-                geneValLabel.textContent = `${Math.round(state.geneInstability)}% ELEVATED`;
-                geneValLabel.className = 'text-[9px] font-mono text-amber-300';
-                warningTriangle.className = 'shrink-0 text-amber-400';
-            } else {
-                geneStatusLabel.textContent = 'GENE-STABILITY';
-                geneStatusLabel.className = 'text-[#58e678] glow-green';
-                geneValLabel.textContent = 'NOMINAL';
-                geneValLabel.className = 'text-[9px] font-mono text-emerald-300';
-                warningTriangle.className = 'shrink-0 text-amber-500/30';
-            }
-        }
-
-        // --- OPTICAL 2x2 CAMPAIGN GLYPH RECOGNIZER ---
-        const GLYPH_DEFINITIONS = {
-            '1000': { code: 'RUNE-I', name: 'AQUILA SEAL', outcome: 'CLEAN' },
-            '0110': { code: 'RUNE-II', name: 'BROOD-MARK', outcome: 'BROOD' },
-            '1001': { code: 'RUNE-III', name: 'XENOS SIGIL', outcome: 'INFECTED' },
-            '0011': { code: 'RUNE-IV', name: 'ARCHEO-KEY', outcome: 'RELIC' }
-        };
-
-        function analyzeOpticalGlyph() {
-            const source = state.usingFallbackSim ? simCanvas : videoEl;
-            const srcW = state.usingFallbackSim ? simCanvas.width : videoEl.videoWidth;
-            const srcH = state.usingFallbackSim ? simCanvas.height : videoEl.videoHeight;
-            if (!srcW || !srcH) return;
-
-            const cropSize = Math.min(srcW, srcH) * 0.24;
-            const sx = (srcW - cropSize) / 2;
-            const sy = (srcH - cropSize) / 2;
-
-            glyphCtx.drawImage(source, sx, sy, cropSize, cropSize, 0, 0, 48, 48);
-            const imgData = glyphCtx.getImageData(0, 0, 48, 48).data;
-
-            const quadLuma = [0, 0, 0, 0];
-            const quadCount = [0, 0, 0, 0];
-            let minLuma = 255;
-            let maxLuma = 0;
-
-            for (let y = 4; y < 44; y++) {
-                if (y >= 21 && y <= 26) continue;
-                for (let x = 4; x < 44; x++) {
-                    if (x >= 21 && x <= 26) continue;
-                    const idx = (y * 48 + x) * 4;
-                    const luma = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
-                    if (luma < minLuma) minLuma = luma;
-                    if (luma > maxLuma) maxLuma = luma;
-
-                    const qIdx = (y >= 24 ? 2 : 0) + (x >= 24 ? 1 : 0);
-                    quadLuma[qIdx] += luma;
-                    quadCount[qIdx]++;
-                }
-            }
-
-            if (maxLuma - minLuma < 65) {
-                clearGlyphLock();
-                return;
-            }
-
-            const avgQuads = quadLuma.map((sum, i) => sum / Math.max(1, quadCount[i]));
-            const midThreshold = (Math.min(...avgQuads) + Math.max(...avgQuads)) / 2;
-
-            const darkCount = avgQuads.filter(v => v < midThreshold).length;
-            if (darkCount < 1 || darkCount > 2 || (Math.max(...avgQuads) - Math.min(...avgQuads) < 42)) {
-                clearGlyphLock();
-                return;
-            }
-
-            const signature = avgQuads.map(v => (v < midThreshold ? '1' : '0')).join('');
-            const matched = GLYPH_DEFINITIONS[signature];
-
-            if (matched) {
-                state.glyphLockFrames++;
-                if (state.glyphLockFrames >= 2) {
-                    const isNewLock = !state.detectedGlyph || state.detectedGlyph.code !== matched.code;
-                    state.detectedGlyph = matched;
-                    glyphLockPill.classList.remove('hidden');
-                    glyphLockName.textContent = `${matched.code}: ${matched.name}`;
-
-                    if (isNewLock && !state.isScanning) {
-                        playGlyphLockSound();
-                        if (navigator.vibrate) navigator.vibrate([45, 30, 60]);
-                    }
-
-                    // Auto-lock & trigger hands-free scan once confirmed (~0.35s hover)
-                    if (
-                        state.glyphLockFrames >= 4 &&
-                        !state.isScanning &&
-                        Date.now() > state.glyphCooldownUntil &&
-                        resultModal.classList.contains('hidden') &&
-                        glyphModal.classList.contains('hidden') &&
-                        historyModal.classList.contains('hidden') &&
-                        datalogModal.classList.contains('hidden')
-                    ) {
-                        glyphLockName.textContent = `${matched.code} LOCKED...`;
-                        triggerScan(true);
-                    }
-                }
-            } else {
-                clearGlyphLock();
-            }
-        }
-
-        function clearGlyphLock() {
-            state.glyphLockFrames = 0;
-            state.detectedGlyph = null;
-            glyphLockPill.classList.add('hidden');
-        }
-
-        // --- HORROR & TENSION WEB AUDIO ENGINE (TONE.JS) ---
-        let audioInitialized = false;
-        let scanSynth, alarmSynth, cleanSynth, bassDrone, droneFilter, sonarSynth;
-
-        async function initAudio() {
-            if (audioInitialized || !window.Tone) return;
-            try {
-                await Tone.start();
-
-                droneFilter = new Tone.Filter(125, "lowpass").toDestination();
-                bassDrone = new Tone.Oscillator({
-                    type: "sawtooth",
-                    frequency: 42,
-                    volume: -25
-                }).connect(droneFilter);
-
-                if (state.audioEnabled) bassDrone.start();
-
-                scanSynth = new Tone.MembraneSynth({
-                    pitchDecay: 0.04,
-                    octaves: 3,
-                    oscillator: { type: "sine" },
-                    envelope: { attack: 0.005, decay: 0.14, sustain: 0, release: 0.06 },
-                    volume: -10
-                }).toDestination();
-
-                sonarSynth = new Tone.Synth({
-                    oscillator: { type: "sine" },
-                    envelope: { attack: 0.01, decay: 0.45, sustain: 0, release: 0.3 },
-                    volume: -12
-                }).toDestination();
-
-                alarmSynth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "sawtooth" },
-                    envelope: { attack: 0.02, decay: 0.35, sustain: 0.35, release: 0.7 },
-                    volume: -8
-                }).toDestination();
-
-                cleanSynth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "triangle" },
-                    envelope: { attack: 0.02, decay: 0.25, sustain: 0.2, release: 0.8 },
-                    volume: -10
-                }).toDestination();
-
-                audioInitialized = true;
-            } catch (e) {
-                console.warn("Audio init deferred:", e);
-            }
-        }
-
-        function playGlyphLockSound() {
-            if (!state.audioEnabled || !audioInitialized) return;
-            try {
-                const now = Tone.now();
-                sonarSynth.triggerAttackRelease("E5", "32n", now);
-                sonarSynth.triggerAttackRelease("B5", "16n", now + 0.07);
-            } catch (e) {}
-        }
-
-        function playPulsePing() {
-            if (!state.audioEnabled || !audioInitialized) return;
-            try {
-                sonarSynth.triggerAttackRelease("A5", "16n");
-            } catch (e) {}
-        }
-
-        function playScanHeartbeat(progress) {
-            if (!state.audioEnabled || !audioInitialized) return;
-            try {
-                const now = Tone.now();
-                if (droneFilter) droneFilter.frequency.rampTo(115 + progress * 2.8, 0.1);
-                scanSynth.triggerAttackRelease(progress > 72 ? "D1" : "C1", "16n", now);
-                setTimeout(() => {
-                    if (state.audioEnabled && state.isScanning) {
-                        scanSynth.triggerAttackRelease(progress > 72 ? "G1" : "F1", "32n");
-                    }
-                }, 115);
-            } catch (e) {}
-        }
-
-        function playResultSound(type) {
-            if (!state.audioEnabled || !audioInitialized) return;
-            try {
-                if (droneFilter) droneFilter.frequency.rampTo(125, 0.4);
-                const now = Tone.now();
-                if (type === 'INFECTED') {
-                    alarmSynth.triggerAttackRelease(["C2", "F#2", "C3", "Eb3"], "4n", now);
-                    alarmSynth.triggerAttackRelease(["B1", "F2", "B2", "D3"], "4n", now + 0.32);
-                    alarmSynth.triggerAttackRelease(["Bb1", "E2", "Bb2", "Db3"], "2n", now + 0.65);
-                } else if (type === 'BROOD') {
-                    alarmSynth.triggerAttackRelease(["D2", "Ab2", "F3"], "4n", now);
-                    alarmSynth.triggerAttackRelease(["C#2", "G2", "E3"], "3n", now + 0.38);
-                } else if (type === 'RELIC') {
-                    cleanSynth.triggerAttackRelease(["D4", "A4", "E5"], "8n", now);
-                    cleanSynth.triggerAttackRelease(["F#4", "C#5", "A5"], "2n", now + 0.16);
-                } else {
-                    cleanSynth.triggerAttackRelease(["C4", "G4", "D5"], "8n", now);
-                    cleanSynth.triggerAttackRelease(["E4", "B4", "G5"], "2n", now + 0.18);
-                }
-            } catch (e) {}
-        }
-
-        // --- LORE & BIO-SCAN DATABASES ---
-        const SCAN_DATABASE = {
-            CLEAN: [
-                {
-                    title: "PURE STRAIN HUMAN",
-                    corruption: "0.02% [NEGLIGIBLE]",
-                    xenos: "NEGATIVE",
-                    mutation: "0.4% (RAD-SCARRING)",
-                    psychic: "DORMANT",
-                    notes: "Subject genome conforms to Necromundan Hive-Primus baseline. Minor sump-toxin degradation detected in respiratory alveoli, but zero Tyranid/Malstrain markers present. Cleared for duty."
-                },
-                {
-                    title: "SANCTIFIED AUGMETIC",
-                    corruption: "0.00% [CLEAN]",
-                    xenos: "NEGATIVE",
-                    mutation: "BIONIC OVERRIDE",
-                    psychic: "NULL-SHIELDED",
-                    notes: "High-density iron-polymer bionics masking 41% of organic mass. Remaining flesh verified uncorrupted by Ordo Xenos genetic ciphers. Machine Spirit appeased."
-                },
-                {
-                    title: "ABHUMAN VARIANT // STABLE",
-                    corruption: "0.11% [TRACE]",
-                    xenos: "NON-MATCHING",
-                    mutation: "APPROVED STRAIN",
-                    psychic: "INERT",
-                    notes: "Muscular density and bone-plate thickness exceed standard human template. Cross-referenced against sanctioned Ogryn/Goliath gene-forges: strain is stable and free of brood-taint."
-                }
-            ],
-            BROOD: [
-                {
-                    title: "LATENT BROOD-TAINT",
-                    corruption: "38.4% [ELEVATED]",
-                    xenos: "PARTIAL MATCH",
-                    mutation: "SUB-DERMAL CHITIN",
-                    psychic: "WEAK ECHO",
-                    notes: "WARNING: Dormant xenos-spores detected along spinal column. Subject displays heightened aggression and subtle cranial ridge thickening. Quarantine for immediate interrogation."
-                },
-                {
-                    title: "SECUNDUS HYDRA-CARRIER",
-                    corruption: "44.9% [UNSTABLE]",
-                    xenos: "GENESTEALER ECHO",
-                    mutation: "CELLULAR DRIFT",
-                    psychic: "BEACON ACTIVE",
-                    notes: "Subject carries asymptomatic Malstrain contagion in lymphatic fluid. Capable of transmitting brood-madness to nearby gang fighters. Recommend immediate containment."
-                }
-            ],
-            INFECTED: [
-                {
-                    title: "MALSTRAIN CORRUPTION",
-                    corruption: "94.7% [EXTREMIS]",
-                    xenos: "TYRANID // MALSTRAIN",
-                    mutation: "SEVERE CARAPACE",
-                    psychic: "BROOD-MIND LINKED",
-                    notes: "PURGE PROTOCOL AUTHORIZED: Subject's DNA has been violently rewritten by Hive Secundus Malstrain contagion. Extra-skeletal chitin spurs and hyper-acidic blood detected. Terminate with extreme prejudice!"
-                },
-                {
-                    title: "ABYSSAL GENESTEALER HYBRID",
-                    corruption: "98.2% [TERMINAL]",
-                    xenos: "PURE MALSTRAIN",
-                    mutation: "APEX PREDATOR",
-                    psychic: "SYNAPTIC NODE",
-                    notes: "CRITICAL THREAT: Radiated xenos-horror masquerading in underhive silhouette. Cellular regeneration off the scale. Alert nearest Palanite Enforcer precinct and deploy heavy promethium!"
-                },
-                {
-                    title: "COALESCENCE HORROR",
-                    corruption: "89.5% [CRITICAL]",
-                    xenos: "MUTATED BROOD-KIN",
-                    mutation: "MULTI-LIMB GROWTH",
-                    psychic: "PSYCHIC SHRIEK",
-                    notes: "Bio-auspex overwhelmed by necrotic radiation and hyper-dense xenos musculature. Subject is no longer human—it is an instrument of the Abyssal Brood."
-                }
-            ],
-            RELIC: [
-                {
-                    title: "ARCHEO-TECH VAULT KEY",
-                    corruption: "0.00% [LOCKED]",
-                    xenos: "DAOT CIPHER",
-                    mutation: "QUANTUM LATTICE",
-                    psychic: "MACHINE SPIRIT",
-                    notes: "ANCIENT RELIC DETECTED: Sub-atomic photonic signature matches pre-Imperial Hive Secundus research vaults. Subject or cache contains an uncorrupted Dark Age of Technology data-core."
-                }
-            ]
-        };
-
-        // --- RECOVERED BLACK-SCIENCE DATALOGS (UNLOCKED BY SCANNING RUNES) ---
-        const RUNE_DATALOGS = {
-            'RUNE-I': {
-                code: 'LOG // SEC-01',
-                runeLabel: 'RUNE I: AQUILA SEAL',
-                headerSub: 'SECUNDUS QUARANTINE // CONTAINMENT ARCHIVE',
-                title: 'LOG 01 // THE RADIANT ROT',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE',
-                integrity: 'INTEGRITY: 71% [RAD-SCORCHED]',
-                body1: 'They told the upper spires that the Orbital Lance cleansed Hive Secundus. A lie carved in glass. The thermal lance did not kill the Patriarch—it cooked its genome inside an abyssal reactor of melted adamantium and rad-sludge.',
-                body2: 'What crawled out of the crater is starved, cancerous, and asymmetric. Normal Genestealers are sleek predators; the Malstrain is a weeping tumor that refuses to die, shedding radioactive spores that rewrite marrow in seventy heartbeats.',
-                whisper: '"If the auspex reads pure today, seal the bulkhead anyway. The radiation hides inside the bone until the dark comes."',
-                accent: 'emerald'
-            },
-            'RUNE-II': {
-                code: 'LOG // SEC-02',
-                runeLabel: 'RUNE II: BROOD-MARK',
-                headerSub: 'VIVISECTION THEATRE 04 // SUBJECT 19-B',
-                title: 'LOG 02 // THE CHITIN CHOIR',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE',
-                integrity: 'INTEGRITY: 54% [NEURAL STATIC]',
-                body1: 'Subject 19-B was a Van Saar tech-scavenger pulled from the Dust Wall perimeter. Physically unremarkable—until we opened his sternum. A secondary cartilaginous larynx had grown around his trachea, vibrating at an infrasonic frequency none of our vox-grids could filter.',
-                body2: 'He did not scream when the bone-saw bit. He smiled with three rows of translucent needle-teeth and recited the exact patrol roster of the Palanite garrison two kilometers above us.',
-                whisper: '"The Brood-Mind no longer commands them with psychic majesty. It whispers through their teeth like wet static."',
-                accent: 'amber'
-            },
-            'RUNE-III': {
-                code: 'LOG // SEC-03',
-                runeLabel: 'RUNE III: XENOS SIGIL',
-                headerSub: 'ABYSSAL DEPTHS // TERMINAL VOX-BUFFER',
-                title: 'LOG 03 // COALESCENCE IN THE DARK',
-                author: 'AUTHOR: MAGOS-BIOLOGIS VANE [DECEASED]',
-                integrity: 'INTEGRITY: 28% [CRITICAL CORRUPTION]',
-                body1: 'Day 41 below the Exclusion Zone. My servo-skulls have stopped returning from the ventilation shafts. The Malstrain strains are no longer competing for biomass—they are fusing together in the dark, knitting limbs, skulls, and rending claws into sprawling colonial horrors.',
-                body2: 'Worst of all, they have learned to mimic the vox-clicks of dying Enforcers. Something heavy is scraping against the exterior blast door right now, calling out my name in my own voice.',
-                whisper: '"Do not open the seal. Do not trust the face behind the respirator. Burn the whole shaft."',
-                accent: 'red'
-            },
-            'RUNE-IV': {
-                code: 'LOG // SEC-04',
-                runeLabel: 'RUNE IV: ARCHEO-KEY',
-                headerSub: 'OMEGA-VAULT // FORBIDDEN GENE-FORGE',
-                title: 'LOG 04 // THE PROMETHEUS SPLICE',
-                author: 'AUTHOR: ARCH-HERETEK HERMION',
-                integrity: 'INTEGRITY: 89% [CIPHER-LOCKED]',
-                body1: 'Before the fall of Secundus, the spire-lords funded black-science vaults beneath the underhive—desperate to graft xenos cellular regeneration onto failing noble bloodlines. They kept the first brood-specimens in cryo-stasis three centuries before the bombs fell.',
-                body2: 'This Archeo-Key bears the biometric stamp of Vault Nine. Inside lie unrefined gene-serums, Dark Age augmetics, and the original captive strain that birthed the Abyssal nightmare.',
-                whisper: '"Knowledge is the deadliest contagion in the Underhive—and every gang in Necromunda will bleed to own it."',
-                accent: 'cyan'
-            }
-        };
-
-        // --- CAMERA & FALLBACK SIMULATION ---
-        async function initCamera() {
-            if (state.stream) {
-                state.stream.getTracks().forEach(track => track.stop());
-            }
-
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: state.facingMode },
-                        width: { ideal: 1280 },
-                        height: { ideal: 1280 }
-                    },
-                    audio: false
-                };
-
-                state.stream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoEl.srcObject = state.stream;
-                await videoEl.play();
-                state.usingFallbackSim = false;
-                videoEl.classList.remove('hidden');
-                simCanvas.classList.add('hidden');
-                teleAcquired.textContent = "OPTIC FEED LIVE";
-                teleAcquired.className = "text-[9px] sm:text-[10px] text-[#58e678] font-bold tracking-wider";
-            } catch (err) {
-                console.warn("Camera unavailable, activating Auspex Pict-Sim mode:", err);
-                activateFallbackSim();
-            }
-        }
-
-        function activateFallbackSim() {
-            state.usingFallbackSim = true;
-            videoEl.classList.add('hidden');
-            simCanvas.classList.remove('hidden');
-            teleAcquired.textContent = state.uploadedImage ? "PICT-SLATE LOADED" : "SIM-RADAR MODE";
-            teleAcquired.className = "text-[9px] sm:text-[10px] text-amber-400 font-bold tracking-wider";
-        }
-
-        fileUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    state.uploadedImage = img;
-                    activateFallbackSim();
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // --- SCANNING WORKFLOW ---
-        function captureOpticSnapshot() {
-            try {
-                const source = state.usingFallbackSim ? simCanvas : videoEl;
-                const srcW = state.usingFallbackSim ? simCanvas.width : videoEl.videoWidth;
-                const srcH = state.usingFallbackSim ? simCanvas.height : videoEl.videoHeight;
-                if (!srcW || !srcH) return null;
-
-                const size = 240;
-                const snapCanvas = document.createElement('canvas');
-                snapCanvas.width = size;
-                snapCanvas.height = size;
-                const sCtx = snapCanvas.getContext('2d');
-
-                const minSide = Math.min(srcW, srcH);
-                const sx = (srcW - minSide) / 2;
-                const sy = (srcH - minSide) / 2;
-                sCtx.drawImage(source, sx, sy, minSide, minSide, 0, 0, size, size);
-
-                // Subtle phosphor green auspex tint & corner targeting brackets
-                sCtx.fillStyle = 'rgba(16, 48, 24, 0.18)';
-                sCtx.fillRect(0, 0, size, size);
-                sCtx.strokeStyle = 'rgba(88, 230, 120, 0.75)';
-                sCtx.lineWidth = 2;
-                const b = 18;
-                sCtx.beginPath();
-                sCtx.moveTo(8, 8 + b); sCtx.lineTo(8, 8); sCtx.lineTo(8 + b, 8);
-                sCtx.moveTo(size - 8 - b, 8); sCtx.lineTo(size - 8, 8); sCtx.lineTo(size - 8, 8 + b);
-                sCtx.moveTo(8, size - 8 - b); sCtx.lineTo(8, size - 8); sCtx.lineTo(8 + b, size - 8);
-                sCtx.moveTo(size - 8 - b, size - 8); sCtx.lineTo(size - 8, size - 8); sCtx.lineTo(size - 8, size - 8 - b);
-                sCtx.stroke();
-
-                return snapCanvas.toDataURL('image/jpeg', 0.68);
-            } catch (e) {
-                console.warn('Optic snapshot skipped:', e);
-                return null;
-            }
-        }
-
-        function getCurrentOutcomeType(fromAutoRune = false) {
-            // 1. If a Campaign Glyph is actively locked in the camera crosshair, prioritize it!
-            if (state.detectedGlyph) {
-                return state.detectedGlyph.outcome;
-            }
-            // 2. Otherwise check Arbiter OVERRIDE switch
-            const mode = state.arbiterModes[state.arbiterIndex];
-            if (mode !== 'AUTO') return mode;
-
-            // 3. Weighted random roll for normal miniatures
-            const roll = Math.random();
-            if (roll < 0.45) return 'CLEAN';
-            if (roll < 0.72) return 'BROOD';
-            return 'INFECTED';
-        }
-
-        async function triggerScan(fromAutoRune = false) {
-            if (state.isScanning) return;
-            await initAudio();
-
-            state.isScanning = true;
-            state.scanProgress = 0;
-            state.capturedPict = captureOpticSnapshot();
-            state.currentOutcome = getCurrentOutcomeType(fromAutoRune);
-
-            scanBtn.disabled = true;
-            scanBtnText.textContent = "SCANNING...";
-            headerStatusText.textContent = "SCANNING";
-            headerStatusText.className = "text-amber-400 glow-amber animate-pulse";
-            bioBannerTitle.textContent = fromAutoRune && state.detectedGlyph
-                ? `RUNE LOCK: ${state.detectedGlyph.name}`
-                : "BIO-SIGNATURES ANALYZING...";
-            bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate animate-pulse";
-            teleAcquired.textContent = fromAutoRune ? "RUNE CIPHER LOCKED" : "TARGET ACQUIRED";
-            teleAcquired.className = "text-[9px] sm:text-[10px] text-amber-400 font-bold tracking-wider";
-            openDossierBtn.classList.add('hidden');
-            chassisRoot.classList.remove('alarm-active');
-
-            if (navigator.vibrate) navigator.vibrate(40);
-
-            const duration = 2600;
-            const intervalMs = 45;
-            const step = 100 / (duration / intervalMs);
-            let tickCounter = 0;
-
-            const scanTimer = setInterval(() => {
-                state.scanProgress = Math.min(100, state.scanProgress + step);
-                tickCounter++;
-
-                // Ramp telemetry values dramatically during scan
-                const factor = state.scanProgress / 100;
-                if (state.currentOutcome === 'INFECTED') {
-                    state.geneInstability = 18 + factor * 76 + (Math.random() * 6 - 3);
-                    state.radValue = 2.1 + factor * 6.8;
-                    state.bpm = Math.round(84 + factor * 78);
-                    teleMutation.textContent = `${Math.round(state.geneInstability)}%`;
-                    teleMutation.className = "text-red-500 font-bold";
-                    teleThreat.textContent = factor > 0.6 ? "EXTREMIS" : "HIGH";
-                    teleThreat.className = "text-red-500 font-bold";
-                } else if (state.currentOutcome === 'BROOD') {
-                    state.geneInstability = 15 + factor * 38 + (Math.random() * 4 - 2);
-                    state.radValue = 1.8 + factor * 3.1;
-                    state.bpm = Math.round(80 + factor * 36);
-                    teleMutation.textContent = `${Math.round(state.geneInstability)}%`;
-                    teleMutation.className = "text-amber-400 font-bold";
-                    teleThreat.textContent = "ELEVATED";
-                    teleThreat.className = "text-amber-400 font-bold";
-                } else if (state.currentOutcome === 'RELIC') {
-                    state.geneInstability = 8;
-                    state.radValue = 4.9 + Math.sin(factor * 10) * 1.2;
-                    state.bpm = 72;
-                    teleMutation.textContent = "DAOT-KEY";
-                    teleMutation.className = "text-cyan-400 font-bold";
-                    teleThreat.textContent = "VAULT";
-                    teleThreat.className = "text-cyan-400 font-bold";
-                } else {
-                    state.geneInstability = 10 + Math.sin(factor * 8) * 5;
-                    state.radValue = 1.3 + Math.random() * 0.4;
-                    state.bpm = Math.round(76 + Math.random() * 8);
-                    teleMutation.textContent = "04%";
-                    teleMutation.className = "text-[#58e678] font-bold";
-                    teleThreat.textContent = "LOW";
-                    teleThreat.className = "text-[#58e678] font-bold";
-                }
-
-                radValLabel.textContent = `${state.radValue.toFixed(2)} mSv`;
-                bpmLabel.textContent = `${state.bpm} BPM`;
-                updateLedMeters();
-
-                if (tickCounter % 8 === 0) {
-                    playScanHeartbeat(state.scanProgress);
-                }
-
-                if (state.scanProgress >= 100) {
-                    clearInterval(scanTimer);
-                    completeScan();
-                }
-            }, intervalMs);
-        }
-
-        function completeScan() {
-            state.isScanning = false;
-            scanBtn.disabled = false;
-            scanBtnText.textContent = "START SCAN";
-
-            const pool = SCAN_DATABASE[state.currentOutcome];
-            const result = pool[Math.floor(Math.random() * pool.length)];
-
-            playResultSound(state.currentOutcome);
-            if (navigator.vibrate) {
-                if (state.currentOutcome === 'INFECTED') navigator.vibrate([180, 70, 180, 70, 320]);
-                else if (state.currentOutcome === 'BROOD') navigator.vibrate([120, 60, 120]);
-                else navigator.vibrate(70);
-            }
-
-            // Update main dashboard banner & status
-            bioBannerTitle.classList.remove('animate-pulse');
-            openDossierBtn.classList.remove('hidden');
-
-            if (state.currentOutcome === 'INFECTED') {
-                headerStatusText.textContent = "ALERT // INFECTED";
-                headerStatusText.className = "text-red-500 glow-red animate-pulse";
-                bioBannerTitle.textContent = "MALSTRAIN CONTAGION DETECTED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-red-500 glow-red uppercase truncate";
-                chassisRoot.classList.add('alarm-active');
-            } else if (state.currentOutcome === 'BROOD') {
-                headerStatusText.textContent = "WARN // BROOD-TAINT";
-                headerStatusText.className = "text-amber-400 glow-amber";
-                bioBannerTitle.textContent = "BROOD-TAINT DETECTED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-amber-400 glow-amber uppercase truncate";
-            } else if (state.currentOutcome === 'RELIC') {
-                headerStatusText.textContent = "RELIC LOCKED";
-                headerStatusText.className = "text-cyan-400";
-                bioBannerTitle.textContent = "ARCHEO-KEY VERIFIED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-cyan-400 uppercase truncate";
-            } else {
-                headerStatusText.textContent = "ACTIVE // CLEAN";
-                headerStatusText.className = "text-[#58e678] glow-green";
-                bioBannerTitle.textContent = "BIO-SIGNATURES VERIFIED";
-                bioBannerTitle.className = "font-stencil text-base sm:text-xl font-bold tracking-wider text-[#58e678] glow-green uppercase truncate";
-            }
-
-            // Populate Dossier Modal
-            const isInf = state.currentOutcome === 'INFECTED';
-            const isBrd = state.currentOutcome === 'BROOD';
-            const isRel = state.currentOutcome === 'RELIC';
-
-            resultTitle.textContent = result.title;
-            statCorruption.textContent = result.corruption;
-            statXenos.textContent = result.xenos;
-            statMutation.textContent = result.mutation;
-            statPsychic.textContent = result.psychic;
-            resultNotes.textContent = result.notes;
-            subjectNameInput.value = '';
-
-            const scanTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            if (state.capturedPict) {
-                resultPictImg.src = state.capturedPict;
-                resultPictStamp.textContent = scanTimeStr;
-                resultPictWrapper.classList.remove('hidden');
-            } else {
-                resultPictWrapper.classList.add('hidden');
-            }
-
-            // Check if a Campaign Rune is attached to unlock its Recovered Datalog
-            let matchedRuneCode = state.detectedGlyph ? state.detectedGlyph.code : null;
-            if (!matchedRuneCode && state.arbiterModes[state.arbiterIndex] !== 'AUTO') {
-                const modeMap = { CLEAN: 'RUNE-I', BROOD: 'RUNE-II', INFECTED: 'RUNE-III', RELIC: 'RUNE-IV' };
-                matchedRuneCode = modeMap[state.currentOutcome] || null;
-            }
-
-            if (matchedRuneCode && RUNE_DATALOGS[matchedRuneCode]) {
-                state.activeDatalog = RUNE_DATALOGS[matchedRuneCode];
-                datalogCodeTag.textContent = state.activeDatalog.code;
-                datalogPromptRune.textContent = state.activeDatalog.runeLabel;
-                datalogPromptBox.classList.remove('hidden');
-            } else {
-                state.activeDatalog = null;
-                datalogPromptBox.classList.add('hidden');
-            }
-
-            if (isInf) {
-                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-red-500 rounded-lg overflow-hidden shadow-2xl";
-                resultClassification.textContent = "CRITICAL BIO-HAZARD // PURGE DIRECTIVE";
-                resultClassification.className = "text-[10px] tracking-widest uppercase text-red-400 font-bold";
-                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-red-500 glow-red mt-0.5";
-                resultBadge.className = "w-11 h-11 rounded border-2 border-red-500 bg-red-950/60 flex items-center justify-center shrink-0";
-                iconClean.classList.add('hidden');
-                iconInfected.classList.remove('hidden');
-                iconInfected.className = "w-6 h-6 text-red-500";
-                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
-                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-red-500 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-red-950/25 p-2.5 rounded border border-red-500/40";
-            } else if (isBrd) {
-                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-amber-500 rounded-lg overflow-hidden shadow-2xl";
-                resultClassification.textContent = "WARNING // CONTAGION VECTOR DETECTED";
-                resultClassification.className = "text-[10px] tracking-widest uppercase text-amber-400 font-bold";
-                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-amber-400 glow-amber mt-0.5";
-                resultBadge.className = "w-11 h-11 rounded border-2 border-amber-500 bg-amber-950/60 flex items-center justify-center shrink-0";
-                iconClean.classList.add('hidden');
-                iconInfected.classList.remove('hidden');
-                iconInfected.className = "w-6 h-6 text-amber-400";
-                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
-                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-amber-400 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-amber-950/25 p-2.5 rounded border border-amber-500/40";
-            } else if (isRel) {
-                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-cyan-400 rounded-lg overflow-hidden shadow-2xl";
-                resultClassification.textContent = "ARCHEO-KEY MATCH // VAULT UNSEALED";
-                resultClassification.className = "text-[10px] tracking-widest uppercase text-cyan-400 font-bold";
-                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-cyan-300 mt-0.5";
-                resultBadge.className = "w-11 h-11 rounded border-2 border-cyan-400 bg-cyan-950/60 flex items-center justify-center shrink-0";
-                iconInfected.classList.add('hidden');
-                iconClean.classList.remove('hidden');
-                iconClean.className = "w-6 h-6 text-cyan-400";
-                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
-                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-cyan-400 mt-0.5";
-                resultNotesBox.className = "mt-3 bg-cyan-950/25 p-2.5 rounded border border-cyan-500/40";
-            } else {
-                resultCard.className = "w-full max-w-md mx-auto my-auto metal-plate-rusted border-2 border-[#58e678] rounded-lg overflow-hidden shadow-2xl";
-                resultClassification.textContent = "BIO-SCAN COMPLETE // SUBJECT VERIFIED";
-                resultClassification.className = "text-[10px] tracking-widest uppercase text-stone-400";
-                resultTitle.className = "font-stencil text-xl sm:text-2xl font-bold tracking-wide text-[#58e678] glow-green mt-0.5";
-                resultBadge.className = "w-11 h-11 rounded border-2 border-[#58e678] bg-emerald-950/50 flex items-center justify-center shrink-0";
-                iconInfected.classList.add('hidden');
-                iconClean.classList.remove('hidden');
-                iconClean.className = "w-6 h-6 text-[#58e678]";
-                statCorruption.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
-                statXenos.className = "font-stencil text-sm sm:text-base font-bold text-[#58e678] mt-0.5";
-                resultNotesBox.className = "mt-3 bg-black/90 p-2.5 rounded border border-emerald-500/30";
-            }
-
-            state.pendingLogEntry = {
-                id: Date.now(),
-                timestamp: scanTimeStr,
-                outcome: state.currentOutcome,
-                title: result.title,
-                corruption: result.corruption,
-                subject: 'UNIDENTIFIED FIGHTER',
-                pict: state.capturedPict
-            };
-
-            resultModal.classList.remove('hidden');
-        }
-
-        function savePendingLog() {
-            if (!state.pendingLogEntry) return;
-            const customName = subjectNameInput.value.trim();
-            if (customName) {
-                state.pendingLogEntry.subject = customName.toUpperCase();
-            }
-            subjectTagDisplay.textContent = `SUBJECT: ${state.pendingLogEntry.subject}`;
-            state.scanHistory.unshift(state.pendingLogEntry);
-            if (state.scanHistory.length > 35) state.scanHistory.pop();
-
-            try {
-                localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
-            } catch (e) {
-                // If storage quota fills up, drop pict data on older logs and retry
-                state.scanHistory.forEach((entry, idx) => {
-                    if (idx > 8) entry.pict = null;
-                });
-                try {
-                    localStorage.setItem('necromunda_malstrain_logs', JSON.stringify(state.scanHistory));
-                } catch (err) {}
-            }
-
-            state.pendingLogEntry = null;
-            updateHistoryUI();
-        }
-
-        function updateHistoryUI() {
-            historyBadge.textContent = state.scanHistory.length;
-
-            let cleanCount = 0, broodCount = 0, infectedCount = 0;
-            state.scanHistory.forEach(entry => {
-                if (entry.outcome === 'INFECTED') infectedCount++;
-                else if (entry.outcome === 'BROOD') broodCount++;
-                else cleanCount++;
-            });
-
-            countCleanEl.textContent = cleanCount;
-            countBroodEl.textContent = broodCount;
-            countInfectedEl.textContent = infectedCount;
-
-            if (state.scanHistory.length === 0) {
-                historyList.innerHTML = `<div class="text-center text-stone-500 py-10 italic">No bio-signatures recorded in current cycle.</div>`;
-                return;
-            }
-
-            historyList.innerHTML = state.scanHistory.map(item => {
-                const isInf = item.outcome === 'INFECTED';
-                const isBrd = item.outcome === 'BROOD';
-                const borderCol = isInf ? 'border-red-500/50' : (isBrd ? 'border-amber-500/50' : 'border-emerald-500/40');
-                const titleCol = isInf ? 'text-red-500' : (isBrd ? 'text-amber-400' : 'text-[#58e678]');
-                const thumbHtml = item.pict
-                    ? `<img src="${item.pict}" alt="${item.subject}" class="w-12 h-12 rounded object-cover border border-stone-700 shrink-0" />`
-                    : `<div class="w-12 h-12 rounded bg-zinc-900 border border-stone-800 flex items-center justify-center text-[9px] text-stone-600 shrink-0">NO PICT</div>`;
-                return `
-                    <div class="p-2 rounded bg-black/80 border ${borderCol} flex items-center justify-between gap-2.5">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            ${thumbHtml}
-                            <div class="min-w-0">
-                                <div class="text-[10px] text-stone-400 truncate">${item.timestamp} // <span class="text-amber-400 font-bold">${item.subject}</span></div>
-                                <div class="font-stencil font-bold text-xs ${titleCol} truncate">${item.title}</div>
-                            </div>
-                        </div>
-                        <div class="text-right text-[10px] font-mono ${titleCol} shrink-0">${item.corruption}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // --- CANVAS RENDERERS (RADAR OVERLAY, WIREFRAME HOLOGRAM & ECG) ---
-        function resizeAllCanvases() {
-            const aperture = document.getElementById('radar-aperture');
-            if (aperture) {
-                const rect = aperture.getBoundingClientRect();
-                radarCanvas.width = rect.width;
-                radarCanvas.height = rect.height;
-                simCanvas.width = rect.width;
-                simCanvas.height = rect.height;
-            }
-            if (portraitCanvas.parentElement) {
-                const pRect = portraitCanvas.parentElement.getBoundingClientRect();
-                portraitCanvas.width = pRect.width;
-                portraitCanvas.height = pRect.height;
-            }
-            if (ecgCanvas.parentElement) {
-                const eRect = ecgCanvas.parentElement.getBoundingClientRect();
-                ecgCanvas.width = eRect.width;
-                ecgCanvas.height = eRect.height;
-            }
-        }
-
-        function drawFallbackSim(w, h, time) {
-            simCtx.fillStyle = '#07110a';
-            simCtx.fillRect(0, 0, w, h);
-
-            if (state.uploadedImage) {
-                const imgRatio = state.uploadedImage.width / state.uploadedImage.height;
-                const canvasRatio = w / h;
-                let drawW, drawH, offsetX, offsetY;
-                if (imgRatio > canvasRatio) {
-                    drawH = h;
-                    drawW = h * imgRatio;
-                    offsetX = (w - drawW) / 2;
-                    offsetY = 0;
-                } else {
-                    drawW = w;
-                    drawH = w / imgRatio;
-                    offsetX = 0;
-                    offsetY = (h - drawH) / 2;
-                }
-                simCtx.save();
-                simCtx.filter = 'contrast(1.2) saturate(0.45) sepia(0.35) hue-rotate(65deg)';
-                simCtx.drawImage(state.uploadedImage, offsetX, offsetY, drawW, drawH);
-                simCtx.restore();
-            } else {
-                // Wireframe Genestealer / Ganger silhouette placeholder when no camera
-                const cx = w / 2;
-                const cy = h / 2 + 6;
-                const bob = Math.sin(time * 0.0025) * 3;
-                simCtx.save();
-                simCtx.strokeStyle = 'rgba(88, 230, 120, 0.32)';
-                simCtx.lineWidth = 1.2;
-                for (let i = -3; i <= 3; i++) {
-                    simCtx.beginPath();
-                    simCtx.ellipse(cx, cy - 26 + bob, 14 - Math.abs(i) * 2, 18, 0, 0, Math.PI * 2);
-                    simCtx.stroke();
-                    simCtx.beginPath();
-                    simCtx.ellipse(cx, cy + 12 + bob, 26 - Math.abs(i) * 3, 24, 0, 0, Math.PI * 2);
-                    simCtx.stroke();
-                }
-                simCtx.restore();
-            }
-        }
-
-        function drawRadarOverlay(w, h, time) {
-            radarCtx.clearRect(0, 0, w, h);
-            const cx = w / 2;
-            const cy = h / 2;
-            const radius = Math.min(cx, cy) - 6;
-            if (radius <= 10) return;
-
-            const isDanger = state.currentOutcome === 'INFECTED' && !state.isScanning && chassisRoot.classList.contains('alarm-active');
-            const primaryColor = isDanger ? 'rgba(239, 68, 68, 0.85)' : 'rgba(88, 230, 120, 0.82)';
-            const amberColor = 'rgba(245, 158, 11, 0.65)';
-
-            // 1. Subtle phosphor tint over camera
-            radarCtx.fillStyle = isDanger ? 'rgba(45, 8, 8, 0.22)' : 'rgba(8, 30, 14, 0.18)';
-            radarCtx.beginPath();
-            radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-            radarCtx.fill();
-
-            // 2. Rotating Radar Sweep Wedge
-            state.radarAngle += state.isScanning ? 0.075 : 0.022;
-            radarCtx.save();
-            radarCtx.beginPath();
-            radarCtx.moveTo(cx, cy);
-            radarCtx.arc(cx, cy, radius, state.radarAngle - 0.52, state.radarAngle);
-            radarCtx.closePath();
-            const grad = radarCtx.createRadialGradient(cx, cy, 4, cx, cy, radius);
-            grad.addColorStop(0, isDanger ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.06)');
-            grad.addColorStop(1, isDanger ? 'rgba(239, 68, 68, 0.34)' : 'rgba(245, 158, 11, 0.32)');
-            radarCtx.fillStyle = grad;
-            radarCtx.fill();
-
-            // Leading sweep line
-            radarCtx.beginPath();
-            radarCtx.moveTo(cx, cy);
-            radarCtx.lineTo(cx + Math.cos(state.radarAngle) * radius, cy + Math.sin(state.radarAngle) * radius);
-            radarCtx.strokeStyle = isDanger ? 'rgba(239, 68, 68, 0.9)' : 'rgba(251, 191, 36, 0.9)';
-            radarCtx.lineWidth = 2;
-            radarCtx.stroke();
-            radarCtx.restore();
-
-            // 3. Concentric Radar Rings & Radial Spokes
-            radarCtx.strokeStyle = amberColor;
-            radarCtx.lineWidth = 1;
-            [0.28, 0.52, 0.76, 0.98].forEach(ratio => {
-                radarCtx.beginPath();
-                radarCtx.arc(cx, cy, radius * ratio, 0, Math.PI * 2);
-                radarCtx.stroke();
-            });
-
-            for (let i = 0; i < 12; i++) {
-                const a = (i * Math.PI) / 6;
-                radarCtx.beginPath();
-                radarCtx.moveTo(cx + Math.cos(a) * (radius * 0.28), cy + Math.sin(a) * (radius * 0.28));
-                radarCtx.lineTo(cx + Math.cos(a) * (radius * 0.98), cy + Math.sin(a) * (radius * 0.98));
-                radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
-                radarCtx.stroke();
-            }
-
-            // 4. Outer Phosphor Rim & Degree Ticks
-            radarCtx.beginPath();
-            radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-            radarCtx.strokeStyle = primaryColor;
-            radarCtx.lineWidth = 3;
-            radarCtx.stroke();
-
-            for (let i = 0; i < 72; i++) {
-                const a = (i * Math.PI * 2) / 72;
-                const inner = i % 6 === 0 ? radius - 9 : radius - 5;
-                radarCtx.beginPath();
-                radarCtx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
-                radarCtx.lineTo(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius);
-                radarCtx.strokeStyle = i % 6 === 0 ? primaryColor : 'rgba(88, 230, 120, 0.45)';
-                radarCtx.lineWidth = i % 6 === 0 ? 1.8 : 1;
-                radarCtx.stroke();
-            }
-
-            // 5. Radar Contact Blips
-            state.blips.forEach(blip => {
-                const bx = cx + Math.cos(blip.angle) * (radius * blip.dist);
-                const by = cy + Math.sin(blip.angle) * (radius * blip.dist);
-                const pulse = 0.55 + 0.45 * Math.sin(time * 0.005 + blip.phase);
-                radarCtx.beginPath();
-                radarCtx.arc(bx, by, blip.type === 'danger' ? 4.2 : 3.2, 0, Math.PI * 2);
-                radarCtx.fillStyle = blip.type === 'danger'
-                    ? `rgba(239, 68, 68, ${pulse})`
-                    : (blip.type === 'warn' ? `rgba(245, 158, 11, ${pulse})` : `rgba(88, 230, 120, ${pulse})`);
-                radarCtx.fill();
-            });
-
-            // 6. Active Sonar Pulse Rings (triggered by PULSE button)
-            state.pulseRings = state.pulseRings.filter(r => r.alpha > 0.02);
-            state.pulseRings.forEach(ring => {
-                ring.r += 3.8;
-                ring.alpha *= 0.965;
-                radarCtx.beginPath();
-                radarCtx.arc(cx, cy, ring.r, 0, Math.PI * 2);
-                radarCtx.strokeStyle = `rgba(251, 191, 36, ${ring.alpha})`;
-                radarCtx.lineWidth = 2.5;
-                radarCtx.stroke();
-            });
-
-            // 7. Center Amber Crosshair Reticle (Also serves as Optical Glyph Lock Zone)
-            const retR = state.detectedGlyph ? 26 : 22;
-            radarCtx.save();
-            radarCtx.strokeStyle = state.detectedGlyph ? '#58e678' : '#f59e0b';
-            radarCtx.lineWidth = state.detectedGlyph ? 2.6 : 2;
-            radarCtx.beginPath();
-            radarCtx.arc(cx, cy, retR, 0, Math.PI * 2);
-            radarCtx.stroke();
-
-            radarCtx.beginPath();
-            radarCtx.arc(cx, cy, retR * 0.52, 0, Math.PI * 2);
-            radarCtx.stroke();
-
-            // Crosshair ticks
-            const gap = 6;
-            const len = retR + 8;
-            radarCtx.beginPath();
-            radarCtx.moveTo(cx - len, cy); radarCtx.lineTo(cx - gap, cy);
-            radarCtx.moveTo(cx + gap, cy); radarCtx.lineTo(cx + len, cy);
-            radarCtx.moveTo(cx, cy - len); radarCtx.lineTo(cx, cy - gap);
-            radarCtx.moveTo(cx, cy + gap); radarCtx.lineTo(cx, cy + len);
-            radarCtx.stroke();
-            radarCtx.restore();
-
-            // 8. Horizontal CRT Glitch Streaks during active scans or infection alert
-            if (state.isScanning || isDanger) {
-                for (let g = 0; g < 3; g++) {
-                    if (Math.random() < 0.35) {
-                        const gy = cy + (Math.random() - 0.5) * radius * 1.4;
-                        const gw = 28 + Math.random() * 65;
-                        const gx = cx + (Math.random() - 0.5) * radius;
-                        radarCtx.fillStyle = Math.random() > 0.5 ? 'rgba(88, 230, 120, 0.35)' : 'rgba(239, 68, 68, 0.35)';
-                        radarCtx.fillRect(gx, gy, gw, 2);
-                    }
-                }
-            }
-        }
-
-        function drawWireframePortrait(w, h, time) {
-            portraitCtx.fillStyle = '#040805';
-            portraitCtx.fillRect(0, 0, w, h);
-            if (w <= 0 || h <= 0) return;
-
-            const cx = w / 2;
-            const cy = h / 2;
-            const isDanger = state.geneInstability >= 65;
-            const wireCol = isDanger ? '#ef4444' : '#58e678';
-
-            // Subtle grid background
-            portraitCtx.strokeStyle = 'rgba(88, 230, 120, 0.12)';
-            portraitCtx.lineWidth = 0.7;
-            const step = 9;
-            for (let x = 0; x < w; x += step) {
-                portraitCtx.beginPath();
-                portraitCtx.moveTo(x, 0);
-                portraitCtx.lineTo(x, h);
-                portraitCtx.stroke();
-            }
-            for (let y = 0; y < h; y += step) {
-                portraitCtx.beginPath();
-                portraitCtx.moveTo(0, y);
-                portraitCtx.lineTo(w, y);
-                portraitCtx.stroke();
-            }
-
-            // Wireframe Head & Cybernetic Eye
-            const sway = Math.sin(time * 0.002) * 2.5;
-            portraitCtx.save();
-            portraitCtx.strokeStyle = wireCol;
-            portraitCtx.lineWidth = 1.1;
-
-            // Cranium mesh rings
-            for (let r = -2; r <= 2; r++) {
-                portraitCtx.beginPath();
-                portraitCtx.ellipse(cx + sway * 0.4, cy - 3, (w * 0.24) - Math.abs(r) * 2.2, h * 0.31, 0, 0, Math.PI * 2);
-                portraitCtx.stroke();
-            }
-            // Horizontal contour bands
-            [-14, -6, 2, 10, 17].forEach(dy => {
-                const halfW = (w * 0.23) * Math.cos((dy / 24) * 1.1);
-                if (halfW > 2) {
-                    portraitCtx.beginPath();
-                    portraitCtx.ellipse(cx + sway * 0.4, cy + dy, halfW, 3.2, 0, 0, Math.PI * 2);
-                    portraitCtx.stroke();
-                }
-            });
-
-            // Left Eye Socket & Right Bionics Lens
-            portraitCtx.beginPath();
-            portraitCtx.arc(cx - 7 + sway * 0.5, cy - 5, 3.2, 0, Math.PI * 2);
-            portraitCtx.stroke();
-
-            portraitCtx.fillStyle = isDanger ? '#ef4444' : '#fbbf24';
-            portraitCtx.beginPath();
-            portraitCtx.arc(cx + 7 + sway * 0.5, cy - 5, 3.6, 0, Math.PI * 2);
-            portraitCtx.stroke();
-            portraitCtx.beginPath();
-            portraitCtx.arc(cx + 7 + sway * 0.5, cy - 5, 1.5, 0, Math.PI * 2);
-            portraitCtx.fill();
-
-            // Glitch slice on portrait
-            if (Math.random() < (isDanger ? 0.45 : 0.14)) {
-                const gy = Math.random() * h;
-                portraitCtx.fillStyle = isDanger ? 'rgba(239, 68, 68, 0.45)' : 'rgba(88, 230, 120, 0.35)';
-                portraitCtx.fillRect(0, gy, w, 2);
-            }
-            portraitCtx.restore();
-        }
-
-        function drawEcgWaveform(w, h) {
-            ecgCtx.clearRect(0, 0, w, h);
-            if (w <= 0 || h <= 0) return;
-
-            const speed = (state.bpm / 60) * 0.16;
-            state.ecgPhase += speed;
-            const cycle = state.ecgPhase % 1;
-
-            let val = 0;
-            if (cycle > 0.12 && cycle < 0.20) val = -0.22 * Math.sin(((cycle - 0.12) / 0.08) * Math.PI);
-            else if (cycle >= 0.28 && cycle < 0.32) val = 0.28;
-            else if (cycle >= 0.32 && cycle < 0.37) val = -0.92;
-            else if (cycle >= 0.37 && cycle < 0.42) val = 0.45;
-            else if (cycle >= 0.55 && cycle < 0.68) val = -0.32 * Math.sin(((cycle - 0.55) / 0.13) * Math.PI);
-            else val = (Math.random() - 0.5) * 0.06;
-
-            state.ecgHistory.push(val);
-            if (state.ecgHistory.length > 75) state.ecgHistory.shift();
-
-            const isDanger = state.geneInstability >= 65;
-            ecgCtx.strokeStyle = isDanger ? '#ef4444' : '#58e678';
-            ecgCtx.lineWidth = 1.6;
-            ecgCtx.shadowColor = isDanger ? 'rgba(239,68,68,0.8)' : 'rgba(88,230,120,0.8)';
-            ecgCtx.shadowBlur = 5;
-
-            ecgCtx.beginPath();
-            const midY = h * 0.54;
-            const amp = h * 0.42;
-            state.ecgHistory.forEach((pt, idx) => {
-                const x = (idx / (state.ecgHistory.length - 1)) * w;
-                const y = midY + pt * amp;
-                if (idx === 0) ecgCtx.moveTo(x, y);
-                else ecgCtx.lineTo(x, y);
-            });
-            ecgCtx.stroke();
-            ecgCtx.shadowBlur = 0;
-        }
-
-        // --- MAIN ANIMATION LOOP ---
-        let frameTick = 0;
-        function renderLoop(time) {
-            frameTick++;
-            if (state.usingFallbackSim) {
-                drawFallbackSim(simCanvas.width, simCanvas.height, time);
-            }
-            drawRadarOverlay(radarCanvas.width, radarCanvas.height, time);
-            drawWireframePortrait(portraitCanvas.width, portraitCanvas.height, time);
-            drawEcgWaveform(ecgCanvas.width, ecgCanvas.height);
-
-            // Analyze center reticle for 2x2 Campaign Glyphs every ~6 frames
-            if (frameTick % 6 === 0 && !state.isScanning) {
-                analyzeOpticalGlyph();
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        // --- EVENT LISTENERS ---
-        scanBtn.addEventListener('click', () => triggerScan(false));
-
-        pulseBtn.addEventListener('click', async () => {
-            await initAudio();
-            playPulsePing();
-            state.pulseRings.push({ r: 12, alpha: 0.95 });
-            const randomRange = Math.floor(4 + Math.random() * 24);
-            teleRange.textContent = `${randomRange}m`;
-            if (navigator.vibrate) navigator.vibrate(25);
-        });
-
-        arbiterModeBtn.addEventListener('click', () => {
-            state.arbiterIndex = (state.arbiterIndex + 1) % state.arbiterModes.length;
-            const mode = state.arbiterModes[state.arbiterIndex];
-            modeLabel.textContent = `SYS: ${mode}`;
-            if (mode === 'INFECTED') modeLabel.className = "text-[8px] font-mono text-red-400 font-bold tracking-widest mt-0.5 uppercase";
-            else if (mode === 'BROOD') modeLabel.className = "text-[8px] font-mono text-amber-400 font-bold tracking-widest mt-0.5 uppercase";
-            else if (mode === 'RELIC') modeLabel.className = "text-[8px] font-mono text-cyan-400 font-bold tracking-widest mt-0.5 uppercase";
-            else if (mode === 'CLEAN') modeLabel.className = "text-[8px] font-mono text-emerald-400 font-bold tracking-widest mt-0.5 uppercase";
-            else modeLabel.className = "text-[8px] font-mono text-stone-400 tracking-widest mt-0.5 uppercase";
-            if (navigator.vibrate) navigator.vibrate(15);
-        });
-
-        audioBtn.addEventListener('click', async () => {
-            await initAudio();
-            state.audioEnabled = !state.audioEnabled;
-            if (state.audioEnabled) {
-                audioSkullSvg.className = "w-7 h-7 text-emerald-400 transition-colors";
-                audioBadge.textContent = "VOX";
-                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-emerald-950 border border-emerald-500/60 text-[8px] font-bold text-emerald-400";
-                if (bassDrone && bassDrone.state !== 'started') bassDrone.start();
-            } else {
-                audioSkullSvg.className = "w-7 h-7 text-stone-600 transition-colors";
-                audioBadge.textContent = "MUTE";
-                audioBadge.className = "absolute -bottom-1 -left-1 px-1 rounded bg-zinc-900 border border-stone-700 text-[8px] font-bold text-stone-500";
-                if (bassDrone && bassDrone.state === 'started') bassDrone.stop();
-            }
-        });
-
-        switchCamBtn.addEventListener('click', () => {
-            state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
-            initCamera();
-        });
-
-        // Glyph Grimoire Modal Controls
-        glyphGuideBtn.addEventListener('click', () => glyphModal.classList.remove('hidden'));
-        closeGlyphBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
-        closeGlyphFooterBtn.addEventListener('click', () => glyphModal.classList.add('hidden'));
-
-        // Result Dossier Controls
-        openDossierBtn.addEventListener('click', () => resultModal.classList.remove('hidden'));
-        resetScanBtn.addEventListener('click', () => {
-            savePendingLog();
-            resultModal.classList.add('hidden');
-            state.glyphCooldownUntil = Date.now() + 2500;
-            clearGlyphLock();
-        });
-
-        // Datalog Reader Controls
-        openDatalogBtn.addEventListener('click', () => {
-            if (!state.activeDatalog) return;
-            const log = state.activeDatalog;
-            datalogHeaderSub.textContent = log.headerSub;
-            datalogTitle.textContent = log.title;
-            datalogAuthor.textContent = log.author;
-            datalogIntegrity.textContent = log.integrity;
-            datalogBody1.textContent = log.body1;
-            datalogBody2.textContent = log.body2;
-            datalogWhisper.textContent = log.whisper;
-            datalogModal.classList.remove('hidden');
-            if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
-        });
-        closeDatalogBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
-        closeDatalogFooterBtn.addEventListener('click', () => datalogModal.classList.add('hidden'));
-
-        // History Archive Controls
-        historyBtn.addEventListener('click', () => {
-            updateHistoryUI();
-            historyModal.classList.remove('hidden');
-        });
-        closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
-        closeHistoryFooterBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
-        clearHistoryBtn.addEventListener('click', () => {
-            state.scanHistory = [];
-            localStorage.removeItem('necromunda_malstrain_logs');
-            updateHistoryUI();
-        });
-
-        // --- BOOT ON WINDOW LOAD ---
-        window.addEventListener('resize', resizeAllCanvases);
-        window.onload = function () {
-            resizeAllCanvases();
-            updateLedMeters();
-            updateHistoryUI();
-            initCamera();
-            requestAnimationFrame(renderLoop);
-        };
-    </script>
+      });
+    }
+
+    // Boot on window load
+    window.onload = function () {
+      loadGhosts();
+      resizeCanvas();
+      bindEvents();
+      lastFrameTime = performance.now();
+      requestAnimationFrame(animate);
+    };
+  </script>
 </body>
 </html>
