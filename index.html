@@ -283,7 +283,7 @@
       <div class="bg-black/50 border border-[#33ff66]/30 rounded-xl p-3 text-[11px] text-[#33ff66]/80 space-y-1">
         <div>• <strong>Move phone</strong> (or drag screen) to sweep 360° around the room.</div>
         <div>• <strong>Hold Beam</strong> to disrupt a ghost's psychic shroud.</div>
-        <div>• 3D Model Status: <strong id="boot-model-status" class="text-[#00f0ff]">CHECKING ./spirit.glb...</strong></div>
+        <div class="break-words">• 3D Model Status: <strong id="boot-model-status" class="text-[#00f0ff]">CHECKING ./spirit.glb...</strong></div>
       </div>
 
       <div class="flex flex-col gap-2.5 pt-1">
@@ -793,19 +793,28 @@
 
       async _parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback) {
         try {
-          // Validate GLB binary header if it starts with "glTF" (0x46546C67)
-          if (buffer.byteLength >= 12) {
-            const header = new DataView(buffer, 0, 12);
-            const magic = header.getUint32(0, true);
-            if (magic === 0x46546C67) {
-              const declaredLen = header.getUint32(8, true);
-              if (declaredLen > buffer.byteLength) {
-                throw new Error(
-                  'Truncated .glb file (' + Math.round(buffer.byteLength / 1024) + 'KB of ' +
-                  Math.round(declaredLen / 1024) + 'KB). Re-upload spirit.glb to GitHub.'
-                );
-              }
+          if (!buffer || buffer.byteLength < 12) {
+            throw new Error('File too small (' + (buffer ? buffer.byteLength : 0) + ' bytes).');
+          }
+
+          // Validate GLB binary header ("glTF" = 0x46546C67)
+          const header = new DataView(buffer, 0, 12);
+          const magic = header.getUint32(0, true);
+          const isGlbExt = /\.glb$/i.test(fileName || '');
+
+          if (magic === 0x46546C67) {
+            const declaredLen = header.getUint32(8, true);
+            if (declaredLen > buffer.byteLength) {
+              throw new Error(
+                'Truncated .glb (' + Math.round(buffer.byteLength / 1024) + 'KB of ' +
+                Math.round(declaredLen / 1024) + 'KB). Re-upload spirit.glb to GitHub.'
+              );
             }
+          } else if (isGlbExt) {
+            const preview = new TextDecoder('utf-8').decode(new Uint8Array(buffer, 0, Math.min(48, buffer.byteLength))).replace(/\s+/g, ' ').trim();
+            throw new Error(
+              'Not a valid binary .glb (' + buffer.byteLength + ' bytes). Starts with: "' + preview + '"'
+            );
           }
 
           // Wait for WASM MeshoptDecoder to finish initializing if present
@@ -827,8 +836,8 @@
               if (isPreviewFallback) {
                 this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
               } else {
-                this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'PARSE ERROR', true, 'Failed to parse ' + fileName + ': ' + errMsg);
-                showToast('3D PARSE FAILED — CHECK GM PANEL');
+                this._setStatus('FAILED: ' + errMsg, 'PARSE ERROR', true, 'Failed to parse ' + fileName + ': ' + errMsg);
+                showToast('3D PARSE FAILED');
               }
             }
           );
@@ -838,8 +847,41 @@
           if (isPreviewFallback) {
             this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
           } else {
-            this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'LOAD ERROR', true, errMsg);
-            showToast('3D LOAD FAILED — CHECK GM PANEL');
+            this._setStatus('FAILED: ' + errMsg, 'LOAD ERROR', true, errMsg);
+            showToast('3D LOAD FAILED');
+          }
+        }
+      },
+
+      async loadFromUrl(url, persist, isPreviewFallback) {
+        const cleanUrl = String(url || '').trim();
+        if (!cleanUrl || !this.scene || !this.loader) return;
+
+        const fileName = cleanUrl.split('/').pop().split('?')[0] || 'spirit.glb';
+        const basePath = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
+        this._setStatus('DOWNLOADING ' + fileName + '...', 'LOADING...', false);
+
+        try {
+          const res = await fetch(cleanUrl);
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status + ' fetching ' + fileName);
+          }
+          const buffer = await res.arrayBuffer();
+          if (dom.gmGlbUrl) dom.gmGlbUrl.value = cleanUrl;
+          if (persist) {
+            try {
+              localStorage.setItem(GLB_URL_STORAGE_KEY, cleanUrl);
+            } catch (e) {}
+          }
+          await this._parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback);
+        } catch (err) {
+          console.warn('Could not fetch .glb URL:', cleanUrl, err);
+          const errMsg = (err && err.message) ? err.message : 'File not found';
+          if (isPreviewFallback) {
+            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+          } else {
+            this._setStatus('FAILED: ' + errMsg, 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
+            showToast('3D LOAD FAILED');
           }
         }
       },
