@@ -186,28 +186,8 @@
       to { transform: rotate(360deg); }
     }
 
-    @keyframes spinReverse {
-      from { transform: rotate(360deg); }
-      to { transform: rotate(0deg); }
-    }
-
     .spin-slow {
-      animation: spinSlow 18s linear infinite;
-    }
-
-    .spin-reverse {
-      animation: spinReverse 12s linear infinite;
-    }
-
-    /* Radar sweep */
-    @keyframes radarSweep {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .radar-sweep {
-      animation: radarSweep 3.2s linear infinite;
-      transform-origin: center center;
+      animation: spinSlow 24s linear infinite;
     }
 
     /* Custom scrollbar for dataslate modals */
@@ -315,29 +295,29 @@
 
     <!-- CENTER RETICLE: Dynamic Targeting Crosshair & Scan Progress Ring -->
     <div class="relative flex-1 flex items-center justify-center pointer-events-none">
-      <div id="reticle-container" class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center transition-transform duration-150">
+      <div id="reticle-container" class="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center transition-transform duration-150">
         <!-- Outer Rotating Ring -->
         <svg id="reticle-svg" class="w-full h-full" viewBox="0 0 200 200">
           <!-- Subtle Dashed Outer Ring -->
           <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(51, 255, 102, 0.25)" stroke-width="1" stroke-dasharray="6 8" class="spin-slow" style="transform-origin: 100px 100px;" />
 
-          <!-- Corner Brackets -->
-          <path id="reticle-brackets" d="M 42 58 L 42 42 L 58 42 M 142 42 L 158 42 L 158 58 M 158 142 L 158 158 L 142 158 M 58 158 L 42 158 L 42 142"
+          <!-- Wide, Forgiving Corner Brackets -->
+          <path id="reticle-brackets" d="M 34 54 L 34 34 L 54 34 M 146 34 L 166 34 L 166 54 M 166 146 L 166 166 L 146 166 M 54 166 L 34 166 L 34 146"
                 fill="none" stroke="#33ff66" stroke-width="2.5" stroke-linecap="square" />
 
           <!-- Crosshair Ticks -->
-          <line x1="100" y1="22" x2="100" y2="36" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
-          <line x1="100" y1="164" x2="100" y2="178" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
-          <line x1="22" y1="100" x2="36" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
-          <line x1="164" y1="100" x2="178" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="100" y1="18" x2="100" y2="30" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="100" y1="170" x2="100" y2="182" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="18" y1="100" x2="30" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
+          <line x1="170" y1="100" x2="182" y2="100" stroke="#33ff66" stroke-width="1.5" opacity="0.7" />
 
           <!-- Center Dot -->
           <circle id="reticle-dot" cx="100" cy="100" r="2.5" fill="#33ff66" />
 
           <!-- Scan Progress Circular Gauge -->
-          <circle id="scan-progress-ring" cx="100" cy="100" r="74"
-                  fill="none" stroke="#00f0ff" stroke-width="4"
-                  stroke-dasharray="465" stroke-dashoffset="465"
+          <circle id="scan-progress-ring" cx="100" cy="100" r="78"
+                  fill="none" stroke="#00f0ff" stroke-width="4.5"
+                  stroke-dasharray="490" stroke-dashoffset="490"
                   stroke-linecap="round"
                   transform="rotate(-90 100 100)"
                   style="transition: stroke-dashoffset 0.05s linear;" />
@@ -349,7 +329,7 @@
             SWEEPING SECTOR...
           </div>
           <div id="target-sub-info" class="text-[10px] text-[#33ff66]/70 mt-0.5">
-            PAN ROOM TO LOCATE WARP ECHOES
+            PAN ROOM TO LOCATE STATIONARY ECHOES
           </div>
         </div>
       </div>
@@ -376,11 +356,11 @@
           <span id="btn-scan-text">NO TARGET LOCK</span>
         </button>
         <div id="hint-bar" class="text-[10px] text-[#33ff66]/75 text-center bg-black/50 px-2.5 py-0.5 rounded-full border border-[#33ff66]/20">
-          Drag screen, use arrow keys, or move device
+          Tap a ghost or press Scan once locked
         </div>
       </div>
 
-      <!-- BOTTOM-RIGHT: Visual Filter & Rescatter Controls -->
+      <!-- BOTTOM-RIGHT: Visual Filter & Calibrate Controls -->
       <div class="flex flex-col gap-1.5 interactive shrink-0">
         <button id="btn-filter" title="Toggle Night-Vision Filter" class="btn-auspex rounded-lg px-2.5 py-2 text-[10px] sm:text-xs flex items-center justify-center gap-1">
           <span>NVG:</span>
@@ -424,21 +404,21 @@
         </div>
 
         <p class="text-xs sm:text-sm text-[#33ff66]/85 leading-relaxed">
-          Psychic anomalies and Warp-echoes have been detected in this sector. Sweep the room with your Auspex to locate spectral signatures, lock your reticle onto them, and extract campaign intel.
+          Stationary Warp-echoes are anchored around this sector. Sweep the room with your Auspex to locate each spectral signature, then tap to decode its campaign intel.
         </p>
 
         <div class="bg-black/50 border border-[#33ff66]/25 rounded-lg p-3 text-[11px] space-y-1.5 text-[#33ff66]/80">
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">01.</span>
-            <span>Follow the <strong class="text-[#ffb000]">Radar blips</strong> &amp; compass ticks to locate a ghost.</span>
+            <span>Follow the <strong class="text-[#ffb000]">Radar blips</strong> &amp; compass ticks to find anchored ghosts.</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">02.</span>
-            <span>Center the spectral entity in your reticle to establish a lock.</span>
+            <span>Bring a ghost into the wide reticle (or aim toward it).</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[#ffb000] font-bold">03.</span>
-            <span>Hold or tap <strong class="text-[#00f0ff]">ENGAGE PSY-SCAN</strong> to decode its Dataslate intel.</span>
+            <span>Tap <strong class="text-[#00f0ff]">TAP TO PSY-SCAN</strong> or tap directly on the ghost to decode it.</span>
           </div>
         </div>
 
@@ -643,16 +623,13 @@
   <!-- ==================== APPLICATION LOGIC ==================== -->
   <script>
     /**
-     * NECROMUNDA AUSPEX AR SCANNER
+     * NECROMUNDA AUSPEX AR SCANNER (STABILIZED EDITION)
      * Single-file AR & Simulated 360° Ghost-Hunting App for Necromunda Campaigns.
      *
-     * Architecture:
-     * 1. DEFAULT_GHOSTS & State Management (persisted to localStorage)
-     * 2. Audio Engine (Tone.js procedural Auspex pings, warp hum, scan beam, lock chimes)
-     * 3. Camera & Sensor Controller (getUserMedia + DeviceOrientationEvent + Touch/Mouse Drag fallback)
-     * 4. 360° Spherical Projection & Canvas Renderer (Procedural Necromunda Ghosts + Simulated Grid)
-     * 5. Auspex Motion Radar Renderer
-     * 6. Scan Mechanics & UI Modals (Intel Dossier, Dataslate Archive, Arbitrator GM Editor)
+     * Key Stability Features:
+     * - Stationary, eye-level anchored ghosts with holographic floor base rings & distance readouts.
+     * - Low-pass angular smoothing + hand-tremor deadzone on gyroscope and drag panning.
+     * - Wide 24° reticle lock-on zone + forgiving single-tap Scan (button or direct tap on ghost).
      */
 
     // ==================== 1. DEFAULT NECROMUNDA CAMPAIGN GHOSTS ====================
@@ -677,7 +654,8 @@
         lore: 'Residual psychic imprint of a Guild prospector lost during the collapse of Dome 42. Fragmented vox-loops repeat coordinates to an unlooted Archeotech vault beneath the rusted slag-chutes.',
         reward: 'CAMPAIGN BONUS: Your gang discovers a hidden stash! Add +2D6x10 Credits to your Stash after your next battle.',
         azimuth: 35,
-        pitch: 4,
+        pitch: 1,
+        distance: 2.4,
         scanned: false
       },
       {
@@ -689,8 +667,9 @@
         freq: '112.8 kHz',
         lore: 'A flickering silent-choir projection left behind by House Delaque Nacht-Ghuls. Decoded neural whispers reveal the patrol routes of a rival gang leader and their secret ammo cache.',
         reward: 'TACTICAL INTEL: Gain +1 free Gang Tactics card in your next Necromunda skirmish and +1 to Priority rolls on Turn 1.',
-        azimuth: 118,
-        pitch: -6,
+        azimuth: 112,
+        pitch: -2,
+        distance: 3.1,
         scanned: false
       },
       {
@@ -702,8 +681,9 @@
         freq: '41.0 kHz',
         lore: 'The spectral telemetry of an Adeptus Mechanicus inspection skull destroyed in a turf war. Its cogitator banks still hold an intact schematic for overcharged plasma coils.',
         reward: 'ARCHEOTECH DATA: One Fighter in your gang may perform a free Weaponsmith check or gain +1 Ammo roll modifier on one weapon next game.',
-        azimuth: 195,
-        pitch: 10,
+        azimuth: 186,
+        pitch: 2,
+        distance: 2.1,
         scanned: false
       },
       {
@@ -715,8 +695,9 @@
         freq: '88.5 kHz',
         lore: 'An enraged Machine Spirit haunting a dead plasma generator. Appeasing its binary cant grants remote override codes to the zone’s blast doors and lighting relays.',
         reward: 'ZONE CONTROL: In your next Zone Mortalis or Sector Mechanicus battle, you may open or close one door/hatch for free at the start of any round.',
-        azimuth: 268,
-        pitch: -4,
+        azimuth: 258,
+        pitch: -1,
+        distance: 2.8,
         scanned: false
       },
       {
@@ -729,7 +710,8 @@
         lore: 'WARNING: Corrupted xenos-psychic residue bleeding up from the Underhells. The entity emits a predatory chittering pulse that freezes blood and shorts out optical implants.',
         reward: 'HIGH BOUNTY: Turning this telemetry over to the Palanite Enforcers earns +1 Reputation and +1 XP for your Gang Leader.',
         azimuth: 325,
-        pitch: 6,
+        pitch: 0,
+        distance: 3.4,
         scanned: false
       }
     ];
@@ -737,12 +719,14 @@
     // ==================== 2. GLOBAL APPLICATION STATE ====================
     const state = {
       ghosts: [],
-      // Current viewer orientation in degrees
-      heading: 0,       // 0..360 (yaw / azimuth)
-      pitch: 0,         // -60..60 (up/down)
-      headingOffset: 0, // Used when calibrating real gyro
-      rawGyroAlpha: 0,
-      rawGyroBeta: 90,
+
+      // Smoothed display orientation vs raw sensor/drag target orientation
+      heading: 0,
+      pitch: 0,
+      targetHeading: 0,
+      targetPitch: 0,
+      headingOffset: 0,
+      gyroInitialized: false,
 
       // Modes
       cameraActive: false,
@@ -751,21 +735,23 @@
       soundEnabled: true,
       audioInitialized: false,
 
-      // Drag / Keyboard controls
+      // Pointer drag & tap discrimination
       isDragging: false,
+      dragDistance: 0,
       lastPointerX: 0,
       lastPointerY: 0,
       keysPressed: {},
 
       // Target & Scanning State
       lockedGhost: null,
+      scanningGhost: null,
       isScanning: false,
       scanProgress: 0, // 0..100
       lastPingTime: 0,
 
       // Field of view (degrees)
-      fovX: 72,
-      fovY: 54,
+      fovX: 74,
+      fovY: 56,
 
       // Animation timestamp
       time: 0
@@ -782,19 +768,16 @@
         if (state.audioInitialized || typeof Tone === 'undefined') return;
         try {
           await Tone.start();
-          // Auspex radar ping synth
           this.pingSynth = new Tone.Synth({
             oscillator: { type: 'sine' },
             envelope: { attack: 0.005, decay: 0.12, sustain: 0, release: 0.15 }
           }).toDestination();
           this.pingSynth.volume.value = -16;
 
-          // Continuous scan beam oscillator
           this.scanGain = new Tone.Gain(0).toDestination();
           this.scanOsc = new Tone.Oscillator(220, 'sawtooth').connect(this.scanGain);
           this.scanOsc.start();
 
-          // Discovery chord synth
           this.chimeSynth = new Tone.PolySynth(Tone.Synth, {
             oscillator: { type: 'triangle' },
             envelope: { attack: 0.02, decay: 0.3, sustain: 0.1, release: 0.8 }
@@ -810,7 +793,6 @@
       playPing(proximityFactor = 0.5) {
         if (!state.soundEnabled || !state.audioInitialized || !this.pingSynth) return;
         try {
-          // Higher pitch when closer to a ghost
           const freq = 520 + proximityFactor * 680;
           this.pingSynth.triggerAttackRelease(freq, '32n');
         } catch (e) {}
@@ -911,8 +893,25 @@
 
     // Shortest signed angular difference from a to b (-180..180)
     function angleDiff(from, to) {
-      let diff = ((to - from + 540) % 360) - 180;
-      return diff;
+      return ((to - from + 540) % 360) - 180;
+    }
+
+    // Keep all ghosts grounded at comfortable eye level with valid room distance
+    function normalizeGhostRecord(g) {
+      return {
+        id: g.id || ('ghost-' + Date.now() + Math.random()),
+        name: g.name || 'Unknown Warp Echo',
+        archetype: ARCHETYPE_COLORS[g.archetype] ? g.archetype : 'wraith',
+        threat: g.threat || 'MODERATE',
+        sector: g.sector || 'UNDERHIVE',
+        freq: g.freq || '77.4 kHz',
+        lore: g.lore || 'Fragmented psychic telemetry.',
+        reward: g.reward || 'Gain +1D6x10 Credits.',
+        azimuth: Math.round(normalizeAngle(Number(g.azimuth) || 0)),
+        pitch: Math.max(-3, Math.min(3, Number.isFinite(Number(g.pitch)) ? Number(g.pitch) : 0)),
+        distance: Number.isFinite(Number(g.distance)) ? Number(g.distance) : Number((1.8 + Math.random() * 1.7).toFixed(1)),
+        scanned: Boolean(g.scanned)
+      };
     }
 
     function loadGhosts() {
@@ -921,20 +920,23 @@
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            state.ghosts = parsed;
+            state.ghosts = parsed.map(normalizeGhostRecord);
+            saveGhosts();
             return;
           }
         }
       } catch (e) {
         console.warn('Could not load saved ghosts:', e);
       }
-      state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+      state.ghosts = DEFAULT_GHOSTS.map(normalizeGhostRecord);
       saveGhosts();
     }
 
     function saveGhosts() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.ghosts));
+        // Strip transient screen-space properties before persisting
+        const clean = state.ghosts.map(normalizeGhostRecord);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
       } catch (e) {}
       updateArchiveBadge();
     }
@@ -943,14 +945,18 @@
       const count = state.ghosts.length;
       const baseOffset = Math.random() * 360;
       state.ghosts.forEach((g, idx) => {
-        // Distribute roughly around the 360° room with organic jitter
         const sector = (360 / Math.max(1, count)) * idx;
-        g.azimuth = Math.round(normalizeAngle(baseOffset + sector + (Math.random() * 30 - 15)));
-        g.pitch = Math.round(Math.random() * 24 - 12);
+        g.azimuth = Math.round(normalizeAngle(baseOffset + sector + (Math.random() * 24 - 12)));
+        // Anchored cleanly at eye level (-3° to +3°) so players never have to crane up/down
+        g.pitch = Math.round(Math.random() * 6 - 3);
+        g.distance = Number((1.8 + Math.random() * 1.7).toFixed(1));
         g.scanned = false;
       });
+      state.isScanning = false;
+      state.scanningGhost = null;
+      state.scanProgress = 0;
       saveGhosts();
-      showToast('ANOMALIES RESCATTERED AROUND ROOM');
+      showToast('ANOMALIES ANCHORED AROUND ROOM');
     }
 
     function updateArchiveBadge() {
@@ -996,7 +1002,6 @@
 
     async function enableGyroscope() {
       try {
-        // iOS 13+ requires explicit permission prompt triggered by user gesture
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           const perm = await DeviceOrientationEvent.requestPermission();
           if (perm !== 'granted') return;
@@ -1010,24 +1015,36 @@
     function handleDeviceOrientation(e) {
       if (e.alpha === null || e.beta === null) return;
       state.gyroActive = true;
-      state.rawGyroAlpha = e.alpha;
-      state.rawGyroBeta = e.beta;
 
-      // Convert device orientation into smooth room azimuth & pitch
-      // Using webkitCompassHeading if available on iOS for true magnetic north
       const rawHeading = typeof e.webkitCompassHeading === 'number'
         ? e.webkitCompassHeading
         : normalizeAngle(360 - e.alpha);
 
-      state.heading = normalizeAngle(rawHeading - state.headingOffset);
-      // Beta = 90° when holding phone upright looking forward
-      state.pitch = Math.max(-45, Math.min(45, e.beta - 90));
+      const nextHeading = normalizeAngle(rawHeading - state.headingOffset);
+      // Dampen vertical tilt heavily so ghosts stay comfortably in view while walking
+      const nextPitch = Math.max(-22, Math.min(22, (e.beta - 90) * 0.45));
+
+      if (!state.gyroInitialized) {
+        state.heading = nextHeading;
+        state.targetHeading = nextHeading;
+        state.pitch = nextPitch;
+        state.targetPitch = nextPitch;
+        state.gyroInitialized = true;
+      } else {
+        // Hand-tremor deadzone (0.65°) prevents micro-jitter while holding phone steady
+        if (Math.abs(angleDiff(state.targetHeading, nextHeading)) > 0.65) {
+          state.targetHeading = nextHeading;
+        }
+        if (Math.abs(nextPitch - state.targetPitch) > 0.65) {
+          state.targetPitch = nextPitch;
+        }
+      }
       updateModeLabel();
     }
 
     function updateModeLabel() {
       if (state.cameraActive && state.gyroActive) {
-        dom.modeIndicator.textContent = 'LIVE AR // GYRO LOCKED';
+        dom.modeIndicator.textContent = 'LIVE AR // STABILIZED';
       } else if (state.cameraActive) {
         dom.modeIndicator.textContent = 'LIVE CAM // DRAG TO PAN';
       } else {
@@ -1043,9 +1060,9 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    // Mouse & Touch drag to pan 360° around the room
     function onPointerDown(e) {
       state.isDragging = true;
+      state.dragDistance = 0;
       const pt = e.touches ? e.touches[0] : e;
       state.lastPointerX = pt.clientX;
       state.lastPointerY = pt.clientY;
@@ -1058,43 +1075,82 @@
       const dy = pt.clientY - state.lastPointerY;
       state.lastPointerX = pt.clientX;
       state.lastPointerY = pt.clientY;
+      state.dragDistance += Math.hypot(dx, dy);
 
-      // Sensitivity scaled to viewport
-      const degPerPx = 0.28;
+      // Gentle, steady drag sensitivity so targets never whip off-screen
+      const degPerPx = 0.16;
       if (state.gyroActive) {
         state.headingOffset = normalizeAngle(state.headingOffset + dx * degPerPx);
+        state.targetHeading = normalizeAngle(state.targetHeading - dx * degPerPx);
       } else {
-        state.heading = normalizeAngle(state.heading - dx * degPerPx);
-        state.pitch = Math.max(-40, Math.min(40, state.pitch + dy * degPerPx * 0.6));
+        state.targetHeading = normalizeAngle(state.targetHeading - dx * degPerPx);
+        state.targetPitch = Math.max(-22, Math.min(22, state.targetPitch + dy * degPerPx * 0.45));
       }
     }
 
-    function onPointerUp() {
+    async function onPointerUp(e) {
+      if (!state.isDragging) return;
       state.isDragging = false;
+
+      // If it was a clean tap (minimal drag), allow tapping directly on any visible ghost to scan it
+      if (state.dragDistance < 12) {
+        const pt = e.changedTouches ? e.changedTouches[0] : e;
+        if (!pt) return;
+        const tappedGhost = findGhostAtScreenPoint(pt.clientX, pt.clientY);
+        if (tappedGhost) {
+          await AudioEngine.init();
+          triggerGhostScan(tappedGhost);
+        }
+      }
+    }
+
+    function findGhostAtScreenPoint(px, py) {
+      let best = null;
+      let bestDist = Infinity;
+      state.ghosts.forEach((g) => {
+        if (typeof g._screenX !== 'number' || typeof g._screenY !== 'number') return;
+        const d = Math.hypot(px - g._screenX, py - g._screenY);
+        if (d <= (g._hitR || 70) && d < bestDist) {
+          bestDist = d;
+          best = g;
+        }
+      });
+      return best;
+    }
+
+    function triggerGhostScan(ghost) {
+      if (!ghost) {
+        showToast('CENTER A GHOST IN VIEW TO SCAN');
+        return;
+      }
+      if (ghost.scanned) {
+        openIntelModal(ghost);
+        return;
+      }
+      state.scanningGhost = ghost;
+      state.isScanning = true;
+      showToast('PSY-SCAN ENGAGED — HOLDING LOCK...');
     }
 
     // ==================== 8. PROCEDURAL GRAPHICS RENDERER ====================
 
     /**
      * Draws a dark atmospheric 3D-projected wireframe underhive room
-     * when the live camera is off, giving an authentic Auspex visor feel.
+     * when the live camera is off.
      */
     function drawSimulatedUnderhive(w, h) {
-      // Deep phosphor dark background
       const grad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.75);
       grad.addColorStop(0, '#071c10');
       grad.addColorStop(1, '#020704');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // Horizon line shifts based on pitch
       const horizonY = h / 2 + (state.pitch / state.fovY) * h;
 
       ctx.save();
       ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
       ctx.lineWidth = 1;
 
-      // Vertical architectural ribs every 15° around the 360° room
       for (let deg = 0; deg < 360; deg += 15) {
         const rel = angleDiff(state.heading, deg);
         if (Math.abs(rel) > state.fovX * 0.75) continue;
@@ -1105,7 +1161,6 @@
         ctx.lineTo(x, h);
         ctx.stroke();
 
-        // Draw subtle industrial bulkhead cross-braces every 45°
         if (deg % 45 === 0) {
           ctx.strokeStyle = 'rgba(51, 255, 102, 0.24)';
           ctx.lineWidth = 2;
@@ -1116,15 +1171,13 @@
           ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
           ctx.lineWidth = 1;
 
-          // Sector stenciling on virtual walls
           ctx.fillStyle = 'rgba(51, 255, 102, 0.22)';
           ctx.font = '11px "Share Tech Mono", monospace';
           ctx.fillText(`SEC-${String(deg).padStart(3, '0')}`, x + 6, horizonY - 10);
         }
       }
 
-      // Horizontal perspective deck lines
-      const lines = [-30, -18, -8, 0, 8, 18, 30];
+      const lines = [-20, -10, 0, 10, 20];
       lines.forEach((p) => {
         const y = h / 2 - ((p - state.pitch) / (state.fovY / 2)) * (h / 2);
         ctx.strokeStyle = p === 0 ? 'rgba(51, 255, 102, 0.32)' : 'rgba(51, 255, 102, 0.11)';
@@ -1138,52 +1191,64 @@
     }
 
     /**
-     * Procedurally draws a flickering, glitching Necromunda spectral entity at (x, y)
+     * Procedurally draws a stationary, grounded Necromunda spectral entity at (x, y)
      */
     function drawSpectralGhost(ghost, x, y, scale, isLocked) {
       const style = ARCHETYPE_COLORS[ghost.archetype] || ARCHETYPE_COLORS.wraith;
       const t = state.time;
 
-      // Eerie floating bob + subtle glitch jitter
-      const bobY = Math.sin(t * 2.4 + ghost.azimuth) * 10 * scale;
-      const glitchX = Math.random() < 0.08 ? (Math.random() - 0.5) * 14 : 0;
-      const cx = x + glitchX;
-      const cy = y + bobY;
-      const r = 46 * scale;
+      // Stationary anchor: no erratic jumping or flying around
+      const cx = x;
+      const cy = y;
+      const r = 48 * scale;
 
       ctx.save();
       ctx.translate(cx, cy);
 
-      // Outer spectral aura glow
-      const aura = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.9);
-      aura.addColorStop(0, style.primary + (ghost.scanned ? '44' : '66'));
-      aura.addColorStop(0.55, style.secondary + '22');
+      // Grounded holographic anchor ring below the ghost
+      ctx.save();
+      ctx.strokeStyle = style.primary;
+      ctx.globalAlpha = ghost.scanned ? 0.28 : 0.6;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, r * 1.18, r * 0.92, r * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.ellipse(0, r * 1.18, r * 0.52, r * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Soft outer spectral aura glow
+      const aura = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.85);
+      aura.addColorStop(0, style.primary + (ghost.scanned ? '38' : '58'));
+      aura.addColorStop(0.55, style.secondary + '1f');
       aura.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = aura;
       ctx.beginPath();
-      ctx.arc(0, 0, r * 1.9, 0, Math.PI * 2);
+      ctx.arc(0, 0, r * 1.85, 0, Math.PI * 2);
       ctx.fill();
 
-      // Rotating psychic rune ring around the entity
+      // Steady rotating psychic rune ring
       ctx.save();
-      ctx.rotate(t * (isLocked ? 1.8 : 0.6));
+      ctx.rotate(t * (isLocked ? 1.1 : 0.4));
       ctx.strokeStyle = style.primary;
-      ctx.globalAlpha = ghost.scanned ? 0.35 : 0.75;
-      ctx.lineWidth = isLocked ? 2 : 1.2;
+      ctx.globalAlpha = ghost.scanned ? 0.35 : 0.78;
+      ctx.lineWidth = isLocked ? 2.2 : 1.3;
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
-      ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+      ctx.arc(0, 0, r * 1.22, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
       // Draw distinct silhouette per Necromunda archetype
-      ctx.globalAlpha = (ghost.scanned ? 0.48 : 0.85) + Math.sin(t * 9) * 0.08;
+      ctx.globalAlpha = (ghost.scanned ? 0.52 : 0.88) + Math.sin(t * 3) * 0.04;
       ctx.strokeStyle = style.primary;
-      ctx.fillStyle = style.primary + '25';
+      ctx.fillStyle = style.primary + '26';
       ctx.lineWidth = 2;
 
       if (ghost.archetype === 'skull') {
-        // Servo-Skull Phantom
         ctx.beginPath();
         ctx.arc(0, -r * 0.12, r * 0.52, Math.PI * 0.85, Math.PI * 2.15);
         ctx.lineTo(r * 0.28, r * 0.45);
@@ -1192,7 +1257,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Cybernetic optic eye + hollow eye socket
         ctx.fillStyle = style.primary;
         ctx.beginPath();
         ctx.arc(-r * 0.18, -r * 0.1, r * 0.12, 0, Math.PI * 2);
@@ -1204,19 +1268,17 @@
         ctx.arc(r * 0.18, -r * 0.1, r * 0.06, 0, Math.PI * 2);
         ctx.fill();
 
-        // Floating Mechadendrite tendrils
         for (let i = -1; i <= 1; i++) {
           ctx.beginPath();
           ctx.moveTo(i * r * 0.16, r * 0.45);
-          ctx.quadraticCurveTo(i * r * 0.3 + Math.sin(t * 4 + i) * 8, r * 0.85, i * r * 0.2, r * 1.15);
+          ctx.quadraticCurveTo(i * r * 0.26, r * 0.82, i * r * 0.18, r * 1.06);
           ctx.stroke();
         }
       } else if (ghost.archetype === 'machine') {
-        // Machine Spirit Cog-Halo
         const teeth = 10;
         ctx.beginPath();
         for (let i = 0; i < teeth * 2; i++) {
-          const ang = (i / (teeth * 2)) * Math.PI * 2 + t * 0.4;
+          const ang = (i / (teeth * 2)) * Math.PI * 2 + t * 0.35;
           const rad = i % 2 === 0 ? r * 0.72 : r * 0.56;
           const px = Math.cos(ang) * rad;
           const py = Math.sin(ang) * rad;
@@ -1227,22 +1289,20 @@
         ctx.fill();
         ctx.stroke();
 
-        // Inner binary core
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.26, 0, Math.PI * 2);
         ctx.fillStyle = style.primary;
         ctx.fill();
       } else if (ghost.archetype === 'malstrain') {
-        // Malstrain Xenos Psychic Maw / Tendrils
         for (let i = 0; i < 6; i++) {
-          const ang = (i / 6) * Math.PI * 2 + Math.sin(t * 2 + i) * 0.18;
+          const ang = (i / 6) * Math.PI * 2 + Math.sin(t * 1.4 + i) * 0.08;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.quadraticCurveTo(
-            Math.cos(ang + 0.4) * r * 0.65,
-            Math.sin(ang + 0.4) * r * 0.65,
-            Math.cos(ang) * r * 1.05,
-            Math.sin(ang) * r * 1.05
+            Math.cos(ang + 0.35) * r * 0.62,
+            Math.sin(ang + 0.35) * r * 0.62,
+            Math.cos(ang) * r * 0.98,
+            Math.sin(ang) * r * 0.98
           );
           ctx.stroke();
         }
@@ -1250,7 +1310,7 @@
         ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        // Three glowing xenos eyes
+
         ctx.fillStyle = '#ffffff';
         [-0.14, 0, 0.14].forEach((ox, idx) => {
           ctx.beginPath();
@@ -1262,9 +1322,8 @@
         ctx.beginPath();
         ctx.moveTo(0, -r * 0.85);
         ctx.bezierCurveTo(r * 0.65, -r * 0.65, r * 0.6, r * 0.35, r * 0.45, r * 0.95);
-        // Ragged spectral hem
         ctx.lineTo(r * 0.2, r * 0.72);
-        ctx.lineTo(0, r * 1.02);
+        ctx.lineTo(0, r * 1.0);
         ctx.lineTo(-r * 0.22, r * 0.72);
         ctx.lineTo(-r * 0.45, r * 0.95);
         ctx.bezierCurveTo(-r * 0.6, r * 0.35, -r * 0.65, -r * 0.65, 0, -r * 0.85);
@@ -1272,7 +1331,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Piercing spectral eyes beneath hood
         ctx.fillStyle = '#ffffff';
         ctx.shadowColor = style.primary;
         ctx.shadowBlur = 12;
@@ -1283,36 +1341,39 @@
         ctx.shadowBlur = 0;
       }
 
-      // Floating ectoplasmic particles
+      // Gentle rising ectoplasmic embers
       ctx.fillStyle = style.primary;
-      for (let i = 0; i < 6; i++) {
-        const pAngle = t * 1.3 + i * 1.05;
-        const pDist = r * (0.7 + ((i * 19) % 10) * 0.05);
+      for (let i = 0; i < 5; i++) {
+        const pAngle = t * 0.8 + i * 1.25;
+        const pDist = r * (0.65 + (i % 3) * 0.12);
         const px = Math.cos(pAngle) * pDist;
-        const py = Math.sin(pAngle * 1.4) * pDist - ((t * 20 + i * 15) % 30);
-        ctx.globalAlpha = 0.65;
+        const py = Math.sin(pAngle) * pDist * 0.5 - ((t * 14 + i * 18) % 28);
+        ctx.globalAlpha = 0.55;
         ctx.fillRect(px, py, 2.5, 2.5);
       }
 
-      // Scan beam interference lines while actively scanning this ghost
-      if (isLocked && state.isScanning) {
-        ctx.globalAlpha = 0.85;
+      // Active scan sweep line when scanning this ghost
+      if (state.isScanning && state.scanningGhost === ghost) {
+        ctx.globalAlpha = 0.9;
         ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 2;
-        const scanY = Math.sin(t * 14) * r;
+        ctx.lineWidth = 2.5;
+        const scanY = Math.sin(t * 10) * r;
         ctx.beginPath();
-        ctx.moveTo(-r * 1.1, scanY);
-        ctx.lineTo(r * 1.1, scanY);
+        ctx.moveTo(-r * 1.15, scanY);
+        ctx.lineTo(r * 1.15, scanY);
         ctx.stroke();
       }
 
-      // Tag above ghost
-      ctx.globalAlpha = 0.92;
+      // Label & distance readout above ghost
+      ctx.globalAlpha = 0.95;
       ctx.font = 'bold 11px "Share Tech Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = ghost.scanned ? '#33ff66' : style.primary;
-      const tag = ghost.scanned ? `[LOGGED] ${ghost.name.toUpperCase()}` : `[UNKNOWN WARP SIGNATURE]`;
-      ctx.fillText(tag, 0, -r * 1.42);
+      const distText = `${Number(ghost.distance || 2.5).toFixed(1)}m`;
+      const tag = ghost.scanned
+        ? `[LOGGED] ${ghost.name.toUpperCase()}`
+        : `[WARP SIGNATURE • ${distText}]`;
+      ctx.fillText(tag, 0, -r * 1.38);
 
       ctx.restore();
     }
@@ -1328,13 +1389,11 @@
 
       radarCtx.clearRect(0, 0, size, size);
 
-      // Dark radar disc
       radarCtx.fillStyle = 'rgba(2, 16, 8, 0.9)';
       radarCtx.beginPath();
       radarCtx.arc(cx, cy, radius, 0, Math.PI * 2);
       radarCtx.fill();
 
-      // Concentric range rings
       radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.25)';
       radarCtx.lineWidth = 1;
       [0.33, 0.66, 1].forEach((f) => {
@@ -1343,7 +1402,6 @@
         radarCtx.stroke();
       });
 
-      // Crosshairs & Forward FOV cone
       radarCtx.beginPath();
       radarCtx.moveTo(cx, cy - radius);
       radarCtx.lineTo(cx, cy + radius);
@@ -1351,7 +1409,6 @@
       radarCtx.lineTo(cx + radius, cy);
       radarCtx.stroke();
 
-      // Forward FOV wedge (pointing UP)
       const halfFovRad = ((state.fovX / 2) * Math.PI) / 180;
       radarCtx.fillStyle = 'rgba(51, 255, 102, 0.12)';
       radarCtx.beginPath();
@@ -1360,7 +1417,6 @@
       radarCtx.closePath();
       radarCtx.fill();
 
-      // Rotating sweep beam
       const sweepAng = (state.time * 2.1) % (Math.PI * 2);
       radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.65)';
       radarCtx.lineWidth = 1.5;
@@ -1369,16 +1425,15 @@
       radarCtx.lineTo(cx + Math.cos(sweepAng) * radius, cy + Math.sin(sweepAng) * radius);
       radarCtx.stroke();
 
-      // Plot each ghost relative to player's current heading
       state.ghosts.forEach((g) => {
         const relDeg = angleDiff(state.heading, g.azimuth);
         const rad = ((relDeg - 90) * Math.PI) / 180;
-        // Place blips at ~72% radius
-        const dist = radius * 0.72;
+        const distNorm = Math.min(0.86, Math.max(0.42, (g.distance || 2.5) / 4.2));
+        const dist = radius * distNorm;
         const bx = cx + Math.cos(rad) * dist;
         const by = cy + Math.sin(rad) * dist;
 
-        const pulse = 0.6 + 0.4 * Math.sin(state.time * 6 + g.azimuth);
+        const pulse = 0.65 + 0.35 * Math.sin(state.time * 5 + g.azimuth);
         radarCtx.fillStyle = g.scanned
           ? 'rgba(51, 255, 102, 0.45)'
           : `rgba(255, 176, 0, ${pulse})`;
@@ -1388,7 +1443,6 @@
         radarCtx.fill();
       });
 
-      // Center player dot
       radarCtx.fillStyle = '#33ff66';
       radarCtx.beginPath();
       radarCtx.arc(cx, cy, 2.5, 0, Math.PI * 2);
@@ -1396,7 +1450,7 @@
     }
 
     /**
-     * Updates the top horizontal compass strip with cardinal directions
+     * Updates the top horizontal compass strip with cardinal directions & ghost blips
      */
     function updateCompassHUD() {
       dom.hudHeading.textContent = `${String(Math.round(state.heading)).padStart(3, '0')}°`;
@@ -1404,7 +1458,6 @@
 
       const labels = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
       let html = '';
-      // Show a 120° window centered on current heading
       const startDeg = Math.floor(state.heading - 60);
       for (let d = startDeg; d <= startDeg + 120; d += 15) {
         const snap = Math.round(d / 15) * 15;
@@ -1416,7 +1469,6 @@
         html += `<span style="position:absolute; left:${pct}%; transform:translateX(-50%);" class="${isCardinal ? 'text-[#33ff66] font-bold' : 'text-[#33ff66]/45'}">${text}</span>`;
       }
 
-      // Also plot unscanned ghost blips directly on the compass bar!
       state.ghosts.forEach((g) => {
         const rel = angleDiff(state.heading, g.azimuth);
         if (Math.abs(rel) <= 58) {
@@ -1437,32 +1489,37 @@
       lastFrameTime = now;
       state.time += dt;
 
-      // Keyboard navigation support (Arrow keys or WASD)
-      const turnSpeed = 75 * dt;
-      if (state.keysPressed['ArrowLeft'] || state.keysPressed['a']) {
-        state.heading = normalizeAngle(state.heading - turnSpeed);
+      // Case-insensitive keyboard navigation (Arrow keys or WASD)
+      const turnSpeed = 58 * dt;
+      if (state.keysPressed['arrowleft'] || state.keysPressed['a']) {
+        state.targetHeading = normalizeAngle(state.targetHeading - turnSpeed);
       }
-      if (state.keysPressed['ArrowRight'] || state.keysPressed['d']) {
-        state.heading = normalizeAngle(state.heading + turnSpeed);
+      if (state.keysPressed['arrowright'] || state.keysPressed['d']) {
+        state.targetHeading = normalizeAngle(state.targetHeading + turnSpeed);
       }
-      if (state.keysPressed['ArrowUp'] || state.keysPressed['w']) {
-        state.pitch = Math.min(40, state.pitch + turnSpeed * 0.6);
+      if (state.keysPressed['arrowup'] || state.keysPressed['w']) {
+        state.targetPitch = Math.min(22, state.targetPitch + turnSpeed * 0.45);
       }
-      if (state.keysPressed['ArrowDown'] || state.keysPressed['s']) {
-        state.pitch = Math.max(-40, state.pitch - turnSpeed * 0.6);
+      if (state.keysPressed['arrowdown'] || state.keysPressed['s']) {
+        state.targetPitch = Math.max(-22, state.targetPitch - turnSpeed * 0.45);
       }
+
+      // Smooth low-pass angular interpolation to eliminate jitter
+      const smoothFactor = Math.min(1, dt * 8.5);
+      const hDiff = angleDiff(state.heading, state.targetHeading);
+      state.heading = normalizeAngle(state.heading + hDiff * smoothFactor);
+      state.pitch += (state.targetPitch - state.pitch) * smoothFactor;
 
       const w = window.innerWidth;
       const h = window.innerHeight;
 
-      // Clear or draw simulated underhive room
       if (state.cameraActive) {
         ctx.clearRect(0, 0, w, h);
       } else {
         drawSimulatedUnderhive(w, h);
       }
 
-      // Project & render all ghosts in viewport, and detect closest lock
+      // Project & render all stationary ghosts in viewport
       let bestLock = null;
       let bestAngleDist = Infinity;
       let nearestUnscannedDist = 180;
@@ -1477,86 +1534,100 @@
         }
 
         // Check if within camera field of view
-        if (Math.abs(dAz) < state.fovX * 0.72 && Math.abs(dPi) < state.fovY * 0.75) {
+        if (Math.abs(dAz) < state.fovX * 0.72 && Math.abs(dPi) < state.fovY * 0.78) {
           const sx = w / 2 + (dAz / (state.fovX / 2)) * (w / 2);
           const sy = h / 2 - (dPi / (state.fovY / 2)) * (h / 2);
 
-          // Lock threshold: within 14° of center reticle
-          const inReticle = angularDist < 14;
+          // Scale slightly by anchored room distance for depth
+          const distScale = Math.max(0.75, Math.min(1.25, 2.7 / (ghost.distance || 2.5)));
+          const scale = Math.min(1.3, Math.max(0.75, (w / 520) * distScale));
+
+          // Save screen coords for direct tap-to-scan hit testing
+          ghost._screenX = sx;
+          ghost._screenY = sy;
+          ghost._hitR = 68 * scale;
+
+          // Forgiving 24° lock-on zone so players don't fight the reticle
+          const inReticle = angularDist < 24;
           if (inReticle && angularDist < bestAngleDist) {
             bestAngleDist = angularDist;
             bestLock = ghost;
           }
 
-          const scale = Math.min(1.25, Math.max(0.75, w / 520));
-          drawSpectralGhost(ghost, sx, sy, scale, bestLock === ghost);
+          drawSpectralGhost(ghost, sx, sy, scale, bestLock === ghost || state.scanningGhost === ghost);
+        } else {
+          ghost._screenX = null;
+          ghost._screenY = null;
         }
       });
 
       state.lockedGhost = bestLock;
 
-      // Periodic Auspex sonar ping (faster when aiming near an unscanned ghost)
+      // Periodic Auspex sonar ping
       if (nearestUnscannedDist < 90) {
         const proximity = 1 - nearestUnscannedDist / 90;
-        const pingInterval = 1.6 - proximity * 1.25; // 1.6s down to 0.35s
+        const pingInterval = 1.6 - proximity * 1.25;
         if (state.time - state.lastPingTime > pingInterval) {
           state.lastPingTime = state.time;
           AudioEngine.playPing(proximity);
         }
       }
 
-      // Update Signal Strength HUD
-      if (bestLock) {
-        dom.hudSignalLabel.textContent = 'SIGNAL: TARGET LOCKED';
-        dom.hudSignalLabel.className = 'text-[#00f0ff] font-bold';
-      } else if (nearestUnscannedDist < 38) {
-        dom.hudSignalLabel.textContent = 'SIGNAL: STRONG ECHO';
-        dom.hudSignalLabel.className = 'text-[#ffb000]';
+      // Active scan progression (keeps scanning as long as target stays roughly in view: < 38°)
+      if (state.isScanning && state.scanningGhost) {
+        const g = state.scanningGhost;
+        const scanDist = Math.hypot(angleDiff(state.heading, g.azimuth), g.pitch - state.pitch);
+        if (scanDist > 38) {
+          state.isScanning = false;
+          state.scanningGhost = null;
+          state.scanProgress = 0;
+          AudioEngine.updateScanBeam(false);
+          showToast('SIGNAL LOST — KEEP TARGET IN VIEW');
+        } else {
+          state.scanProgress = Math.min(100, state.scanProgress + dt * 68); // ~1.45s smooth scan
+          AudioEngine.updateScanBeam(true, state.scanProgress);
+          if (state.scanProgress >= 100) {
+            completeScan(g);
+          }
+        }
       } else {
-        dom.hudSignalLabel.textContent = 'SIGNAL: NOMINAL';
-        dom.hudSignalLabel.className = 'text-[#33ff66]/80';
+        state.scanProgress = Math.max(0, state.scanProgress - dt * 90);
+        AudioEngine.updateScanBeam(false);
       }
 
-      // Update Reticle & Scan Progress
-      if (bestLock) {
-        const isAlreadyScanned = bestLock.scanned;
+      // Update Signal Strength & Reticle HUD
+      const activeTarget = state.scanningGhost || bestLock;
+
+      if (activeTarget) {
+        const isAlreadyScanned = activeTarget.scanned;
         const lockColor = isAlreadyScanned ? '#33ff66' : '#00f0ff';
+
+        dom.hudSignalLabel.textContent = state.isScanning ? 'SIGNAL: DECODING...' : 'SIGNAL: TARGET LOCKED';
+        dom.hudSignalLabel.className = 'text-[#00f0ff] font-bold';
+
         dom.reticleBrackets.setAttribute('stroke', lockColor);
         dom.reticleDot.setAttribute('fill', lockColor);
 
         dom.targetNameBadge.textContent = isAlreadyScanned
-          ? `LOGGED: ${bestLock.name.toUpperCase()}`
-          : 'WARP ENTITY LOCKED!';
+          ? `LOGGED: ${activeTarget.name.toUpperCase()}`
+          : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'WARP ENTITY LOCKED');
         dom.targetNameBadge.style.borderColor = lockColor;
         dom.targetNameBadge.style.color = lockColor;
         dom.targetSubInfo.textContent = isAlreadyScanned
           ? 'TAP SCAN TO REVIEW DATASLATE'
-          : `FREQ ${bestLock.freq} // HOLD SCAN TO DECODE`;
+          : `DIST ${Number(activeTarget.distance || 2.5).toFixed(1)}m // TAP TO DECODE`;
 
         dom.btnScan.classList.add('locked');
-        dom.btnScanText.textContent = isAlreadyScanned ? 'VIEW DECODED INTEL' : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'HOLD TO PSY-SCAN');
-
-        // Advance scan progress if user is holding scan
-        if (state.isScanning && !isAlreadyScanned) {
-          state.scanProgress = Math.min(100, state.scanProgress + dt * 52); // ~1.9 sec full scan
-          AudioEngine.updateScanBeam(true, state.scanProgress);
-
-          if (state.scanProgress >= 100) {
-            completeScan(bestLock);
-          }
-        } else {
-          state.scanProgress = Math.max(0, state.scanProgress - dt * 60);
-          AudioEngine.updateScanBeam(false);
-        }
+        dom.btnScanText.textContent = isAlreadyScanned
+          ? 'VIEW DECODED INTEL'
+          : (state.isScanning ? `DECODING... ${Math.round(state.scanProgress)}%` : 'TAP TO PSY-SCAN');
       } else {
-        // No target in reticle
-        state.isScanning = false;
-        state.scanProgress = Math.max(0, state.scanProgress - dt * 80);
-        AudioEngine.updateScanBeam(false);
+        dom.hudSignalLabel.textContent = nearestUnscannedDist < 42 ? 'SIGNAL: STRONG ECHO' : 'SIGNAL: NOMINAL';
+        dom.hudSignalLabel.className = nearestUnscannedDist < 42 ? 'text-[#ffb000]' : 'text-[#33ff66]/80';
 
         dom.reticleBrackets.setAttribute('stroke', '#33ff66');
         dom.reticleDot.setAttribute('fill', '#33ff66');
-        dom.targetNameBadge.textContent = nearestUnscannedDist < 35 ? 'ANOMALY NEARBY...' : 'SWEEPING SECTOR...';
+        dom.targetNameBadge.textContent = nearestUnscannedDist < 38 ? 'ANOMALY NEARBY...' : 'SWEEPING SECTOR...';
         dom.targetNameBadge.style.borderColor = 'rgba(51,255,102,0.4)';
         dom.targetNameBadge.style.color = '#33ff66';
         dom.targetSubInfo.textContent = 'FOLLOW RADAR BLIPS TO LOCATE GHOSTS';
@@ -1565,8 +1636,8 @@
         dom.btnScanText.textContent = 'NO TARGET LOCK';
       }
 
-      // Update SVG circular scan progress ring (circumference ≈ 465)
-      const dashOffset = 465 - (state.scanProgress / 100) * 465;
+      // Update SVG circular scan progress ring (circumference ≈ 490)
+      const dashOffset = 490 - (state.scanProgress / 100) * 490;
       dom.scanProgressRing.setAttribute('stroke-dashoffset', dashOffset.toFixed(1));
 
       updateCompassHUD();
@@ -1578,6 +1649,7 @@
     // ==================== 10. SCAN COMPLETION & MODALS ====================
     function completeScan(ghost) {
       state.isScanning = false;
+      state.scanningGhost = null;
       state.scanProgress = 0;
       AudioEngine.updateScanBeam(false);
       AudioEngine.playDecodedChime();
@@ -1651,7 +1723,7 @@
     // ==================== 11. ARBITRATOR (GM) CAMPAIGN EDITOR ====================
     function openGmModal() {
       renderGmGhostList();
-      dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+      dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
       dom.modalGm.classList.remove('hidden');
       dom.modalGm.classList.add('flex');
     }
@@ -1669,7 +1741,7 @@
             <div class="min-w-0">
               <div class="font-display text-xs text-white truncate">${escapeHtml(g.name)}</div>
               <div class="text-[10px] text-[#33ff66]/70">
-                <span style="color:${arch.primary}">${arch.label}</span> • AZ ${g.azimuth}° • ${g.scanned ? 'SCANNED' : 'ACTIVE'}
+                <span style="color:${arch.primary}">${arch.label}</span> • AZ ${g.azimuth}° • ${Number(g.distance || 2.5).toFixed(1)}m • ${g.scanned ? 'SCANNED' : 'ACTIVE'}
               </div>
             </div>
             <button data-delete-idx="${index}" class="btn-delete-ghost text-[10px] px-2.5 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-500/20 shrink-0">
@@ -1685,7 +1757,7 @@
           state.ghosts.splice(idx, 1);
           saveGhosts();
           renderGmGhostList();
-          dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+          dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
           showToast('ANOMALY PURGED FROM SECTOR');
         });
       });
@@ -1703,7 +1775,7 @@
     function bindEvents() {
       window.addEventListener('resize', resizeCanvas);
 
-      // Canvas pointer/touch dragging
+      // Canvas pointer/touch dragging & direct tap-to-scan
       dom.canvas.addEventListener('mousedown', onPointerDown);
       window.addEventListener('mousemove', onPointerMove);
       window.addEventListener('mouseup', onPointerUp);
@@ -1712,9 +1784,9 @@
       window.addEventListener('touchmove', onPointerMove, { passive: true });
       window.addEventListener('touchend', onPointerUp);
 
-      // Keyboard controls
-      window.addEventListener('keydown', (e) => { state.keysPressed[e.key] = true; });
-      window.addEventListener('keyup', (e) => { state.keysPressed[e.key] = false; });
+      // Case-insensitive keyboard controls
+      window.addEventListener('keydown', (e) => { state.keysPressed[e.key.toLowerCase()] = true; });
+      window.addEventListener('keyup', (e) => { state.keysPressed[e.key.toLowerCase()] = false; });
 
       // Boot modal buttons
       document.getElementById('btn-start-ar').addEventListener('click', async () => {
@@ -1729,29 +1801,11 @@
         showToast('SIMULATED AUSPEX ONLINE — SWEEP THE ROOM');
       });
 
-      // Scan button (supports both Hold-to-Scan and Tap-to-View if already decoded)
-      const startScan = async (e) => {
-        e.preventDefault();
+      // Forgiving single-tap Scan button
+      dom.btnScan.addEventListener('click', async () => {
         await AudioEngine.init();
-        if (!state.lockedGhost) {
-          showToast('ALIGN A GHOST IN THE RETICLE FIRST');
-          return;
-        }
-        if (state.lockedGhost.scanned) {
-          openIntelModal(state.lockedGhost);
-          return;
-        }
-        state.isScanning = true;
-      };
-
-      const stopScan = () => {
-        state.isScanning = false;
-      };
-
-      dom.btnScan.addEventListener('mousedown', startScan);
-      dom.btnScan.addEventListener('touchstart', startScan, { passive: false });
-      window.addEventListener('mouseup', stopScan);
-      window.addEventListener('touchend', stopScan);
+        triggerGhostScan(state.lockedGhost);
+      });
 
       // HUD Controls
       dom.btnSound.addEventListener('click', async () => {
@@ -1782,9 +1836,11 @@
       dom.btnRecenter.addEventListener('click', () => {
         if (state.gyroActive) {
           state.headingOffset = normalizeAngle(state.headingOffset + state.heading);
-        } else {
+          state.targetHeading = 0;
           state.heading = 0;
-          state.pitch = 0;
+        } else {
+          state.targetHeading = 0;
+          state.targetPitch = 0;
         }
         showToast('AUSPEX GYRO CALIBRATED TO 000°');
       });
@@ -1804,7 +1860,7 @@
       // GM Add Ghost Form
       dom.gmAddForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const newGhost = {
+        const newGhost = normalizeGhostRecord({
           id: 'ghost-' + Date.now(),
           name: document.getElementById('gm-name').value.trim(),
           archetype: document.getElementById('gm-archetype').value,
@@ -1813,25 +1869,25 @@
           freq: (40 + Math.random() * 140).toFixed(1) + ' kHz',
           lore: document.getElementById('gm-lore').value.trim(),
           reward: document.getElementById('gm-reward').value.trim(),
-          // Spawn at a random angle away from current view
           azimuth: Math.round(normalizeAngle(state.heading + 45 + Math.random() * 270)),
-          pitch: Math.round(Math.random() * 20 - 10),
+          pitch: Math.round(Math.random() * 6 - 3),
+          distance: Number((1.8 + Math.random() * 1.7).toFixed(1)),
           scanned: false
-        };
+        });
         state.ghosts.push(newGhost);
         saveGhosts();
         renderGmGhostList();
-        dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+        dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
         dom.gmAddForm.reset();
         showToast(`DEPLOYED: ${newGhost.name.toUpperCase()}`);
       });
 
       // GM Reset Defaults
       document.getElementById('btn-reset-defaults').addEventListener('click', () => {
-        state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+        state.ghosts = DEFAULT_GHOSTS.map(normalizeGhostRecord);
         saveGhosts();
         renderGmGhostList();
-        dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+        dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
         showToast('DEFAULT NECROMUNDA PACK RESTORED');
       });
 
@@ -1853,10 +1909,10 @@
           if (!Array.isArray(parsed) || parsed.length === 0) {
             throw new Error('Invalid array');
           }
-          state.ghosts = parsed;
+          state.ghosts = parsed.map(normalizeGhostRecord);
           saveGhosts();
           renderGmGhostList();
-          showToast(`LOADED ${parsed.length} CAMPAIGN ANOMALIES`);
+          showToast(`LOADED ${state.ghosts.length} CAMPAIGN ANOMALIES`);
         } catch (err) {
           showToast('ERROR: INVALID CAMPAIGN JSON FORMAT');
         }
