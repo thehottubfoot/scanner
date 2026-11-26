@@ -280,7 +280,7 @@
       <div class="bg-black/50 border border-[#33ff66]/30 rounded-xl p-3 text-[11px] text-[#33ff66]/80 space-y-1">
         <div>• <strong>Move phone</strong> (or drag screen) to sweep 360° around the room.</div>
         <div>• <strong>Hold Beam</strong> (or hold on a ghost) to disrupt its psychic shroud.</div>
-        <div>• Optional: Load your own <strong>3D .GLB</strong> ghost model below!</div>
+        <div>• Auto-loads <strong>./spirit.glb</strong> if hosted together, or pick a local <strong>.GLB</strong> below.</div>
       </div>
 
       <div class="flex flex-col gap-2.5 pt-1">
@@ -328,8 +328,14 @@
             </span>
           </div>
           <p class="text-[11px] text-[#33ff66]/75">
-            Select your <code>.glb</code> file from this device to render all room entities as 3D models with ghostly opacity, beam zap recoil, and crimson materialization.
+            Select a <code>.glb</code> file from this device or paste a direct HTTPS link below to auto-load it on any phone.
           </p>
+          <div class="flex gap-2">
+            <input id="gm-glb-url" type="url" placeholder="https://.../spirit.glb" class="flex-1 bg-black/70 border border-[#00f0ff]/40 rounded-lg px-2.5 py-2 text-[11px] text-[#00f0ff] focus:outline-none focus:border-[#00f0ff]" />
+            <button id="btn-load-glb-url" type="button" class="btn-auspex px-3 py-2 rounded-lg text-[11px] border-[#00f0ff]/70 text-[#00f0ff] shrink-0">
+              LOAD URL
+            </button>
+          </div>
           <div class="flex flex-wrap gap-2">
             <label class="btn-auspex flex-1 py-2 px-3 rounded-lg text-[11px] text-center border-[#00f0ff]/70 text-[#00f0ff] cursor-pointer">
               CHOOSE .GLB FILE
@@ -392,122 +398,137 @@
      * Uses classic Three.js r128 + THREE.GLTFLoader (zero ES module / importmap issues).
      */
 
-    // ==================== 1. DEFAULT CAMPAIGN ANOMALIES ====================
+    // ==================== 1. CONFIGURATION & DEFAULT ENTITIES ====================
     const STORAGE_KEY = 'necromunda_auspex_ghosts_v3';
+    const GLB_URL_STORAGE_KEY = 'necromunda_auspex_glb_url_v1';
+
+    // Auto-loads spirit.glb from the same folder (e.g. GitHub Pages)
+    // Can also be overridden with ?model=https://your-site.com/file.glb
+    const DEFAULT_GLB_URL = './spirit.glb';
 
     const DEFAULT_GHOSTS = [
       {
-        id: 'ghost-1',
+        id: 'gh-1',
         name: 'Hollow Drifter Alpha',
-        threatClass: 'CLASS-III PHANTOM',
-        azimuth: 12,
-        pitch: 0,
-        distance: 2.4,
-        scanned: false
-      },
-      {
-        id: 'ghost-2',
-        name: 'Sump-Pit Whisperer',
-        threatClass: 'CLASS-IV WRAITH',
-        azimuth: 130,
+        threatClass: 'Class-III Phantasm',
+        azimuth: 15,
         pitch: 2,
-        distance: 2.9,
-        scanned: false
+        distance: 3.2,
+        scanProgress: 0,
+        status: 'immaterium', // immaterium | materialized | banished
+        breachTimer: 0,
+        phaseOffset: 0.4
       },
       {
-        id: 'ghost-3',
-        name: 'Ash-Waste Revenant',
-        threatClass: 'CLASS-V SPECTRE',
-        azimuth: 255,
-        pitch: -2,
-        distance: 2.2,
-        scanned: false
+        id: 'gh-2',
+        name: 'Sump-Wraith Echo',
+        threatClass: 'Class-IV Shade',
+        azimuth: 128,
+        pitch: -4,
+        distance: 4.1,
+        scanProgress: 0,
+        status: 'immaterium',
+        breachTimer: 0,
+        phaseOffset: 2.1
+      },
+      {
+        id: 'gh-3',
+        name: 'Ash-Waste Specter',
+        threatClass: 'Class-II Flicker',
+        azimuth: 245,
+        pitch: 6,
+        distance: 2.8,
+        scanProgress: 0,
+        status: 'immaterium',
+        breachTimer: 0,
+        phaseOffset: 4.3
       }
     ];
 
-    // ==================== 2. GLOBAL APPLICATION STATE ====================
-    const state = {
-      started: false,
-      cameraActive: false,
-      auspexFilter: true,
-      audioEnabled: true,
-
-      // Smoothed camera orientation (degrees)
-      heading: 0,
-      targetHeading: 0,
-      pitch: 0,
-      targetPitch: 0,
-      gyroActive: false,
-      gyroZeroOffset: null,
-
-      // Field of view
-      fovY: 64,
-      fovX: 64,
-
-      // Entities & Combat State
-      ghosts: [],
-      lockedGhost: null,
-      isScanning: false,
-      scanningGhost: null,
-      scanProgress: 0,
-      materializedGhost: null,
-      breachTimeLeft: 0,
-
-      // Animation clock & drag controls
-      time: 0,
-      isDragging: false,
-      lastPointerX: 0,
-      lastPointerY: 0,
-      toastTimeout: null
-    };
-
-    // ==================== 3. DOM REFERENCES ====================
+    // ==================== 2. DOM REFERENCES ====================
     const dom = {
       video: document.getElementById('camera-feed'),
       threeCanvas: document.getElementById('three-canvas'),
-      canvas: document.getElementById('ar-canvas'),
+      arCanvas: document.getElementById('ar-canvas'),
       radarCanvas: document.getElementById('radar-canvas'),
-
       hudHeading: document.getElementById('hud-heading'),
       hudPitch: document.getElementById('hud-pitch'),
       hudCount: document.getElementById('hud-count'),
+      statusDot: document.getElementById('status-dot'),
       targetName: document.getElementById('target-name'),
       targetMeta: document.getElementById('target-meta'),
       scanBar: document.getElementById('scan-bar'),
-
+      btnBeam: document.getElementById('btn-beam'),
+      btnFilter: document.getElementById('btn-filter'),
+      btnAudio: document.getElementById('btn-audio'),
+      btnGm: document.getElementById('btn-gm'),
+      btnRecenter: document.getElementById('btn-recenter'),
+      btnScatter: document.getElementById('btn-scatter'),
       breachBanner: document.getElementById('breach-banner'),
       breachName: document.getElementById('breach-name'),
       breachTimer: document.getElementById('breach-timer'),
-
-      btnBeam: document.getElementById('btn-beam'),
-      btnAudio: document.getElementById('btn-audio'),
-      btnFilter: document.getElementById('btn-filter'),
-
+      btnBanish: document.getElementById('btn-banish'),
+      toastBanner: document.getElementById('toast-banner'),
+      toastContent: document.getElementById('toast-content'),
       bootModal: document.getElementById('boot-modal'),
-      gmModal: document.getElementById('gm-modal'),
-      gmAddForm: document.getElementById('gm-add-form'),
-      gmGhostList: document.getElementById('gm-ghost-list'),
-      gmJsonBox: document.getElementById('gm-json-box'),
-      gmGlbInput: document.getElementById('gm-glb-input'),
-      gmGlbStatus: document.getElementById('gm-glb-status'),
+      btnStartAr: document.getElementById('btn-start-ar'),
+      btnStartSim: document.getElementById('btn-start-sim'),
       bootGlbInput: document.getElementById('boot-glb-input'),
       bootGlbLabel: document.getElementById('boot-glb-label'),
-
-      toastBanner: document.getElementById('toast-banner'),
-      toastContent: document.getElementById('toast-content')
+      gmModal: document.getElementById('gm-modal'),
+      btnCloseGm: document.getElementById('btn-close-gm'),
+      gmGlbStatus: document.getElementById('gm-glb-status'),
+      gmGlbUrl: document.getElementById('gm-glb-url'),
+      btnLoadGlbUrl: document.getElementById('btn-load-glb-url'),
+      gmGlbInput: document.getElementById('gm-glb-input'),
+      btnClearGlb: document.getElementById('btn-clear-glb'),
+      gmAddForm: document.getElementById('gm-add-form'),
+      gmName: document.getElementById('gm-name'),
+      gmClass: document.getElementById('gm-class'),
+      gmAz: document.getElementById('gm-az'),
+      gmPitch: document.getElementById('gm-pitch'),
+      gmDist: document.getElementById('gm-dist'),
+      gmGhostList: document.getElementById('gm-ghost-list'),
+      btnResetDefaults: document.getElementById('btn-reset-defaults'),
+      gmJsonBox: document.getElementById('gm-json-box'),
+      btnCopyJson: document.getElementById('btn-copy-json'),
+      btnLoadJson: document.getElementById('btn-load-json')
     };
 
-    const ctx = dom.canvas.getContext('2d');
-    const radarCtx = dom.radarCanvas.getContext('2d');
+    // ==================== 3. GLOBAL APPLICATION STATE ====================
+    const state = {
+      ghosts: [],
+      heading: 0,         // Current smoothed camera yaw (degrees 0-360)
+      pitch: 0,           // Current smoothed camera pitch (degrees -60 to +60)
+      targetHeading: 0,
+      targetPitch: 0,
+      gyroEnabled: false,
+      gyroOffset: 0,
+      isDragging: false,
+      lastPointerX: 0,
+      lastPointerY: 0,
+      isScanning: false,
+      lockedGhostId: null,
+      breachGhostId: null,
+      visorFilter: true,
+      audioEnabled: true,
+      cameraActive: false,
+      radarAngle: 0,
+      lastFrameTime: performance.now(),
+      lastPingTime: 0,
+      toastTimeout: null,
+      fovHorizontal: 68,  // Degrees
+      fovVertical: 54     // Dynamically adjusted by aspect ratio
+    };
 
-    // ==================== 4. UTILITY HELPERS ====================
+    // ==================== 4. UTILITY FUNCTIONS ====================
     function normalizeAngle(deg) {
       let a = deg % 360;
       if (a < 0) a += 360;
       return a;
     }
 
-    function shortestAngleDelta(target, current) {
+    function shortestAngleDiff(target, current) {
       let diff = ((target - current + 540) % 360) - 180;
       return diff;
     }
@@ -517,168 +538,166 @@
     }
 
     function showToast(msg) {
+      if (!dom.toastBanner || !dom.toastContent) return;
       dom.toastContent.textContent = msg;
       dom.toastBanner.classList.remove('hidden');
       if (state.toastTimeout) clearTimeout(state.toastTimeout);
       state.toastTimeout = setTimeout(() => {
         dom.toastBanner.classList.add('hidden');
-      }, 2400);
-    }
-
-    function normalizeGhostRecord(raw, idx) {
-      return {
-        id: raw.id || `ghost-${Date.now()}-${idx || 0}`,
-        name: String(raw.name || 'Unknown Anomaly').slice(0, 40),
-        threatClass: String(raw.threatClass || 'CLASS-III PHANTOM').slice(0, 30),
-        azimuth: normalizeAngle(Number(raw.azimuth) || 0),
-        pitch: clamp(Number(raw.pitch) || 0, -45, 45),
-        distance: clamp(Number(raw.distance) || 2.5, 1.2, 8.0),
-        scanned: Boolean(raw.scanned)
-      };
-    }
-
-    function loadGhosts() {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            state.ghosts = parsed.map(normalizeGhostRecord);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Could not load saved ghosts:', err);
-      }
-      state.ghosts = DEFAULT_GHOSTS.map(normalizeGhostRecord);
+      }, 2800);
     }
 
     function saveGhosts() {
       try {
-        const clean = state.ghosts.map(normalizeGhostRecord);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
-      } catch (err) {
-        console.warn('Could not save ghosts:', err);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.ghosts));
+      } catch (e) {
+        console.warn('Could not persist ghosts:', e);
       }
+      renderGmList();
+    }
+
+    function loadGhosts() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            state.ghosts = parsed;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to read saved ghosts, using defaults.');
+      }
+      state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
     }
 
     // ==================== 5. PROCEDURAL TONE.JS AUDIO ENGINE ====================
     const AudioEngine = {
-      ready: false,
+      initialized: false,
       pingSynth: null,
-      beamOsc: null,
-      beamGain: null,
+      beamSynth: null,
       alarmSynth: null,
-      lastPingTime: 0,
+      beamPlaying: false,
 
       async init() {
-        if (this.ready || typeof Tone === 'undefined') return;
+        if (this.initialized || typeof Tone === 'undefined') return;
         try {
           await Tone.start();
           this.pingSynth = new Tone.Synth({
             oscillator: { type: 'sine' },
-            envelope: { attack: 0.005, decay: 0.14, sustain: 0, release: 0.1 }
+            envelope: { attack: 0.005, decay: 0.18, sustain: 0, release: 0.15 }
           }).toDestination();
           this.pingSynth.volume.value = -16;
 
-          this.beamGain = new Tone.Gain(0).toDestination();
-          this.beamOsc = new Tone.Oscillator({ type: 'sawtooth', frequency: 140 }).connect(this.beamGain);
-          this.beamOsc.start();
+          this.beamSynth = new Tone.FMSynth({
+            harmonicity: 2.5,
+            modulationIndex: 14,
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.05, decay: 0.1, sustain: 0.8, release: 0.2 }
+          }).toDestination();
+          this.beamSynth.volume.value = -18;
 
-          this.alarmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
-          this.alarmSynth.volume.value = -12;
+          this.alarmSynth = new Tone.Synth({
+            oscillator: { type: 'square' },
+            envelope: { attack: 0.01, decay: 0.25, sustain: 0.1, release: 0.2 }
+          }).toDestination();
+          this.alarmSynth.volume.value = -14;
 
-          this.ready = true;
+          this.initialized = true;
         } catch (err) {
           console.warn('Audio init skipped:', err);
         }
       },
 
-      playPing(freq) {
-        if (!this.ready || !state.audioEnabled) return;
-        const now = performance.now();
-        if (now - this.lastPingTime < 650) return;
-        this.lastPingTime = now;
+      playPing(pitchHz) {
+        if (!state.audioEnabled || !this.initialized || !this.pingSynth) return;
         try {
-          this.pingSynth.triggerAttackRelease(freq || 880, '32n');
+          this.pingSynth.triggerAttackRelease(pitchHz || 880, '16n');
         } catch (e) {}
       },
 
-      setBeam(active, progress) {
-        if (!this.ready || !this.beamGain || !this.beamOsc) return;
+      setBeamActive(active) {
+        if (!this.initialized || !this.beamSynth) return;
         try {
-          if (active && state.audioEnabled) {
-            this.beamOsc.frequency.rampTo(135 + progress * 3.8, 0.06);
-            this.beamGain.gain.rampTo(0.08, 0.05);
-          } else {
-            this.beamGain.gain.rampTo(0, 0.08);
+          if (active && state.audioEnabled && !this.beamPlaying) {
+            this.beamSynth.triggerAttack(165);
+            this.beamPlaying = true;
+          } else if ((!active || !state.audioEnabled) && this.beamPlaying) {
+            this.beamSynth.triggerRelease();
+            this.beamPlaying = false;
           }
         } catch (e) {}
       },
 
       playBreach() {
-        if (!this.ready || !state.audioEnabled) return;
+        if (!state.audioEnabled || !this.initialized || !this.alarmSynth) return;
         try {
-          this.alarmSynth.triggerAttackRelease(['C4', 'Eb4', 'G4', 'C5'], '8n');
+          const now = Tone.now();
+          this.alarmSynth.triggerAttackRelease(440, '8n', now);
+          this.alarmSynth.triggerAttackRelease(620, '8n', now + 0.14);
+          this.alarmSynth.triggerAttackRelease(880, '4n', now + 0.28);
+        } catch (e) {}
+      },
+
+      playBanish() {
+        if (!state.audioEnabled || !this.initialized || !this.pingSynth) return;
+        try {
+          const now = Tone.now();
+          this.pingSynth.triggerAttackRelease(740, '16n', now);
+          this.pingSynth.triggerAttackRelease(520, '16n', now + 0.1);
+          this.pingSynth.triggerAttackRelease(330, '8n', now + 0.2);
         } catch (e) {}
       }
     };
 
-    // ==================== 6. THREE.JS 3D .GLB GHOST ENGINE ====================
+    // ==================== 6. THREE.JS 3D .GLB ENGINE ====================
     const ThreeEngine = {
       scene: null,
       camera: null,
       renderer: null,
       loader: null,
       templateModel: null,
-      ghostMeshes: new Map(),
-      active: false,
       modelName: '',
-      _projVec: null,
+      instances: new Map(), // ghostId -> { group, materials }
+      hasModel: false,
 
       init() {
-        if (typeof window.THREE === 'undefined') {
-          console.warn('THREE.js not loaded, using 2D fallback.');
+        if (typeof THREE === 'undefined') {
+          console.warn('Three.js not available, using 2D fallback.');
           return;
         }
         try {
-          this._projVec = new THREE.Vector3();
           this.scene = new THREE.Scene();
-          this.camera = new THREE.PerspectiveCamera(
-            state.fovY,
-            window.innerWidth / Math.max(1, window.innerHeight),
-            0.1,
-            100
-          );
+          const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+          this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 100);
           this.camera.rotation.order = 'YXZ';
 
           this.renderer = new THREE.WebGLRenderer({
             canvas: dom.threeCanvas,
             alpha: true,
-            antialias: true,
-            powerPreference: 'high-performance'
+            antialias: true
           });
           this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-          this.renderer.setSize(window.innerWidth, window.innerHeight);
-          this.renderer.setClearColor(0x000000, 0);
+          this.renderer.setSize(window.innerWidth, window.innerHeight, false);
 
-          if (typeof THREE.GLTFLoader === 'function') {
+          // Eerie Underhive lighting
+          const ambient = new THREE.AmbientLight(0x99ffd6, 1.35);
+          this.scene.add(ambient);
+
+          const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+          dirLight.position.set(3, 6, 4);
+          this.scene.add(dirLight);
+
+          const rimLight = new THREE.PointLight(0x00f0ff, 1.4, 25);
+          rimLight.position.set(-4, 2, -3);
+          this.scene.add(rimLight);
+
+          if (THREE.GLTFLoader) {
             this.loader = new THREE.GLTFLoader();
           }
-
-          // Eerie Underhive lighting so textured & untextured .glb models pop clearly
-          const hemi = new THREE.HemisphereLight(0x98ffd5, 0x0b1f18, 1.35);
-          this.scene.add(hemi);
-
-          const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
-          keyLight.position.set(2, 5, 4);
-          this.scene.add(keyLight);
-
-          const rimLight = new THREE.DirectionalLight(0x00f0ff, 1.0);
-          rimLight.position.set(-3, 2, -4);
-          this.scene.add(rimLight);
         } catch (err) {
-          console.warn('WebGL/Three.js unavailable, using 2D fallback:', err);
+          console.warn('ThreeEngine init error:', err);
         }
       },
 
@@ -687,910 +706,961 @@
         const w = window.innerWidth;
         const h = Math.max(1, window.innerHeight);
         this.camera.aspect = w / h;
-        this.camera.fov = state.fovY;
+        // Match vertical FOV roughly with 2D projection
+        const vFovRad = 2 * Math.atan(Math.tan((state.fovHorizontal * Math.PI / 180) / 2) / this.camera.aspect);
+        this.camera.fov = clamp(vFovRad * 180 / Math.PI, 40, 85);
+        state.fovVertical = this.camera.fov;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(w, h);
+        this.renderer.setSize(w, h, false);
+      },
+
+      _applyGltf(gltf, fileName) {
+        if (!gltf || !gltf.scene) return;
+        const rawRoot = gltf.scene;
+
+        // Auto-center and normalize scale to ~1.35m tall
+        const box = new THREE.Box3().setFromObject(rawRoot);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+
+        const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+        const targetHeight = 1.35;
+        const scale = targetHeight / maxDim;
+
+        const normalizedWrapper = new THREE.Group();
+        rawRoot.position.sub(center);
+        rawRoot.scale.multiplyScalar(scale);
+        normalizedWrapper.add(rawRoot);
+
+        this.templateModel = normalizedWrapper;
+        this.modelName = fileName || 'custom.glb';
+        this.hasModel = true;
+
+        this.rebuildInstances();
+        this._updateModelUi();
+        showToast('3D MODEL LOADED: ' + this.modelName.toUpperCase());
       },
 
       loadFromFile(file) {
-        if (!file || !this.scene || !this.loader) {
-          showToast('3D LOADER NOT READY');
-          return;
-        }
+        if (!file || !this.loader) return;
         const blobUrl = URL.createObjectURL(file);
         showToast('LOADING 3D MODEL...');
-
         this.loader.load(
           blobUrl,
           (gltf) => {
+            this._applyGltf(gltf, file.name);
             URL.revokeObjectURL(blobUrl);
-            const root = gltf.scene;
-
-            // Measure bounding box and auto-center/auto-scale to ~1.35m tall
-            const box = new THREE.Box3().setFromObject(root);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-            const targetHeight = 1.35;
-            const scale = targetHeight / maxDim;
-
-            const wrapper = new THREE.Group();
-            root.position.sub(center);
-            root.scale.setScalar(scale);
-            wrapper.add(root);
-
-            this.templateModel = wrapper;
-            this.active = true;
-            this.modelName = file.name;
-            this.rebuildGhostMeshes();
-            this.updateStatusUI();
-            showToast('3D MODEL ENGAGED: ' + file.name.toUpperCase());
           },
           undefined,
           (err) => {
+            console.error('GLB file load error:', err);
             URL.revokeObjectURL(blobUrl);
-            console.error('Failed to load .glb:', err);
-            showToast('ERROR: COULD NOT PARSE .GLB FILE');
+            showToast('ERROR: INVALID .GLB / .GLTF FILE');
           }
         );
       },
 
+      loadFromUrl(url, persist, silentOnFail) {
+        const cleanUrl = String(url || '').trim();
+        if (!cleanUrl || !this.scene || !this.loader) return;
+
+        const fileName = cleanUrl.split('/').pop().split('?')[0] || 'remote-model.glb';
+        if (!silentOnFail) {
+          showToast('AUTO-LOADING 3D MODEL...');
+        }
+
+        this.loader.load(
+          cleanUrl,
+          (gltf) => {
+            this._applyGltf(gltf, fileName);
+            if (dom.gmGlbUrl) dom.gmGlbUrl.value = cleanUrl;
+            if (persist) {
+              try {
+                localStorage.setItem(GLB_URL_STORAGE_KEY, cleanUrl);
+              } catch (e) {}
+            }
+          },
+          undefined,
+          (err) => {
+            console.warn('Could not load .glb URL:', cleanUrl, err);
+            if (!silentOnFail) {
+              showToast('ERROR: COULD NOT LOAD .GLB URL');
+            }
+          }
+        );
+      },
+
+      autoLoadModel() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const paramUrl = params.get('model');
+          const savedUrl = localStorage.getItem(GLB_URL_STORAGE_KEY);
+          const targetUrl = paramUrl || savedUrl || DEFAULT_GLB_URL;
+          if (targetUrl) {
+            if (dom.gmGlbUrl) dom.gmGlbUrl.value = targetUrl;
+            const isDefaultFallback = !paramUrl && !savedUrl;
+            this.loadFromUrl(targetUrl, Boolean(paramUrl), isDefaultFallback);
+          }
+        } catch (err) {
+          console.warn('Auto-load check skipped:', err);
+        }
+      },
+
       clearModel() {
-        this.active = false;
+        this.hasModel = false;
         this.templateModel = null;
         this.modelName = '';
-        this.clearGhostMeshes();
-        if (this.renderer && this.scene && this.camera) {
-          this.renderer.clear();
-        }
-        this.updateStatusUI();
-        showToast('REVERTED TO 2D HOLLOW DRIFTER ICON');
-      },
-
-      clearGhostMeshes() {
-        if (!this.scene) return;
-        this.ghostMeshes.forEach((group) => {
-          this.scene.remove(group);
+        this.instances.forEach((entry) => {
+          if (this.scene && entry.group) this.scene.remove(entry.group);
         });
-        this.ghostMeshes.clear();
+        this.instances.clear();
+        try {
+          localStorage.removeItem(GLB_URL_STORAGE_KEY);
+        } catch (e) {}
+        this._updateModelUi();
+        showToast('REVERTED TO 2D SPECTRAL ICON');
       },
 
-      rebuildGhostMeshes() {
-        this.clearGhostMeshes();
-        if (!this.active || !this.templateModel || !this.scene) return;
+      _updateModelUi() {
+        if (dom.gmGlbStatus) {
+          dom.gmGlbStatus.textContent = this.hasModel ? ('3D: ' + this.modelName) : '2D FALLBACK ACTIVE';
+        }
+        if (dom.bootGlbLabel) {
+          dom.bootGlbLabel.textContent = this.hasModel
+            ? ('LOADED: ' + this.modelName.toUpperCase())
+            : 'LOAD 3D .GLB GHOST MODEL (OPTIONAL)';
+        }
+      },
 
-        const deg2rad = Math.PI / 180;
+      rebuildInstances() {
+        if (!this.scene) return;
+        this.instances.forEach((entry) => {
+          if (entry.group) this.scene.remove(entry.group);
+        });
+        this.instances.clear();
+
+        if (!this.hasModel || !this.templateModel) return;
+
         state.ghosts.forEach((ghost) => {
           const clone = this.templateModel.clone(true);
-
-          // Clone materials per ghost so each entity reacts independently
           const mats = [];
           clone.traverse((child) => {
             if (child.isMesh && child.material) {
-              const clonedMat = Array.isArray(child.material)
-                ? child.material.map((m) => m.clone())
-                : child.material.clone();
-              child.material = clonedMat;
-              const list = Array.isArray(clonedMat) ? clonedMat : [clonedMat];
-              list.forEach((m) => {
-                m.transparent = true;
-                m.depthWrite = true;
-                if (!m.emissive) m.emissive = new THREE.Color(0x000000);
-                mats.push(m);
-              });
+              if (Array.isArray(child.material)) {
+                child.material = child.material.map((m) => m.clone());
+                child.material.forEach((m) => mats.push(m));
+              } else {
+                child.material = child.material.clone();
+                mats.push(child.material);
+              }
             }
           });
-          clone.userData.materials = mats;
-
-          // Position in 3D room space matching (azimuth, pitch, distance)
-          const az = ghost.azimuth * deg2rad;
-          const pi = ghost.pitch * deg2rad;
-          const dist = ghost.distance || 2.5;
-          const basePos = new THREE.Vector3(
-            Math.sin(az) * Math.cos(pi) * dist,
-            Math.sin(pi) * dist,
-            -Math.cos(az) * Math.cos(pi) * dist
-          );
-          clone.position.copy(basePos);
-          clone.userData.basePos = basePos.clone();
-          clone.lookAt(0, basePos.y, 0);
-
           this.scene.add(clone);
-          this.ghostMeshes.set(ghost.id, clone);
+          this.instances.set(ghost.id, { group: clone, materials: mats });
         });
       },
 
-      updateStatusUI() {
-        if (this.active) {
-          dom.gmGlbStatus.textContent = '3D: ' + this.modelName;
-          dom.gmGlbStatus.style.borderColor = '#00f0ff';
-          dom.gmGlbStatus.style.color = '#00f0ff';
-          if (dom.bootGlbLabel) {
-            dom.bootGlbLabel.textContent = '3D LOADED: ' + this.modelName;
-          }
-        } else {
-          dom.gmGlbStatus.textContent = '2D FALLBACK ACTIVE';
-          dom.gmGlbStatus.style.borderColor = 'rgba(51,255,102,0.4)';
-          dom.gmGlbStatus.style.color = '#33ff66';
-          if (dom.bootGlbLabel) {
-            dom.bootGlbLabel.textContent = 'LOAD 3D .GLB GHOST MODEL (OPTIONAL)';
-          }
+      render(nowSec) {
+        if (!this.renderer || !this.scene || !this.camera) return;
+
+        if (!this.hasModel) {
+          this.renderer.clear();
+          return;
         }
-      },
 
-      render(w, h) {
-        if (!this.active || !this.renderer || !this.scene || !this.camera) return;
+        // Sync instances if ghost list changed
+        if (this.instances.size !== state.ghosts.length) {
+          this.rebuildInstances();
+        }
 
-        const deg2rad = Math.PI / 180;
-        this.camera.rotation.y = -state.heading * deg2rad;
-        this.camera.rotation.x = state.pitch * deg2rad;
-        this.camera.updateMatrixWorld();
-
-        const t = state.time;
+        // Sync Three.js camera rotation with smoothed Auspex heading & pitch
+        const yawRad = -(state.heading * Math.PI) / 180;
+        const pitchRad = (state.pitch * Math.PI) / 180;
+        this.camera.rotation.set(pitchRad, yawRad, 0, 'YXZ');
 
         state.ghosts.forEach((ghost) => {
-          const meshGroup = this.ghostMeshes.get(ghost.id);
-          if (!meshGroup) return;
+          const entry = this.instances.get(ghost.id);
+          if (!entry) return;
+          const { group, materials } = entry;
 
-          const basePos = meshGroup.userData.basePos;
-          const isZapped = state.isScanning && state.scanningGhost === ghost;
-          const isMaterialized = state.materializedGhost === ghost;
+          if (ghost.status === 'banished') {
+            group.visible = false;
+            return;
+          }
+          group.visible = true;
 
-          // Subtle hover normally; electric recoil when hit by Null-Phase Beam
-          const hoverY = Math.sin(t * 2.2 + ghost.azimuth) * 0.04;
-          const shake = isZapped ? 0.045 + (state.scanProgress / 100) * 0.05 : 0;
-          meshGroup.position.set(
-            basePos.x + (isZapped ? (Math.random() - 0.5) * shake * 2 : 0),
-            basePos.y + hoverY + (isZapped ? (Math.random() - 0.5) * shake * 2 : 0),
-            basePos.z
-          );
+          // Place ghost in world coordinates matching azimuth, pitch, and distance
+          const azRad = (ghost.azimuth * Math.PI) / 180;
+          const elRad = (ghost.pitch * Math.PI) / 180;
+          const dist = ghost.distance;
 
-          meshGroup.lookAt(0, meshGroup.position.y, 0);
-          if (isZapped) {
-            meshGroup.rotation.y += Math.sin(t * 28) * 0.35;
-          } else {
-            meshGroup.rotation.y += Math.sin(t * 1.1 + ghost.azimuth) * 0.14;
+          const bob = Math.sin(nowSec * 2.1 + (ghost.phaseOffset || 0)) * 0.14;
+          const isBeingZapped = state.isScanning && state.lockedGhostId === ghost.id;
+          const jitterX = isBeingZapped ? (Math.random() - 0.5) * 0.12 : 0;
+          const jitterY = isBeingZapped ? (Math.random() - 0.5) * 0.12 : 0;
+
+          const x = Math.sin(azRad) * Math.cos(elRad) * dist + jitterX;
+          const y = Math.sin(elRad) * dist + bob + jitterY;
+          const z = -Math.cos(azRad) * Math.cos(elRad) * dist;
+
+          group.position.set(x, y, z);
+          group.lookAt(0, y, 0);
+          if (isBeingZapped) {
+            group.rotation.y += Math.sin(nowSec * 30) * 0.15;
           }
 
-          // Update material phase visuals
-          const mats = meshGroup.userData.materials || [];
-          const flash = isZapped && Math.sin(t * 50) > 0.1;
-          mats.forEach((m) => {
-            if (ghost.scanned) {
-              m.opacity = 0.28;
-              m.emissive.setHex(0x115533);
-              m.emissiveIntensity = 0.35;
-            } else if (isMaterialized) {
-              m.opacity = 1.0;
-              m.emissive.setHex(0xff2244);
-              m.emissiveIntensity = 0.45 + Math.sin(t * 8) * 0.2;
-            } else if (isZapped) {
-              m.opacity = 0.92;
-              m.emissive.setHex(flash ? 0xffffff : 0x00f0ff);
-              m.emissiveIntensity = flash ? 1.1 : 0.75;
+          // Update spectral vs materialized material appearance
+          materials.forEach((mat) => {
+            mat.transparent = true;
+            if (ghost.status === 'materialized') {
+              mat.opacity = 0.96;
+              if (mat.emissive) {
+                mat.emissive.setHex(0xff1133);
+                mat.emissiveIntensity = 0.55 + Math.sin(nowSec * 8) * 0.2;
+              }
+            } else if (isBeingZapped) {
+              mat.opacity = 0.72 + Math.random() * 0.2;
+              if (mat.emissive) {
+                mat.emissive.setHex(0x00f0ff);
+                mat.emissiveIntensity = 1.1;
+              }
             } else {
-              m.opacity = 0.68;
-              m.emissive.setHex(0x22aa88);
-              m.emissiveIntensity = 0.28;
+              mat.opacity = 0.44 + Math.sin(nowSec * 2.5 + (ghost.phaseOffset || 0)) * 0.1;
+              if (mat.emissive) {
+                mat.emissive.setHex(0x22ff88);
+                mat.emissiveIntensity = 0.35;
+              }
             }
           });
-
-          // Project 3D center to exact 2D screen coordinates
-          this._projVec.copy(meshGroup.position).project(this.camera);
-          if (this._projVec.z < 1) {
-            ghost._screenX = (this._projVec.x * 0.5 + 0.5) * w;
-            ghost._screenY = (-this._projVec.y * 0.5 + 0.5) * h;
-          }
         });
 
         this.renderer.render(this.scene, this.camera);
       }
     };
 
-    // ==================== 7. CAMERA & SENSORS ====================
-    async function startCamera() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Camera API unavailable');
-        }
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false
-        });
-        dom.video.srcObject = stream;
-        dom.video.classList.remove('hidden');
-        state.cameraActive = true;
-        showToast('LIVE AR CAMERA LINK ESTABLISHED');
-      } catch (err) {
-        console.warn('Camera fallback to simulated visor:', err);
-        dom.video.classList.add('hidden');
-        state.cameraActive = false;
-        showToast('CAMERA UNAVAILABLE — SIMULATED VISOR ACTIVE');
-      }
-    }
+    // ==================== 7. 2D AR CANVAS & RADAR RENDERING ====================
+    const arCtx = dom.arCanvas.getContext('2d');
+    const radarCtx = dom.radarCanvas.getContext('2d');
 
-    async function initOrientationSensors() {
-      try {
-        if (
-          typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function'
-        ) {
-          const perm = await DeviceOrientationEvent.requestPermission();
-          if (perm !== 'granted') return;
-        }
-
-        window.addEventListener('deviceorientation', (e) => {
-          if (e.alpha === null || e.beta === null) return;
-          if (!state.gyroActive) {
-            state.gyroActive = true;
-            state.gyroZeroOffset = e.alpha;
-          }
-          const rawHeading = normalizeAngle(state.gyroZeroOffset - e.alpha);
-          const rawPitch = clamp(e.beta - 90, -55, 55);
-          state.targetHeading = rawHeading;
-          state.targetPitch = rawPitch;
-        });
-      } catch (err) {
-        console.warn('Gyro unavailable; touch/mouse drag enabled.');
-      }
-    }
-
-    function scatterGhosts() {
-      const count = state.ghosts.length;
-      const baseOffset = Math.random() * 360;
-      state.ghosts.forEach((g, idx) => {
-        const sector = (360 / Math.max(1, count)) * idx;
-        g.azimuth = Math.round(normalizeAngle(baseOffset + sector + (Math.random() * 24 - 12)));
-        g.pitch = Math.round(Math.random() * 6 - 3);
-        g.distance = Number((1.8 + Math.random() * 1.7).toFixed(1));
-        g.scanned = false;
-      });
-      state.isScanning = false;
-      state.scanningGhost = null;
-      state.scanProgress = 0;
-      state.materializedGhost = null;
-      dom.breachBanner.classList.add('hidden');
-      saveGhosts();
-      ThreeEngine.rebuildGhostMeshes();
-      showToast('ANOMALIES ANCHORED AROUND ROOM');
-    }
-
-    // ==================== 8. CANVAS RESIZING & 2D RENDERING ====================
-    function resizeCanvas() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function resizeCanvases() {
       const w = window.innerWidth;
       const h = Math.max(1, window.innerHeight);
-      dom.canvas.width = Math.floor(w * dpr);
-      dom.canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      state.fovX = state.fovY * (w / h);
+      dom.arCanvas.width = Math.floor(w * dpr);
+      dom.arCanvas.height = Math.floor(h * dpr);
+      arCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
       ThreeEngine.resize();
     }
 
-    function drawSimulatedUnderhive(w, h) {
-      const horizonY = h * 0.5 + (state.pitch / (state.fovY / 2)) * (h * 0.5);
+    function projectGhostToScreen(ghost, w, h) {
+      const dAz = shortestAngleDiff(ghost.azimuth, state.heading);
+      const dPitch = ghost.pitch - state.pitch;
 
-      ctx.save();
-      ctx.strokeStyle = 'rgba(51, 255, 102, 0.14)';
-      ctx.lineWidth = 1;
+      const halfH = state.fovHorizontal / 2;
+      const halfV = state.fovVertical / 2;
 
-      // Vertical azimuth meridian lines every 15 degrees
-      const startDeg = Math.floor((state.heading - state.fovX * 0.6) / 15) * 15;
-      const endDeg = state.heading + state.fovX * 0.6;
-      for (let deg = startDeg; deg <= endDeg; deg += 15) {
-        const dAz = shortestAngleDelta(deg, state.heading);
-        const x = w * 0.5 + (dAz / (state.fovX / 2)) * (w * 0.5);
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
+      const onScreen = Math.abs(dAz) <= halfH + 18 && Math.abs(dPitch) <= halfV + 18;
+      const sx = (w / 2) + (dAz / halfH) * (w / 2);
+      const sy = (h / 2) - (dPitch / halfV) * (h / 2);
 
-        // Compass tick label on horizon
-        const norm = normalizeAngle(deg);
-        if (norm % 30 === 0) {
-          ctx.fillStyle = 'rgba(51, 255, 102, 0.45)';
-          ctx.font = '10px "Share Tech Mono", monospace';
-          ctx.fillText(String(norm).padStart(3, '0') + '°', x + 4, clamp(horizonY - 6, 20, h - 20));
-        }
+      return { sx, sy, dAz, dPitch, onScreen };
+    }
+
+    function draw2DFallbackGhost(ctx, x, y, dist, ghost, nowSec, isZapped) {
+      const scale = clamp(120 / Math.max(1.2, dist), 28, 110);
+      const bob = Math.sin(nowSec * 2.4 + (ghost.phaseOffset || 0)) * 8;
+      const jx = isZapped ? (Math.random() - 0.5) * 10 : 0;
+      const jy = isZapped ? (Math.random() - 0.5) * 10 : 0;
+      const cx = x + jx;
+      const cy = y + bob + jy;
+
+      let primary = '#33ff88';
+      let alpha = 0.58 + Math.sin(nowSec * 3 + (ghost.phaseOffset || 0)) * 0.14;
+
+      if (ghost.status === 'materialized') {
+        primary = '#ff2244';
+        alpha = 0.92;
+      } else if (isZapped) {
+        primary = '#00f0ff';
+        alpha = 0.88;
       }
 
-      // Horizon line
-      ctx.strokeStyle = 'rgba(51, 255, 102, 0.32)';
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.globalAlpha = alpha;
+
+      // Outer spectral aura
+      const grad = ctx.createRadialGradient(0, 0, scale * 0.1, 0, 0, scale * 1.15);
+      grad.addColorStop(0, primary);
+      grad.addColorStop(0.55, primary + '44');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(0, horizonY);
-      ctx.lineTo(w, horizonY);
-      ctx.stroke();
+      ctx.arc(0, 0, scale * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hooded Hollow Drifter silhouette
+      ctx.fillStyle = primary;
+      ctx.beginPath();
+      ctx.moveTo(0, -scale * 0.72);
+      ctx.bezierCurveTo(scale * 0.5, -scale * 0.65, scale * 0.55, -scale * 0.1, scale * 0.35, scale * 0.65);
+      ctx.lineTo(scale * 0.12, scale * 0.48);
+      ctx.lineTo(0, scale * 0.75);
+      ctx.lineTo(-scale * 0.14, scale * 0.48);
+      ctx.lineTo(-scale * 0.36, scale * 0.65);
+      ctx.bezierCurveTo(-scale * 0.55, -scale * 0.1, -scale * 0.5, -scale * 0.65, 0, -scale * 0.72);
+      ctx.closePath();
+      ctx.fill();
+
+      // Glowing hollow eyes
+      ctx.fillStyle = '#020905';
+      ctx.beginPath();
+      ctx.arc(-scale * 0.14, -scale * 0.25, scale * 0.08, 0, Math.PI * 2);
+      ctx.arc(scale * 0.14, -scale * 0.25, scale * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.restore();
     }
 
-    /**
-     * Draws the stylized 2D Hollow Drifter icon when no 3D .glb model is loaded
-     */
-    function drawHollowDrifterMedallion(r, isZapped, isMaterialized, scanned) {
-      const primary = scanned ? '#33ff66' : (isMaterialized ? '#ff2244' : (isZapped ? '#00f0ff' : '#66ffcc'));
-
-      // Outer spectral aura
-      const grad = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r * 1.25);
-      grad.addColorStop(0, isMaterialized ? 'rgba(255,34,68,0.45)' : 'rgba(0,240,255,0.28)');
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Hooded cloak silhouette
-      ctx.fillStyle = isMaterialized ? 'rgba(40, 4, 10, 0.92)' : 'rgba(4, 24, 18, 0.72)';
-      ctx.strokeStyle = primary;
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      ctx.moveTo(0, -r * 0.95);
-      ctx.quadraticCurveTo(r * 0.72, -r * 0.45, r * 0.58, r * 0.72);
-      ctx.quadraticCurveTo(r * 0.25, r * 0.95, 0, r * 0.75);
-      ctx.quadraticCurveTo(-r * 0.25, r * 0.95, -r * 0.58, r * 0.72);
-      ctx.quadraticCurveTo(-r * 0.72, -r * 0.45, 0, -r * 0.95);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Hollow skull mask & glowing eyes
-      ctx.fillStyle = primary;
-      ctx.beginPath();
-      ctx.ellipse(-r * 0.16, -r * 0.22, r * 0.08, r * 0.05, 0, 0, Math.PI * 2);
-      ctx.ellipse(r * 0.16, -r * 0.22, r * 0.08, r * 0.05, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    /**
-     * Draws the electric Null-Phase Beam from the bottom emitter to the target ghost
-     */
-    function drawNullPhaseBeam(w, h, tx, ty) {
-      const startX = w * 0.5;
-      const startY = h - 74;
+    function drawNullPhaseBeam(ctx, w, h, targetX, targetY) {
+      const startX = w / 2;
+      const startY = h - 76;
 
       ctx.save();
-      // Outer cyan glow
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.55)';
-      ctx.lineWidth = 10;
+      // Wide outer glow
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(targetX, targetY);
+      ctx.stroke();
+
+      // Jagged electric lightning core
+      ctx.strokeStyle = '#d8ffff';
+      ctx.lineWidth = 3;
       ctx.shadowColor = '#00f0ff';
       ctx.shadowBlur = 18;
       ctx.beginPath();
       ctx.moveTo(startX, startY);
-      const steps = 10;
-      for (let i = 1; i < steps; i++) {
-        const frac = i / steps;
-        const bx = startX + (tx - startX) * frac + (Math.random() - 0.5) * 18;
-        const by = startY + (ty - startY) * frac + (Math.random() - 0.5) * 18;
-        ctx.lineTo(bx, by);
+      const segments = 12;
+      for (let i = 1; i < segments; i++) {
+        const t = i / segments;
+        const px = startX + (targetX - startX) * t + (Math.random() - 0.5) * 18;
+        const py = startY + (targetY - startY) * t + (Math.random() - 0.5) * 18;
+        ctx.lineTo(px, py);
       }
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
-
-      // Inner white-hot core
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(tx, ty);
+      ctx.lineTo(targetX, targetY);
       ctx.stroke();
 
       // Impact ring
+      ctx.beginPath();
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(tx, ty, 24 + Math.random() * 14, 0, Math.PI * 2);
+      ctx.arc(targetX, targetY, 18 + Math.random() * 16, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
 
-    /**
-     * Draws the circular 360° Auspex proximity radar
-     */
-    function drawRadar() {
+    function drawArOverlay(nowSec) {
+      const w = window.innerWidth;
+      const h = Math.max(1, window.innerHeight);
+      arCtx.clearRect(0, 0, w, h);
+
+      // Subtle simulated Underhive grid when camera is off
+      if (!state.cameraActive) {
+        arCtx.save();
+        arCtx.strokeStyle = 'rgba(51, 255, 102, 0.08)';
+        arCtx.lineWidth = 1;
+        const step = 48;
+        const offsetX = ((-state.heading * 4) % step + step) % step;
+        const offsetY = ((state.pitch * 4) % step + step) % step;
+        for (let x = offsetX; x < w; x += step) {
+          arCtx.beginPath();
+          arCtx.moveTo(x, 0);
+          arCtx.lineTo(x, h);
+          arCtx.stroke();
+        }
+        for (let y = offsetY; y < h; y += step) {
+          arCtx.beginPath();
+          arCtx.moveTo(0, y);
+          arCtx.lineTo(w, y);
+          arCtx.stroke();
+        }
+        arCtx.restore();
+      }
+
+      // Draw each active ghost's 2D icon (if no 3D model) + tactical lock bracket
+      let closestGhost = null;
+      let closestAngleDist = Infinity;
+      let lockedCoords = null;
+
+      state.ghosts.forEach((ghost) => {
+        if (ghost.status === 'banished') return;
+
+        const proj = projectGhostToScreen(ghost, w, h);
+        const angularDist = Math.hypot(proj.dAz, proj.dPitch);
+        if (angularDist < 16 && angularDist < closestAngleDist) {
+          closestAngleDist = angularDist;
+          closestGhost = ghost;
+          lockedCoords = { x: proj.sx, y: proj.sy };
+        }
+
+        if (!proj.onScreen) return;
+
+        const isZapped = state.isScanning && state.lockedGhostId === ghost.id;
+
+        if (!ThreeEngine.hasModel) {
+          draw2DFallbackGhost(arCtx, proj.sx, proj.sy, ghost.distance, ghost, nowSec, isZapped);
+        }
+
+        // Tactical targeting diamond & label
+        const boxSize = clamp(88 / Math.max(1.2, ghost.distance), 28, 72);
+        const color = ghost.status === 'materialized'
+          ? '#ff2244'
+          : (isZapped ? '#00f0ff' : '#33ff66');
+
+        arCtx.save();
+        arCtx.strokeStyle = color;
+        arCtx.lineWidth = isZapped ? 2.2 : 1.3;
+        arCtx.globalAlpha = 0.85;
+
+        // Corner brackets
+        const b = boxSize;
+        const c = 10;
+        arCtx.beginPath();
+        // Top-left
+        arCtx.moveTo(proj.sx - b, proj.sy - b + c);
+        arCtx.lineTo(proj.sx - b, proj.sy - b);
+        arCtx.lineTo(proj.sx - b + c, proj.sy - b);
+        // Top-right
+        arCtx.moveTo(proj.sx + b - c, proj.sy - b);
+        arCtx.lineTo(proj.sx + b, proj.sy - b);
+        arCtx.lineTo(proj.sx + b, proj.sy - b + c);
+        // Bottom-right
+        arCtx.moveTo(proj.sx + b, proj.sy + b - c);
+        arCtx.lineTo(proj.sx + b, proj.sy + b);
+        arCtx.lineTo(proj.sx + b - c, proj.sy + b);
+        // Bottom-left
+        arCtx.moveTo(proj.sx - b + c, proj.sy + b);
+        arCtx.lineTo(proj.sx - b, proj.sy + b);
+        arCtx.lineTo(proj.sx - b, proj.sy + b - c);
+        arCtx.stroke();
+
+        // Label
+        arCtx.fillStyle = color;
+        arCtx.font = '11px "Share Tech Mono", monospace';
+        arCtx.textAlign = 'center';
+        arCtx.fillText(ghost.name.toUpperCase(), proj.sx, proj.sy - b - 8);
+        arCtx.fillText(ghost.distance.toFixed(1) + 'm', proj.sx, proj.sy + b + 14);
+        arCtx.restore();
+      });
+
+      state.lockedGhostId = closestGhost ? closestGhost.id : null;
+
+      // Center Auspex Reticle
+      const cx = w / 2;
+      const cy = h / 2;
+      const reticleColor = state.isScanning
+        ? '#00f0ff'
+        : (closestGhost ? '#ffb000' : 'rgba(51, 255, 102, 0.55)');
+
+      arCtx.save();
+      arCtx.strokeStyle = reticleColor;
+      arCtx.lineWidth = closestGhost ? 2 : 1.2;
+      arCtx.beginPath();
+      arCtx.arc(cx, cy, closestGhost ? 26 : 32, 0, Math.PI * 2);
+      arCtx.stroke();
+
+      // Crosshair ticks
+      arCtx.beginPath();
+      arCtx.moveTo(cx - 42, cy); arCtx.lineTo(cx - 18, cy);
+      arCtx.moveTo(cx + 18, cy); arCtx.lineTo(cx + 42, cy);
+      arCtx.moveTo(cx, cy - 42); arCtx.lineTo(cx, cy - 18);
+      arCtx.moveTo(cx, cy + 18); arCtx.lineTo(cx, cy + 42);
+      arCtx.stroke();
+      arCtx.restore();
+
+      // Draw Null-Phase Beam when active
+      if (state.isScanning) {
+        const beamX = lockedCoords ? lockedCoords.x : cx;
+        const beamY = lockedCoords ? lockedCoords.y : cy;
+        drawNullPhaseBeam(arCtx, w, h, beamX, beamY);
+      }
+    }
+
+    function drawRadar(dt) {
       const size = dom.radarCanvas.width;
       const half = size / 2;
-      const r = half - 6;
-
+      const r = half - 4;
       radarCtx.clearRect(0, 0, size, size);
 
-      // Background
-      radarCtx.fillStyle = 'rgba(2, 16, 9, 0.9)';
+      // Background disc
+      radarCtx.fillStyle = 'rgba(2, 16, 8, 0.9)';
       radarCtx.beginPath();
       radarCtx.arc(half, half, r, 0, Math.PI * 2);
       radarCtx.fill();
 
-      // Concentric rings
+      // Concentric range rings
       radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.28)';
       radarCtx.lineWidth = 1;
-      [0.33, 0.66, 1].forEach((f) => {
+      [0.33, 0.66, 1].forEach((frac) => {
         radarCtx.beginPath();
-        radarCtx.arc(half, half, r * f, 0, Math.PI * 2);
+        radarCtx.arc(half, half, r * frac, 0, Math.PI * 2);
         radarCtx.stroke();
       });
 
-      // Forward FOV cone
-      const coneRad = (state.fovX * Math.PI) / 360;
-      radarCtx.fillStyle = 'rgba(51, 255, 102, 0.12)';
+      // Player FOV cone (pointing straight up)
+      radarCtx.fillStyle = 'rgba(51, 255, 102, 0.14)';
       radarCtx.beginPath();
       radarCtx.moveTo(half, half);
-      radarCtx.arc(half, half, r, -Math.PI / 2 - coneRad, -Math.PI / 2 + coneRad);
+      const coneHalfRad = ((state.fovHorizontal / 2) * Math.PI) / 180;
+      radarCtx.arc(half, half, r, -Math.PI / 2 - coneHalfRad, -Math.PI / 2 + coneHalfRad);
       radarCtx.closePath();
       radarCtx.fill();
 
       // Sweeping sonar line
-      const sweepAngle = (state.time * 2.2) % (Math.PI * 2);
-      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.7)';
+      state.radarAngle = (state.radarAngle + dt * 2.4) % (Math.PI * 2);
+      radarCtx.strokeStyle = 'rgba(51, 255, 102, 0.75)';
+      radarCtx.lineWidth = 1.5;
       radarCtx.beginPath();
       radarCtx.moveTo(half, half);
-      radarCtx.lineTo(half + Math.cos(sweepAngle) * r, half + Math.sin(sweepAngle) * r);
+      radarCtx.lineTo(
+        half + Math.cos(state.radarAngle) * r,
+        half + Math.sin(state.radarAngle) * r
+      );
       radarCtx.stroke();
 
-      // Ghost blips relative to current heading
-      state.ghosts.forEach((g) => {
-        const relDeg = shortestAngleDelta(g.azimuth, state.heading);
-        const rad = ((relDeg - 90) * Math.PI) / 180;
-        const distNorm = clamp((g.distance || 2.5) / 5.0, 0.2, 0.9);
-        const bx = half + Math.cos(rad) * r * distNorm;
-        const by = half + Math.sin(rad) * r * distNorm;
+      // Plot active ghosts relative to current heading
+      state.ghosts.forEach((ghost) => {
+        if (ghost.status === 'banished') return;
+        const relAz = shortestAngleDiff(ghost.azimuth, state.heading);
+        const rad = ((relAz - 90) * Math.PI) / 180;
+        const normDist = clamp(ghost.distance / 8.0, 0.15, 0.92);
+        const gx = half + Math.cos(rad) * r * normDist;
+        const gy = half + Math.sin(rad) * r * normDist;
 
-        radarCtx.fillStyle = g.scanned
-          ? '#33ff66'
-          : (state.materializedGhost === g ? '#ff2244' : '#ffb000');
+        radarCtx.fillStyle = ghost.status === 'materialized'
+          ? '#ff2244'
+          : (state.lockedGhostId === ghost.id ? '#00f0ff' : '#ffb000');
         radarCtx.beginPath();
-        radarCtx.arc(bx, by, 3.5, 0, Math.PI * 2);
+        radarCtx.arc(gx, gy, 3.6, 0, Math.PI * 2);
         radarCtx.fill();
       });
     }
 
-    // ==================== 9. MAIN ANIMATION LOOP ====================
-    let lastFrameTime = performance.now();
-
-    function animate(now) {
-      const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
-      lastFrameTime = now;
-      state.time += dt;
-
-      // Smoothly interpolate heading & pitch
-      const hDelta = shortestAngleDelta(state.targetHeading, state.heading);
-      state.heading = normalizeAngle(state.heading + hDelta * Math.min(1, dt * 10));
+    // ==================== 8. GAMEPLAY & TELEMETRY LOOP ====================
+    function updateGameplay(dt, nowMs) {
+      // Smooth heading & pitch interpolation
+      const hDiff = shortestAngleDiff(state.targetHeading, state.heading);
+      state.heading = normalizeAngle(state.heading + hDiff * Math.min(1, dt * 10));
       state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 10);
 
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      // Update HUD telemetry
+      dom.hudHeading.textContent = String(Math.round(state.heading)).padStart(3, '0') + '°';
+      const pRound = Math.round(state.pitch);
+      dom.hudPitch.textContent = (pRound >= 0 ? '+' : '') + pRound + '°';
 
-      ctx.clearRect(0, 0, w, h);
-      if (!state.cameraActive) {
-        drawSimulatedUnderhive(w, h);
+      const activeGhosts = state.ghosts.filter((g) => g.status !== 'banished');
+      dom.hudCount.textContent = activeGhosts.length + '/' + state.ghosts.length;
+
+      // Update Null-Phase Beam scanning progress
+      const lockedGhost = state.ghosts.find((g) => g.id === state.lockedGhostId && g.status !== 'banished');
+      AudioEngine.setBeamActive(state.isScanning);
+
+      if (lockedGhost) {
+        dom.targetName.textContent = lockedGhost.name.toUpperCase();
+        dom.targetMeta.textContent = lockedGhost.threatClass + ' // ' + lockedGhost.distance.toFixed(1) + 'm';
+
+        if (state.isScanning && lockedGhost.status === 'immaterium') {
+          lockedGhost.scanProgress = clamp(lockedGhost.scanProgress + dt * 42, 0, 100);
+          if (lockedGhost.scanProgress >= 100) {
+            lockedGhost.status = 'materialized';
+            lockedGhost.breachTimer = 15.0;
+            state.breachGhostId = lockedGhost.id;
+            AudioEngine.playBreach();
+            showToast('MATERIAL PLANE BREACH: ' + lockedGhost.name.toUpperCase());
+            saveGhosts();
+          }
+        } else if (lockedGhost.status === 'immaterium') {
+          lockedGhost.scanProgress = Math.max(0, lockedGhost.scanProgress - dt * 12);
+        }
+
+        dom.scanBar.style.width = Math.round(lockedGhost.scanProgress) + '%';
+      } else {
+        dom.targetName.textContent = activeGhosts.length > 0 ? 'SCANNING SECTOR...' : 'SECTOR CLEAR';
+        dom.targetMeta.textContent = activeGhosts.length > 0
+          ? 'SWEEP TO ALIGN WITH WARP SIGNATURE'
+          : 'ALL ANOMALIES BANISHED // OPEN GM TO DEPLOY';
+        dom.scanBar.style.width = '0%';
       }
 
-      // Render 3D .glb ghosts first (if loaded)
-      ThreeEngine.render(w, h);
-
-      // Find best centered target & draw 2D overlays/reticles
-      let bestGhost = null;
-      let bestDist = Infinity;
-
-      state.ghosts.forEach((ghost) => {
-        const dAz = shortestAngleDelta(ghost.azimuth, state.heading);
-        const dPi = ghost.pitch - state.pitch;
-
-        if (Math.abs(dAz) < state.fovX * 0.72 && Math.abs(dPi) < state.fovY * 0.78) {
-          const sx = ThreeEngine.active && typeof ghost._screenX === 'number'
-            ? ghost._screenX
-            : w / 2 + (dAz / (state.fovX / 2)) * (w / 2);
-          const sy = ThreeEngine.active && typeof ghost._screenY === 'number'
-            ? ghost._screenY
-            : h / 2 - (dPi / (state.fovY / 2)) * (h / 2);
-
-          const distScale = clamp(2.7 / (ghost.distance || 2.5), 0.75, 1.25);
-          const scale = clamp((w / 520) * distScale, 0.75, 1.3);
-          const r = 46 * scale;
-
-          ghost._screenX = sx;
-          ghost._screenY = sy;
-          ghost._hitR = 72 * scale;
-          ghost._visible = true;
-
-          const isZapped = state.isScanning && state.scanningGhost === ghost;
-          const isMaterialized = state.materializedGhost === ghost;
-
-          // Subtle hover or zap jitter
-          const jx = isZapped ? (Math.random() - 0.5) * 10 : 0;
-          const jy = Math.sin(state.time * 2.5 + ghost.azimuth) * 5 + (isZapped ? (Math.random() - 0.5) * 10 : 0);
-
-          ctx.save();
-          ctx.translate(sx + jx, sy + jy);
-
-          // Draw 2D icon only if no 3D .glb model is loaded
-          if (!ThreeEngine.active) {
-            ctx.globalAlpha = isMaterialized
-              ? 1.0
-              : (ghost.scanned ? 0.45 : (isZapped ? 0.96 : 0.78 + Math.sin(state.time * 2.5) * 0.05));
-            drawHollowDrifterMedallion(r, isZapped, isMaterialized, ghost.scanned);
+      // Update Materialized breach timers
+      let activeBreach = null;
+      state.ghosts.forEach((g) => {
+        if (g.status === 'materialized') {
+          g.breachTimer = Math.max(0, g.breachTimer - dt);
+          if (g.breachTimer <= 0) {
+            g.status = 'immaterium';
+            g.scanProgress = 0;
+            showToast(g.name.toUpperCase() + ' PHASED BACK INTO THE WARP');
+          } else if (!activeBreach) {
+            activeBreach = g;
           }
-
-          // Tactical target brackets around ghost
-          ctx.globalAlpha = 0.9;
-          ctx.strokeStyle = ghost.scanned
-            ? '#33ff66'
-            : (isMaterialized ? '#ff2244' : (isZapped ? '#00f0ff' : '#ffb000'));
-          ctx.lineWidth = 1.6;
-          const b = r * 1.15;
-          const arm = 12;
-          // 4 corners
-          ctx.beginPath();
-          ctx.moveTo(-b, -b + arm); ctx.lineTo(-b, -b); ctx.lineTo(-b + arm, -b);
-          ctx.moveTo(b - arm, -b); ctx.lineTo(b, -b); ctx.lineTo(b, -b + arm);
-          ctx.moveTo(-b, b - arm); ctx.lineTo(-b, b); ctx.lineTo(-b + arm, b);
-          ctx.moveTo(b - arm, b); ctx.lineTo(b, b); ctx.lineTo(b, b - arm);
-          ctx.stroke();
-
-          // Tag label
-          ctx.fillStyle = ctx.strokeStyle;
-          ctx.font = '11px "Share Tech Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(ghost.name.toUpperCase(), 0, b + 16);
-          ctx.fillStyle = 'rgba(255,255,255,0.75)';
-          ctx.font = '10px "Share Tech Mono", monospace';
-          ctx.fillText(
-            (ghost.scanned ? 'BANISHED' : ghost.threatClass) + ' // ' + ghost.distance.toFixed(1) + 'M',
-            0,
-            b + 29
-          );
-          ctx.restore();
-
-          // Check proximity to screen center reticle
-          const distCenter = Math.hypot(sx - w / 2, sy - h / 2);
-          if (distCenter < Math.min(w, h) * 0.34 && distCenter < bestDist) {
-            bestDist = distCenter;
-            bestGhost = ghost;
-          }
-        } else {
-          ghost._visible = false;
         }
       });
 
-      state.lockedGhost = bestGhost;
-
-      // Center crosshair
-      ctx.save();
-      ctx.strokeStyle = bestGhost ? '#00f0ff' : 'rgba(51, 255, 102, 0.45)';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, 22, 0, Math.PI * 2);
-      ctx.moveTo(w / 2 - 30, h / 2); ctx.lineTo(w / 2 - 14, h / 2);
-      ctx.moveTo(w / 2 + 14, h / 2); ctx.lineTo(w / 2 + 30, h / 2);
-      ctx.moveTo(w / 2, h / 2 - 30); ctx.lineTo(w / 2, h / 2 - 14);
-      ctx.moveTo(w / 2, h / 2 + 14); ctx.lineTo(w / 2, h / 2 + 30);
-      ctx.stroke();
-      ctx.restore();
-
-      // Handle Null-Phase Beam scanning logic
-      if (state.isScanning) {
-        const target = state.scanningGhost || state.lockedGhost;
-        if (target && target._visible && !target.scanned && state.materializedGhost !== target) {
-          state.scanningGhost = target;
-          state.scanProgress = Math.min(100, state.scanProgress + dt * 42);
-          drawNullPhaseBeam(w, h, target._screenX, target._screenY);
-          AudioEngine.setBeam(true, state.scanProgress);
-
-          if (state.scanProgress >= 100) {
-            // Material Plane Breach triggered!
-            state.materializedGhost = target;
-            state.breachTimeLeft = 15.0;
-            state.isScanning = false;
-            state.scanningGhost = null;
-            state.scanProgress = 0;
-            dom.btnBeam.classList.remove('btn-beam-active');
-            dom.breachName.textContent = target.name.toUpperCase() + ' SOLIDIFIED!';
-            dom.breachBanner.classList.remove('hidden');
-            AudioEngine.setBeam(false, 0);
-            AudioEngine.playBreach();
-            showToast('ENTITY FORCED INTO MATERIAL PLANE!');
-          }
-        } else {
-          state.scanProgress = Math.max(0, state.scanProgress - dt * 50);
-          AudioEngine.setBeam(false, 0);
-        }
+      if (activeBreach) {
+        state.breachGhostId = activeBreach.id;
+        dom.breachBanner.classList.remove('hidden');
+        dom.breachName.textContent = activeBreach.name.toUpperCase() + ' SOLIDIFIED';
+        dom.breachTimer.textContent = activeBreach.breachTimer.toFixed(1) + 's';
       } else {
-        state.scanProgress = Math.max(0, state.scanProgress - dt * 60);
-        AudioEngine.setBeam(false, 0);
+        state.breachGhostId = null;
+        dom.breachBanner.classList.add('hidden');
       }
 
-      // Material Plane Breach countdown
-      if (state.materializedGhost) {
-        state.breachTimeLeft -= dt;
-        if (state.breachTimeLeft <= 0) {
-          showToast(state.materializedGhost.name.toUpperCase() + ' SLIPPED BACK INTO WARP');
-          state.materializedGhost = null;
-          dom.breachBanner.classList.add('hidden');
-        } else {
-          dom.breachTimer.textContent = state.breachTimeLeft.toFixed(1) + 's';
-        }
+      // Periodic sonar ping when an entity is near center
+      if (lockedGhost && nowMs - state.lastPingTime > 950 && !state.isScanning) {
+        state.lastPingTime = nowMs;
+        AudioEngine.playPing(lockedGhost.status === 'materialized' ? 1120 : 840);
       }
-
-      // Update HUD text & radar
-      dom.hudHeading.textContent = String(Math.round(state.heading)).padStart(3, '0') + '°';
-      dom.hudPitch.textContent = (state.pitch >= 0 ? '+' : '') + Math.round(state.pitch) + '°';
-      const banishedCount = state.ghosts.filter((g) => g.scanned).length;
-      dom.hudCount.textContent = banishedCount + '/' + state.ghosts.length;
-      dom.scanBar.style.width = state.scanProgress.toFixed(0) + '%';
-
-      if (bestGhost) {
-        dom.targetName.textContent = bestGhost.name.toUpperCase();
-        dom.targetMeta.textContent = bestGhost.scanned
-          ? 'BANISHED // RESIDUAL ECHO ONLY'
-          : bestGhost.threatClass + ' // ' + bestGhost.distance.toFixed(1) + 'M — LOCK ACQUIRED';
-        if (!bestGhost.scanned && !state.isScanning) {
-          AudioEngine.playPing(920);
-        }
-      } else {
-        dom.targetName.textContent = 'SCANNING SECTOR...';
-        dom.targetMeta.textContent = 'SWEEP DEVICE OR DRAG TO ACQUIRE TARGET';
-      }
-
-      drawRadar();
-      requestAnimationFrame(animate);
     }
 
-    // ==================== 10. GM PANEL RENDERING ====================
-    function renderGmGhostList() {
+    function animate(nowMs) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.1, (nowMs - state.lastFrameTime) / 1000);
+      state.lastFrameTime = nowMs;
+      const nowSec = nowMs / 1000;
+
+      updateGameplay(dt, nowMs);
+      ThreeEngine.render(nowSec);
+      drawArOverlay(nowSec);
+      drawRadar(dt);
+    }
+
+    // ==================== 9. CAMERA & GYROSCOPE INITIALIZATION ====================
+    async function initCameraAndSensors(useCamera) {
+      await AudioEngine.init();
+      dom.bootModal.classList.add('hidden');
+
+      if (useCamera && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
+          dom.video.srcObject = stream;
+          dom.video.classList.remove('hidden');
+          state.cameraActive = true;
+          showToast('LIVE AR CAMERA ACTIVE');
+        } catch (err) {
+          console.warn('Camera permission denied or unavailable:', err);
+          state.cameraActive = false;
+          showToast('CAMERA UNAVAILABLE — USING SIMULATED VISOR');
+        }
+      } else {
+        state.cameraActive = false;
+        showToast('SIMULATED AUSPEX VISOR ACTIVE');
+      }
+
+      // Request iOS 13+ DeviceOrientation permission if needed
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const perm = await DeviceOrientationEvent.requestPermission();
+          if (perm === 'granted') {
+            enableGyroListener();
+          }
+        } else if (typeof window.DeviceOrientationEvent !== 'undefined') {
+          enableGyroListener();
+        }
+      } catch (err) {
+        console.warn('Gyro permission skipped:', err);
+      }
+    }
+
+    function enableGyroListener() {
+      if (state.gyroEnabled) return;
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha === null || e.beta === null) return;
+        state.gyroEnabled = true;
+        const compassHeading = (typeof e.webkitCompassHeading === 'number')
+          ? e.webkitCompassHeading
+          : normalizeAngle(360 - e.alpha);
+        state.targetHeading = normalizeAngle(compassHeading + state.gyroOffset);
+        state.targetPitch = clamp(e.beta - 75, -55, 55);
+      });
+    }
+
+    // ==================== 10. GM CONSOLE FUNCTIONS ====================
+    function renderGmList() {
+      if (!dom.gmGhostList) return;
       dom.gmGhostList.innerHTML = '';
-      state.ghosts.forEach((g, idx) => {
+
+      state.ghosts.forEach((g) => {
         const row = document.createElement('div');
         row.className = 'flex items-center justify-between gap-2 bg-black/55 border border-[#33ff66]/30 rounded-lg px-3 py-2';
-        row.innerHTML = `
-          <div class="min-w-0">
-            <div class="font-bold text-[#33ff66] truncate">${g.name}</div>
-            <div class="text-[10px] text-[#33ff66]/70">AZ ${Math.round(g.azimuth)}° | P ${Math.round(g.pitch)}° | ${g.distance.toFixed(1)}m ${g.scanned ? '| BANISHED' : ''}</div>
-          </div>
-          <button type="button" data-delete-idx="${idx}" class="btn-delete-ghost btn-auspex px-2.5 py-1 rounded text-[10px] text-[#ff2244] border-[#ff2244]/60 shrink-0">
-            PURGE
-          </button>
-        `;
+
+        const statusColor = g.status === 'banished'
+          ? 'text-gray-400'
+          : (g.status === 'materialized' ? 'text-[#ff2244]' : 'text-[#33ff66]');
+
+        row.innerHTML =
+          '<div class="min-w-0">' +
+            '<div class="font-bold truncate ' + statusColor + '">' + g.name + '</div>' +
+            '<div class="text-[10px] text-[#33ff66]/70">AZ ' + Math.round(g.azimuth) + '° | P ' + Math.round(g.pitch) + '° | ' + g.distance.toFixed(1) + 'm | ' + g.status.toUpperCase() + '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-1.5 shrink-0">' +
+            '<button type="button" data-action="locate" data-id="' + g.id + '" class="btn-auspex px-2 py-1 rounded text-[10px] text-[#00f0ff] border-[#00f0ff]/60">AIM</button>' +
+            '<button type="button" data-action="revive" data-id="' + g.id + '" class="btn-auspex px-2 py-1 rounded text-[10px] text-[#ffb000] border-[#ffb000]/60">RESET</button>' +
+            '<button type="button" data-action="delete" data-id="' + g.id + '" class="btn-auspex px-2 py-1 rounded text-[10px] text-[#ff2244] border-[#ff2244]/60">DEL</button>' +
+          '</div>';
+
         dom.gmGhostList.appendChild(row);
       });
 
-      document.querySelectorAll('.btn-delete-ghost').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const idx = Number(btn.getAttribute('data-delete-idx'));
-          state.ghosts.splice(idx, 1);
-          saveGhosts();
-          ThreeEngine.rebuildGhostMeshes();
-          renderGmGhostList();
-          dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
-          showToast('ANOMALY PURGED FROM SECTOR');
-        });
-      });
+      if (dom.gmJsonBox) {
+        dom.gmJsonBox.value = JSON.stringify(state.ghosts, null, 2);
+      }
     }
 
-    // ==================== 11. EVENT BINDINGS ====================
+    // ==================== 11. EVENT LISTENERS ====================
     function bindEvents() {
-      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('resize', resizeCanvases);
 
-      // 3D .glb File Inputs
-      dom.bootGlbInput.addEventListener('change', (e) => {
+      // Boot buttons
+      dom.btnStartAr.addEventListener('click', () => initCameraAndSensors(true));
+      dom.btnStartSim.addEventListener('click', () => initCameraAndSensors(false));
+
+      // Boot & GM .glb file pickers
+      const handleFilePick = (e) => {
         const file = e.target.files && e.target.files[0];
         if (file) ThreeEngine.loadFromFile(file);
+        e.target.value = '';
+      };
+      dom.bootGlbInput.addEventListener('change', handleFilePick);
+      dom.gmGlbInput.addEventListener('change', handleFilePick);
+
+      dom.btnLoadGlbUrl.addEventListener('click', () => {
+        const url = dom.gmGlbUrl.value.trim();
+        if (!url) {
+          showToast('ENTER A VALID .GLB URL FIRST');
+          return;
+        }
+        ThreeEngine.loadFromUrl(url, true, false);
       });
 
-      dom.gmGlbInput.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (file) ThreeEngine.loadFromFile(file);
-      });
-
-      document.getElementById('btn-clear-glb').addEventListener('click', () => {
-        ThreeEngine.clearModel();
-      });
-
-      // Boot modal buttons
-      document.getElementById('btn-start-ar').addEventListener('click', async () => {
-        dom.bootModal.classList.add('hidden');
-        state.started = true;
-        await AudioEngine.init();
-        await initOrientationSensors();
-        await startCamera();
-      });
-
-      document.getElementById('btn-start-sim').addEventListener('click', async () => {
-        dom.bootModal.classList.add('hidden');
-        state.started = true;
-        state.cameraActive = false;
-        dom.video.classList.add('hidden');
-        await AudioEngine.init();
-        await initOrientationSensors();
-        showToast('SIMULATED AUSPEX VISOR ENGAGED');
-      });
+      dom.btnClearGlb.addEventListener('click', () => ThreeEngine.clearModel());
 
       // Top HUD buttons
       dom.btnFilter.addEventListener('click', () => {
-        state.auspexFilter = !state.auspexFilter;
-        dom.video.classList.toggle('filter-auspex', state.auspexFilter);
-        dom.video.classList.toggle('filter-raw', !state.auspexFilter);
-        showToast(state.auspexFilter ? 'PHOSPHOR FILTER: ON' : 'RAW OPTICS: ON');
+        state.visorFilter = !state.visorFilter;
+        dom.video.classList.toggle('filter-auspex', state.visorFilter);
+        dom.video.classList.toggle('filter-raw', !state.visorFilter);
+        showToast(state.visorFilter ? 'PHOSPHOR VISOR: ON' : 'PHOSPHOR VISOR: RAW');
       });
 
       dom.btnAudio.addEventListener('click', async () => {
         await AudioEngine.init();
         state.audioEnabled = !state.audioEnabled;
         dom.btnAudio.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
+        if (!state.audioEnabled) AudioEngine.setBeamActive(false);
       });
 
-      document.getElementById('btn-recenter').addEventListener('click', () => {
-        state.targetHeading = 0;
-        state.targetPitch = 0;
-        state.gyroZeroOffset = null;
-        state.gyroActive = false;
-        showToast('AUSPEX GYRO ZEROED');
+      dom.btnGm.addEventListener('click', () => {
+        renderGmList();
+        dom.gmModal.classList.remove('hidden');
       });
 
-      document.getElementById('btn-scatter').addEventListener('click', scatterGhosts);
-
-      // Banish materialized ghost
-      document.getElementById('btn-banish').addEventListener('click', () => {
-        if (!state.materializedGhost) return;
-        state.materializedGhost.scanned = true;
-        showToast(state.materializedGhost.name.toUpperCase() + ' BANISHED!');
-        state.materializedGhost = null;
-        dom.breachBanner.classList.add('hidden');
-        saveGhosts();
+      dom.btnCloseGm.addEventListener('click', () => {
+        dom.gmModal.classList.add('hidden');
       });
 
-      // Hold Null-Phase Beam Button
+      // Null-Phase Beam hold controls (mouse + touch)
       const startBeam = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         AudioEngine.init();
         state.isScanning = true;
-        state.scanningGhost = state.lockedGhost;
         dom.btnBeam.classList.add('btn-beam-active');
       };
       const stopBeam = () => {
         state.isScanning = false;
-        state.scanningGhost = null;
         dom.btnBeam.classList.remove('btn-beam-active');
       };
+
       dom.btnBeam.addEventListener('mousedown', startBeam);
       dom.btnBeam.addEventListener('touchstart', startBeam, { passive: false });
       window.addEventListener('mouseup', stopBeam);
       window.addEventListener('touchend', stopBeam);
+      window.addEventListener('touchcancel', stopBeam);
 
-      // Pointer drag to pan 360° (also supports tap-and-hold directly on a ghost)
-      const onPointerDown = (x, y) => {
-        // Check if user pressed directly on a visible ghost
-        const hit = state.ghosts.find(
-          (g) => g._visible && Math.hypot(x - g._screenX, y - g._screenY) < (g._hitR || 64)
-        );
-        if (hit && !hit.scanned && state.materializedGhost !== hit) {
-          AudioEngine.init();
-          state.isScanning = true;
-          state.scanningGhost = hit;
-          dom.btnBeam.classList.add('btn-beam-active');
-          return;
-        }
+      // Banish materialized ghost
+      dom.btnBanish.addEventListener('click', () => {
+        const g = state.ghosts.find((item) => item.id === state.breachGhostId);
+        if (!g) return;
+        g.status = 'banished';
+        g.breachTimer = 0;
+        AudioEngine.playBanish();
+        showToast(g.name.toUpperCase() + ' BANISHED TO THE IMMATERIUM');
+        saveGhosts();
+      });
+
+      // Recenter & Scatter
+      dom.btnRecenter.addEventListener('click', () => {
+        state.targetHeading = 0;
+        state.targetPitch = 0;
+        state.gyroOffset = 0;
+        showToast('AUSPEX ORIENTATION ZEROED');
+      });
+
+      dom.btnScatter.addEventListener('click', () => {
+        state.ghosts.forEach((g) => {
+          g.azimuth = Math.floor(Math.random() * 360);
+          g.pitch = Math.floor(Math.random() * 24) - 12;
+          g.distance = Number((2.0 + Math.random() * 4.0).toFixed(1));
+          g.status = 'immaterium';
+          g.scanProgress = 0;
+          g.breachTimer = 0;
+        });
+        saveGhosts();
+        ThreeEngine.rebuildInstances();
+        showToast('WARP ANOMALIES SCATTERED AROUND SECTOR');
+      });
+
+      // Drag-to-look on AR canvas (works on desktop & mobile without gyro)
+      dom.arCanvas.addEventListener('mousedown', (e) => {
         state.isDragging = true;
-        state.lastPointerX = x;
-        state.lastPointerY = y;
-      };
-
-      const onPointerMove = (x, y) => {
+        state.lastPointerX = e.clientX;
+        state.lastPointerY = e.clientY;
+      });
+      window.addEventListener('mousemove', (e) => {
         if (!state.isDragging) return;
-        const dx = x - state.lastPointerX;
-        const dy = y - state.lastPointerY;
-        state.lastPointerX = x;
-        state.lastPointerY = y;
-        state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.28);
-        state.targetPitch = clamp(state.targetPitch + dy * 0.22, -55, 55);
-      };
-
-      const onPointerUp = () => {
+        const dx = e.clientX - state.lastPointerX;
+        const dy = e.clientY - state.lastPointerY;
+        state.lastPointerX = e.clientX;
+        state.lastPointerY = e.clientY;
+        state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.25);
+        state.targetPitch = clamp(state.targetPitch + dy * 0.2, -55, 55);
+      });
+      window.addEventListener('mouseup', () => {
         state.isDragging = false;
-      };
+      });
 
-      dom.canvas.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
-      window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
-      window.addEventListener('mouseup', onPointerUp);
-
-      dom.canvas.addEventListener('touchstart', (e) => {
+      dom.arCanvas.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
-          onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+          state.isDragging = true;
+          state.lastPointerX = e.touches[0].clientX;
+          state.lastPointerY = e.touches[0].clientY;
         }
       }, { passive: true });
 
-      dom.canvas.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1 && state.isDragging) {
-          e.preventDefault();
-          onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }, { passive: false });
+      dom.arCanvas.addEventListener('touchmove', (e) => {
+        if (!state.isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - state.lastPointerX;
+        const dy = e.touches[0].clientY - state.lastPointerY;
+        state.lastPointerX = e.touches[0].clientX;
+        state.lastPointerY = e.touches[0].clientY;
+        state.targetHeading = normalizeAngle(state.targetHeading - dx * 0.3);
+        state.targetPitch = clamp(state.targetPitch + dy * 0.22, -55, 55);
+      }, { passive: true });
 
-      window.addEventListener('touchend', onPointerUp);
-
-      // GM Panel Open / Close
-      document.getElementById('btn-gm').addEventListener('click', () => {
-        renderGmGhostList();
-        dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
-        dom.gmModal.classList.remove('hidden');
+      dom.arCanvas.addEventListener('touchend', () => {
+        state.isDragging = false;
       });
 
-      document.getElementById('btn-close-gm').addEventListener('click', () => {
-        dom.gmModal.classList.add('hidden');
-      });
-
-      // GM Add Ghost
+      // GM Add Anomaly form
       dom.gmAddForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nameVal = document.getElementById('gm-name').value.trim();
-        if (!nameVal) return;
-
-        const newGhost = normalizeGhostRecord({
-          id: 'ghost-' + Date.now(),
-          name: nameVal,
-          threatClass: document.getElementById('gm-class').value.trim() || 'CLASS-III PHANTOM',
-          azimuth: document.getElementById('gm-az').value !== ''
-            ? Number(document.getElementById('gm-az').value)
-            : Math.round(state.heading),
-          pitch: document.getElementById('gm-pitch').value !== ''
-            ? Number(document.getElementById('gm-pitch').value)
-            : 0,
-          distance: document.getElementById('gm-dist').value !== ''
-            ? Number(document.getElementById('gm-dist').value)
-            : 2.5,
-          scanned: false
-        });
-
+        const name = dom.gmName.value.trim();
+        if (!name) return;
+        const newGhost = {
+          id: 'gh-' + Date.now(),
+          name: name,
+          threatClass: dom.gmClass.value.trim() || 'Class-III Phantasm',
+          azimuth: dom.gmAz.value !== '' ? normalizeAngle(Number(dom.gmAz.value)) : Math.round(state.heading),
+          pitch: dom.gmPitch.value !== '' ? clamp(Number(dom.gmPitch.value), -45, 45) : Math.round(state.pitch),
+          distance: dom.gmDist.value !== '' ? clamp(Number(dom.gmDist.value), 1.2, 8.0) : 3.2,
+          scanProgress: 0,
+          status: 'immaterium',
+          breachTimer: 0,
+          phaseOffset: Math.random() * 6.28
+        };
         state.ghosts.push(newGhost);
         saveGhosts();
-        ThreeEngine.rebuildGhostMeshes();
-        renderGmGhostList();
-        dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
+        ThreeEngine.rebuildInstances();
         dom.gmAddForm.reset();
         showToast('DEPLOYED: ' + newGhost.name.toUpperCase());
       });
 
-      // GM Reset Defaults
-      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
-        state.ghosts = DEFAULT_GHOSTS.map(normalizeGhostRecord);
-        saveGhosts();
-        ThreeEngine.rebuildGhostMeshes();
-        renderGmGhostList();
-        dom.gmJsonBox.value = JSON.stringify(state.ghosts.map(normalizeGhostRecord), null, 2);
-        showToast('DEFAULT NECROMUNDA PACK RESTORED');
+      // GM Ghost List actions
+      dom.gmGhostList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        const id = btn.getAttribute('data-id');
+        const idx = state.ghosts.findIndex((g) => g.id === id);
+        if (idx === -1) return;
+
+        if (action === 'locate') {
+          state.targetHeading = state.ghosts[idx].azimuth;
+          state.targetPitch = state.ghosts[idx].pitch;
+          dom.gmModal.classList.add('hidden');
+          showToast('LOCKING ONTO ' + state.ghosts[idx].name.toUpperCase());
+        } else if (action === 'revive') {
+          state.ghosts[idx].status = 'immaterium';
+          state.ghosts[idx].scanProgress = 0;
+          state.ghosts[idx].breachTimer = 0;
+          saveGhosts();
+        } else if (action === 'delete') {
+          state.ghosts.splice(idx, 1);
+          saveGhosts();
+          ThreeEngine.rebuildInstances();
+        }
       });
 
-      // GM Copy JSON (iFrame-safe)
-      document.getElementById('btn-copy-json').addEventListener('click', () => {
+      dom.btnResetDefaults.addEventListener('click', () => {
+        state.ghosts = JSON.parse(JSON.stringify(DEFAULT_GHOSTS));
+        saveGhosts();
+        ThreeEngine.rebuildInstances();
+        showToast('DEFAULT SECTOR ENTITIES RESTORED');
+      });
+
+      dom.btnCopyJson.addEventListener('click', () => {
         try {
           dom.gmJsonBox.select();
           document.execCommand('copy');
           showToast('CAMPAIGN JSON COPIED');
         } catch (err) {
-          showToast('SELECT TEXT TO COPY MANUALLY');
+          showToast('SELECT & COPY TEXT MANUALLY');
         }
       });
 
-      // GM Load JSON
-      document.getElementById('btn-load-json').addEventListener('click', () => {
+      dom.btnLoadJson.addEventListener('click', () => {
         try {
           const parsed = JSON.parse(dom.gmJsonBox.value);
           if (!Array.isArray(parsed)) throw new Error('Expected array');
-          state.ghosts = parsed.map(normalizeGhostRecord);
+          state.ghosts = parsed;
           saveGhosts();
-          ThreeEngine.rebuildGhostMeshes();
-          renderGmGhostList();
-          showToast('LOADED ' + state.ghosts.length + ' CAMPAIGN ANOMALIES');
+          ThreeEngine.rebuildInstances();
+          showToast('CAMPAIGN JSON LOADED');
         } catch (err) {
-          showToast('ERROR: INVALID CAMPAIGN JSON FORMAT');
+          showToast('INVALID JSON FORMAT');
         }
       });
     }
 
-    // ==================== 12. SAFE STARTUP ====================
+    // ==================== 12. BOOTSTRAP ON WINDOW LOAD ====================
     window.onload = function () {
       loadGhosts();
       ThreeEngine.init();
-      resizeCanvas();
+      resizeCanvases();
       bindEvents();
-      lastFrameTime = performance.now();
+      renderGmList();
+      ThreeEngine.autoLoadModel();
       requestAnimationFrame(animate);
     };
   </script>
