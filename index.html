@@ -11,11 +11,12 @@
   <!-- Tone.js for procedural Auspex sonar pings, warp static, and beam audio -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
-  <!-- Classic Three.js r128 + GLTFLoader + DRACOLoader + SkeletonUtils -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+  <!-- Three.js r147 + GLTFLoader + DRACOLoader + MeshoptDecoder + SkeletonUtils -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.20.0/meshopt_decoder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script>
 
   <!-- Grimdark tactical monospace & display fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -697,11 +698,15 @@
 
           if (THREE.GLTFLoader) {
             this.loader = new THREE.GLTFLoader();
-            // Attach Draco decoder so compressed .glb models load seamlessly
+            // Attach Draco decoder so Draco-compressed .glb models load seamlessly
             if (THREE.DRACOLoader) {
               const dracoLoader = new THREE.DRACOLoader();
-              dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/');
+              dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
               this.loader.setDRACOLoader(dracoLoader);
+            }
+            // Attach MeshoptDecoder so Meshopt-compressed .glb models decode properly
+            if (window.MeshoptDecoder && typeof this.loader.setMeshoptDecoder === 'function') {
+              this.loader.setMeshoptDecoder(window.MeshoptDecoder);
             }
           }
         } catch (err) {
@@ -775,77 +780,130 @@
 
       loadFromFile(file) {
         if (!file || !this.loader) return;
-        const blobUrl = URL.createObjectURL(file);
-        this._setStatus('PARSING ' + file.name + '...', 'LOADING...', false);
+        this._setStatus('READING ' + file.name + '...', 'LOADING...', false);
         showToast('LOADING 3D MODEL...');
-        this.loader.load(
-          blobUrl,
-          (gltf) => {
-            this._applyGltf(gltf, file.name);
-            URL.revokeObjectURL(blobUrl);
-          },
-          undefined,
-          (err) => {
-            console.error('GLB file load error:', err);
-            URL.revokeObjectURL(blobUrl);
-            const msg = (err && err.message) ? err.message : 'Invalid or unsupported .glb';
+        file.arrayBuffer()
+          .then((buf) => this._parseGlbBuffer(buf, file.name, '', false))
+          .catch((err) => {
+            const msg = (err && err.message) ? err.message : 'Could not read file';
             this._setStatus('LOAD FAILED (2D FALLBACK)', 'ERROR', true, 'Error: ' + msg);
             showToast('ERROR: ' + msg);
-          }
-        );
+          });
       },
 
-      loadFromUrl(url, persist, isPreviewFallback) {
+      async _parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback) {
+        try {
+          // Validate GLB binary header if it starts with "glTF" (0x46546C67)
+          if (buffer.byteLength >= 12) {
+            const header = new DataView(buffer, 0, 12);
+            const magic = header.getUint32(0, true);
+            if (magic === 0x46546C67) {
+              const declaredLen = header.getUint32(8, true);
+              if (declaredLen > buffer.byteLength) {
+                throw new Error(
+                  'Truncated .glb file (' + Math.round(buffer.byteLength / 1024) + 'KB of ' +
+                  Math.round(declaredLen / 1024) + 'KB). Re-upload spirit.glb to GitHub.'
+                );
+              }
+            }
+          }
+
+          // Wait for WASM MeshoptDecoder to finish initializing if present
+          if (window.MeshoptDecoder && window.MeshoptDecoder.ready) {
+            await window.MeshoptDecoder.ready;
+          }
+
+          this._setStatus('PARSING ' + fileName + '...', 'PARSING...', false);
+
+          this.loader.parse(
+            buffer,
+            basePath || '',
+            (gltf) => {
+              this._applyGltf(gltf, fileName);
+            },
+            (err) => {
+              console.error('GLB parse error:', err);
+              const errMsg = (err && err.message) ? err.message : 'Unsupported .glb format';
+              if (isPreviewFallback) {
+                this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+              } else {
+                this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'PARSE ERROR', true, 'Failed to parse ' + fileName + ': ' + errMsg);
+                showToast('3D PARSE FAILED — CHECK GM PANEL');
+              }
+            }
+          );
+        } catch (err) {
+          console.warn('GLB validation/parse error:', err);
+          const errMsg = (err && err.message) ? err.message : 'Invalid .glb file';
+          if (isPreviewFallback) {
+            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+          } else {
+            this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'LOAD ERROR', true, errMsg);
+            showToast('3D LOAD FAILED — CHECK GM PANEL');
+          }
+        }
+      },
+
+      async loadFromUrl(url, persist, isPreviewFallback) {
         const cleanUrl = String(url || '').trim();
         if (!cleanUrl || !this.scene || !this.loader) return;
 
         const fileName = cleanUrl.split('/').pop().split('?')[0] || 'spirit.glb';
+        const basePath = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
         this._setStatus('DOWNLOADING ' + fileName + '...', 'LOADING...', false);
 
-        this.loader.load(
-          cleanUrl,
-          (gltf) => {
-            this._applyGltf(gltf, fileName);
-            if (dom.gmGlbUrl) dom.gmGlbUrl.value = cleanUrl;
-            if (persist) {
-              try {
-                localStorage.setItem(GLB_URL_STORAGE_KEY, cleanUrl);
-              } catch (e) {}
-            }
-          },
-          (xhr) => {
-            if (xhr && xhr.total > 0) {
-              const pct = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
-              this._setStatus('DOWNLOADING ' + fileName + ' (' + pct + '%)', pct + '%', false);
-            }
-          },
-          (err) => {
-            console.warn('Could not load .glb URL:', cleanUrl, err);
-            const errMsg = (err && err.message) ? err.message : 'File not found or unsupported format';
-            if (isPreviewFallback) {
-              this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
-            } else {
-              this._setStatus('FAILED: ' + errMsg.slice(0, 48), 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
-              showToast('3D LOAD FAILED — CHECK GM PANEL');
-            }
+        try {
+          const res = await fetch(cleanUrl);
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status + ' fetching ' + fileName);
           }
-        );
+          const buffer = await res.arrayBuffer();
+          if (dom.gmGlbUrl) dom.gmGlbUrl.value = cleanUrl;
+          if (persist) {
+            try {
+              localStorage.setItem(GLB_URL_STORAGE_KEY, cleanUrl);
+            } catch (e) {}
+          }
+          await this._parseGlbBuffer(buffer, fileName, basePath, isPreviewFallback);
+        } catch (err) {
+          console.warn('Could not fetch .glb URL:', cleanUrl, err);
+          const errMsg = (err && err.message) ? err.message : 'File not found';
+          if (isPreviewFallback) {
+            this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', true);
+          } else {
+            this._setStatus('FAILED: ' + errMsg.slice(0, 56), 'LOAD ERROR', true, 'Failed to load ' + cleanUrl + ': ' + errMsg);
+            showToast('3D LOAD FAILED — CHECK GM PANEL');
+          }
+        }
       },
 
       autoLoadModel() {
+        let paramUrl = '';
+        let savedUrl = '';
         try {
           const params = new URLSearchParams(window.location.search);
-          const paramUrl = params.get('model');
-          const savedUrl = localStorage.getItem(GLB_URL_STORAGE_KEY);
-          const targetUrl = paramUrl || savedUrl || DEFAULT_GLB_URL;
-          const isSandboxedPreview = window.location.protocol === 'about:' || window.location.protocol === 'blob:' || window.location.protocol === 'data:';
-          if (targetUrl) {
-            if (dom.gmGlbUrl) dom.gmGlbUrl.value = targetUrl;
-            this.loadFromUrl(targetUrl, Boolean(paramUrl), isSandboxedPreview);
-          }
-        } catch (err) {
-          console.warn('Auto-load check skipped:', err);
+          paramUrl = (params.get('model') || '').trim();
+        } catch (e) {}
+        try {
+          savedUrl = (localStorage.getItem(GLB_URL_STORAGE_KEY) || '').trim();
+        } catch (e) {}
+
+        const targetUrl = paramUrl || savedUrl || DEFAULT_GLB_URL;
+        if (!targetUrl) {
+          this._setStatus('2D SPECTRAL ICON ACTIVE', '2D FALLBACK', false);
+          return;
         }
+
+        // In blob/sandbox previews, relative './spirit.glb' isn't hosted alongside the HTML
+        const isBlobPreview = window.location.protocol === 'blob:' || window.location.protocol === 'about:';
+        const isRelativeDefault = !paramUrl && !savedUrl && targetUrl.startsWith('./');
+        if (isBlobPreview && isRelativeDefault) {
+          this._setStatus('2D ICON MODE (HOST WITH spirit.glb)', '2D FALLBACK', false);
+          return;
+        }
+
+        if (dom.gmGlbUrl) dom.gmGlbUrl.value = targetUrl;
+        this.loadFromUrl(targetUrl, Boolean(paramUrl), isBlobPreview);
       },
 
       clearModel() {
